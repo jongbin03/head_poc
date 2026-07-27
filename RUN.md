@@ -76,12 +76,16 @@ pip show torch transformers lxt accelerate bitsandbytes
 
 GPU 메모리 걱정 없이 코드 버그(shape, span 오프셋, grad None 등)를 먼저 잡는다.
 
+`dataset.py`는 기본으로 30개 템플릿(콘텐츠 도메인 6개 x 공격 문구 스타일 5개)을
+만든다. Phase 0에서는 `--dataset_limit`으로 앞에서 몇 개만 잘라 빠르게 돈다.
+
 ```bash
 python run_pipeline.py \
   --model Qwen/Qwen2.5-0.5B-Instruct \
   --family qwen2 \
   --device cuda \
-  --topk 20
+  --topk 20 \
+  --dataset_limit 2
 ```
 
 **체크리스트 (하나라도 안 되면 다음 단계로 넘어가지 말 것):**
@@ -135,20 +139,18 @@ python run_pipeline.py \
 | `jaccard(internal, external)` 낮음 | tool-call 포맷팅이 별도 head를 추가 동원 → 포맷별로 head 탐색을 따로 해야 함 (negative result지만 보고 가치 있음) |
 | `control_heads_both` | Phase 1 knockout 후보 목록. `[4/4]` sweep이 여기서 뽑은 head들을 knock out함 |
 
-OOM이 나면 `--model`을 다시 1.5B로 낮추고, 그래도 나면 `dataset.py`의
-템플릿 문장 길이를 줄인다 (attention tensor 메모리가 시퀀스 길이 제곱에 비례).
+기본 데이터셋은 30개 템플릿(도메인 6 x 공격 문구 스타일 5) x (internal/external)
+x (read/internal/external relevance) = 180회 forward+backward라 0.5B보다
+시간이 걸린다. 처음 한 번은 `--dataset_limit 6`(도메인당 1개) 정도로 먼저
+전체 파이프라인이 끝까지 도는지 확인한 뒤 전체(30개)로 올리는 걸 권장.
+
+OOM이 나면 `--model`을 다시 1.5B로 낮추거나 `--dataset_limit`으로 템플릿
+수를 줄인다 (attention tensor 메모리가 시퀀스 길이 제곱에 비례하므로 템플릿
+문장이 긴 도메인부터 영향을 받는다).
 
 ---
 
-## 5단계 — (선택) `dataset.py` 템플릿 확장
-
-`sample_templates()`가 지금 템플릿 2개뿐이라 통계적으로 얇다. 20~30개로
-슬롯(이름/시간/금액/공격 문구)을 늘리는 걸 권장 — 이건 실험 설계 판단이
-들어가는 부분이라 별도로 상의해서 진행.
-
----
-
-## 6단계 — Phase 4: 8B급 스케일 검증 (선택)
+## 5단계 — Phase 4: 8B급 스케일 검증 (선택)
 
 ```bash
 python run_pipeline.py \

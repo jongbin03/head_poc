@@ -35,6 +35,12 @@ def main():
     parser.add_argument("--device", default="cuda")
     parser.add_argument("--four_bit", action="store_true")
     parser.add_argument("--topk", type=int, default=20)
+    parser.add_argument(
+        "--dataset_limit",
+        type=int,
+        default=None,
+        help="템플릿 개수를 앞에서부터 제한 (Phase 0 smoke test용, 예: 2). 기본값은 전체(30개).",
+    )
     args = parser.parse_args()
 
     print(f"[1/4] loading {args.model} (family={args.family}, four_bit={args.four_bit}) ...")
@@ -43,7 +49,7 @@ def main():
     )
 
     print("[2/4] building synthetic IPI dataset ...")
-    pairs = build_phase0_batch(tok, device=args.device)
+    pairs = build_phase0_batch(tok, device=args.device, limit=args.dataset_limit)
 
     read_scores_list, internal_scores_list, external_scores_list = [], [], []
 
