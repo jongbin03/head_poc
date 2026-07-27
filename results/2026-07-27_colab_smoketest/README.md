@@ -64,7 +64,8 @@ Sliding Window Attention is enabled but not implemented for `eager`; unexpected 
 
 ## 해석 (n=2, 통계적 의미 없는 스모크 테스트 수준)
 
-- `malicious_token_prob`: 0.9386 → 0.0000 (control head 5~10개 knockout만으로 급격히 붕괴)
+- `malicious_token_prob`: 0.9386 → 0.0000 (control head 5~10개의 D_inj-attention edge만
+  끊어도 — head 자체는 안 끄고 — 급격히 붕괴)
 - `read_token_prob`: 0.6071 → 0.6572 (거의 유지, 오히려 소폭 상승) — 정상 기능 보존 신호
 - `jaccard(internal, external)=0.481` > `jaccard(read, internal)=0.143`, `jaccard(read, external)=0.250`
   → 내부 응답 오염과 외부 tool-call 오염이 상당 부분 같은 control head 회로를 공유한다는
