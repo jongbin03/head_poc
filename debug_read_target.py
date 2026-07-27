@@ -72,8 +72,17 @@ def main():
             prompt_text = tok.decode(sample.input_ids[0])
             print(f"  prompt tail: ...{prompt_text[-120:]!r}")
 
+            # attention_mask를 명시적으로 전부 1(패딩 없음)로 넘긴다. 안 넘기면
+            # HF가 "input_ids 중 pad_token_id와 같은 값은 패딩"이라고 자동 추정하는데,
+            # 이 모델은 pad_token_id == eos_token_id라서 프롬프트 안에 우연히 eos와
+            # 같은 토큰 id가 있으면 그 부분이 실제 내용인데도 마스킹돼 attention이
+            # 깨진다 (model()과 generate()가 서로 다른 로짓/토큰을 내는 원인이었음).
+            attention_mask = torch.ones_like(sample.input_ids)
+
             with torch.no_grad():
-                out = model(input_ids=sample.input_ids, use_cache=False)
+                out = model(
+                    input_ids=sample.input_ids, attention_mask=attention_mask, use_cache=False,
+                )
                 next_logits = out.logits[0, -1]
 
             show_topk(next_logits, tok, sample.read_target, topn=10)
@@ -81,8 +90,10 @@ def main():
             with torch.no_grad():
                 gen = model.generate(
                     input_ids=sample.input_ids,
+                    attention_mask=attention_mask,
                     max_new_tokens=args.gen_tokens,
                     do_sample=False,
+                    pad_token_id=tok.eos_token_id,
                 )
             gen_text = tok.decode(gen[0, sample.input_ids.shape[1]:], skip_special_tokens=True)
             print(f"  greedy continuation: {gen_text!r}")
