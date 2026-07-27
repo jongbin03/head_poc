@@ -19,6 +19,16 @@ import torch
 def _build_head_key_mask(num_heads: int, seq_len: int, heads: List[int], key_positions: List[int]) -> torch.Tensor:
     mask = torch.zeros(num_heads, seq_len, dtype=torch.bool)
     if heads and key_positions:
+        # span은 특정 예시의 토큰 인덱스라서, 다른 예시(길이가 다른 프롬프트)에
+        # 잘못 적용하면 엉뚱한 위치를 마스킹하게 된다. 범위를 벗어나면 조용히
+        # 넘어가지 말고 여기서 크게 터뜨려서 span/입력 짝이 어긋난 걸 즉시 알린다.
+        bad = [p for p in key_positions if not (0 <= p < seq_len)]
+        if bad:
+            raise IndexError(
+                f"key_positions가 입력 길이를 벗어남 (seq_len={seq_len}, "
+                f"위반 인덱스 예: {bad[:5]}). 다른 예시의 span을 쓰고 있지 않은지 확인할 것 "
+                f"— internal/external은 system prompt 길이가 달라 span이 서로 어긋난다."
+            )
         # 주의: mask[heads][:, key_positions] = True 는 fancy indexing이 만든 '복사본'에
         # 쓰는 것이라 원본 mask가 조용히 안 바뀌는 전형적인 PyTorch/numpy 함정이다.
         # 반드시 단일 __setitem__ 호출(advanced indexing)로 broadcasting해서 써야 한다.
@@ -120,17 +130,28 @@ def next_token_prob(model, input_ids: torch.Tensor, target_token_id: int) -> flo
 def sweep_knockout(
     model,
     modeling_mod,
-    example,  # dataset.IPIExample (external/internal 버전)
-    read_example,  # 같은 데이터의 read 버전 (tool_calling=False, question이 benign 질문)
+    exec_examples: List,   # dataset.IPIExample 리스트 (보통 mode="external")
+    read_examples: List,   # 같은 템플릿의 read 버전 리스트 (mode="read_injected")
     ranked_control_heads: List[tuple],  # head_ranking.topk_heads 결과, (layer, head) 내림차순
     ks: Optional[List[int]] = None,
 ) -> List[dict]:
     """
     Atlas Fig.2 스타일 sweep: ranked_control_heads의 상위 k개를 순서대로 늘려가며
     knockout했을 때 (악성 토큰 확률, 정상 read 토큰 확률)이 어떻게 변하는지 기록.
+
+    예시 하나만 쓰면 분산이 커서 knockout 효과를 신뢰할 수 없으므로, 넘겨받은
+    예시 전체에 대해 확률을 구한 뒤 평균낸다.
+
+    ⚠️ span은 예시마다 다르다. external은 system prompt에 tool 스펙이 붙어 모든
+    span이 뒤로 밀리고 assistant_prefix 길이도 달라서, read 버전과 data_inj
+    인덱스가 서로 어긋난다. 따라서 knockout 대상 위치는 반드시 "그 forward에
+    실제로 넣는 예시" 자신의 span에서 가져와야 한다.
+
+    read_examples는 data_inj span이 있는 버전(mode="read_injected")이어야 한다.
+    주입문이 없는 read_clean을 넣으면 끊을 엣지가 없어 utility 축이 k와 무관하게
+    평평해진다.
     """
     ks = ks if ks is not None else [0, 5, 10, 20, 40, 80]
-    key_positions = example.spans.get("data_inj", [])
 
     results = []
     for k in ks:
@@ -138,11 +159,23 @@ def sweep_knockout(
         for layer, head in ranked_control_heads[:k]:
             knockout_map.setdefault(layer, []).append(head)
 
-        with edge_knockout(modeling_mod, knockout_map, key_positions):
-            asr_prob = next_token_prob(model, example.input_ids, example.exec_target)
-        with edge_knockout(modeling_mod, knockout_map, key_positions):
-            read_prob = next_token_prob(model, read_example.input_ids, read_example.read_target)
+        asr_probs, read_probs = [], []
 
-        results.append({"k": k, "malicious_token_prob": asr_prob, "read_token_prob": read_prob})
+        for ex in exec_examples:
+            with edge_knockout(modeling_mod, knockout_map, ex.spans.get("data_inj", [])):
+                asr_probs.append(next_token_prob(model, ex.input_ids, ex.exec_target))
+
+        for ex in read_examples:
+            with edge_knockout(modeling_mod, knockout_map, ex.spans.get("data_inj", [])):
+                read_probs.append(next_token_prob(model, ex.input_ids, ex.read_target))
+
+        results.append(
+            {
+                "k": k,
+                "malicious_token_prob": sum(asr_probs) / len(asr_probs) if asr_probs else 0.0,
+                "read_token_prob": sum(read_probs) / len(read_probs) if read_probs else 0.0,
+                "n_examples": len(asr_probs),
+            }
+        )
 
     return results

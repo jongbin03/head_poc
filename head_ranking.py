@@ -16,6 +16,21 @@ def aggregate_scores(list_of_group_scores: List[Dict[str, torch.Tensor]], group:
     return stacked.mean(dim=0)  # [num_layers, num_heads]
 
 
+def normalize_score(score: torch.Tensor) -> torch.Tensor:
+    """
+    relevance를 전체 합=1로 정규화한다.
+
+    왜 필요한가: internal/external은 프롬프트 길이와 타깃 토큰이 달라 relevance의
+    절대 스케일이 다르다. 정규화 없이 `internal_score + external_score`로 합치면
+    스케일이 큰 쪽이 control head 랭킹을 독점해서, "양쪽 모두에서 상위인 head"를
+    찾겠다는 원래 의도가 깨진다.
+    """
+    total = score.sum()
+    if total <= 0:
+        return score
+    return score / total
+
+
 def topk_heads(score: torch.Tensor, k: int) -> List[Tuple[int, int]]:
     """score: [num_layers, num_heads] -> top-k (layer, head) 인덱스 리스트 (내림차순)."""
     flat = score.flatten()

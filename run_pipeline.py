@@ -24,7 +24,13 @@ import torch
 
 from dataset import build_phase0_batch
 from attn_relevance import load_model_for_relevance, compute_head_relevance
-from head_ranking import aggregate_scores, summarize_overlap, plot_functional_map, topk_heads
+from head_ranking import (
+    aggregate_scores,
+    summarize_overlap,
+    plot_functional_map,
+    topk_heads,
+    normalize_score,
+)
 from edge_ablation import sweep_knockout
 
 
@@ -53,15 +59,18 @@ def main():
 
     read_scores_list, internal_scores_list, external_scores_list = [], [], []
 
-    for internal_ex, external_ex in pairs:
-        # read: 정상 컨텐츠(D_benign)를 읽는지 -> target=read_target, 관심 group='data_benign'
+    for ex in pairs:
+        # read: 정상 컨텐츠(D_benign)를 읽는지. 주입문이 없는 clean 프롬프트에서 재서
+        # read head의 baseline이 공격에 오염되지 않게 한다.
+        read_ex = ex["read_clean"]
         read_groups = compute_head_relevance(
-            model, internal_ex.input_ids, internal_ex.read_target,
-            key_spans={"data_benign": internal_ex.spans["data_benign"]},
+            model, read_ex.input_ids, read_ex.read_target,
+            key_spans={"data_benign": read_ex.spans["data_benign"]},
         )
         read_scores_list.append(read_groups)
 
         # internal: 자유 텍스트 답변이 D_inj의 영향을 받는지 -> target=exec_target
+        internal_ex = ex["internal"]
         internal_groups = compute_head_relevance(
             model, internal_ex.input_ids, internal_ex.exec_target,
             key_spans={"data_inj": internal_ex.spans["data_inj"]},
@@ -69,6 +78,7 @@ def main():
         internal_scores_list.append(internal_groups)
 
         # external: tool_call 인자가 D_inj의 영향을 받는지 -> target=exec_target
+        external_ex = ex["external"]
         external_groups = compute_head_relevance(
             model, external_ex.input_ids, external_ex.exec_target,
             key_spans={"data_inj": external_ex.spans["data_inj"]},
@@ -95,15 +105,23 @@ def main():
     else:
         from transformers.models.llama import modeling_llama as modeling_mod
 
-    control_ranking: List = topk_heads(internal_score + external_score, args.topk * 2)
-    internal_ex0, external_ex0 = pairs[0]
+    # internal/external은 프롬프트 길이·타깃이 달라 relevance 절대 스케일이 다르다.
+    # 각각 정규화한 뒤 더해야 한쪽이 랭킹을 독점하지 않는다.
+    combined = normalize_score(internal_score) + normalize_score(external_score)
+    control_ranking: List = topk_heads(combined, args.topk * 2)
+
+    # 예시 하나가 아니라 데이터셋 전체 평균으로 knockout 효과를 측정.
+    # utility(read) 축은 끊을 D_inj 엣지가 있어야 하므로 read_injected를 쓴다.
+    exec_examples = [ex["external"] for ex in pairs]
+    read_examples = [ex["read_injected"] for ex in pairs]
     sweep_results = sweep_knockout(
-        model, modeling_mod, external_ex0, internal_ex0, control_ranking,
+        model, modeling_mod, exec_examples, read_examples, control_ranking,
     )
     for row in sweep_results:
         print(
             f"  k={row['k']:>3}  malicious_token_prob={row['malicious_token_prob']:.4f}"
             f"  read_token_prob={row['read_token_prob']:.4f}"
+            f"  (n={row['n_examples']})"
         )
 
 

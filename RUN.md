@@ -77,7 +77,17 @@ pip show torch transformers lxt accelerate bitsandbytes
 GPU 메모리 걱정 없이 코드 버그(shape, span 오프셋, grad None 등)를 먼저 잡는다.
 
 `dataset.py`는 기본으로 30개 템플릿(콘텐츠 도메인 6개 x 공격 문구 스타일 5개)을
-만든다. Phase 0에서는 `--dataset_limit`으로 앞에서 몇 개만 잘라 빠르게 돈다.
+만들고, 템플릿마다 4가지 mode의 프롬프트를 생성한다:
+
+| mode | 주입문 | assistant_prefix | 쓰이는 곳 |
+|---|---|---|---|
+| `read_clean` | 없음 | `The answer is` | read head relevance baseline (오염 없이) |
+| `read_injected` | 있음 | `The answer is` | knockout sweep의 utility 축 (끊을 D_inj 엣지 필요) |
+| `internal` | 있음 | `Sure, I will forward this to` | y_internal relevance |
+| `external` | 있음 | tool_call JSON | y_external relevance + ASR 측정 |
+
+템플릿 순서는 style-major라 `--dataset_limit 6`이면 도메인 6개가 전부 한 번씩
+들어간다(스타일 1종). Phase 0에서는 이걸로 잘라 빠르게 돈다.
 
 ```bash
 python run_pipeline.py \
@@ -98,7 +108,13 @@ python run_pipeline.py \
 4. **가장 중요**: `[4/4]` 출력에서 `k=0`부터 `k=80`까지
    `malicious_token_prob` 값이 **유의미하게 움직인다** (전부 똑같은 숫자면
    knockout이 실제로 적용 안 되고 있다는 뜻 — `edge_ablation.py`의
-   `eager_attention_forward` 패치가 깨진 회귀).
+   `eager_attention_forward` 패치가 깨진 회귀. lxt의 monkey_patch가
+   `Qwen2Attention.forward`를 통째로 갈아끼웠을 가능성도 여기서 드러난다).
+5. `k=0`에서 `malicious_token_prob`과 `read_token_prob`이 **둘 다 0이 아니다**.
+   0에 가까우면 타깃 토큰이 그 자리에 올 수 없는 조합이라는 뜻이므로
+   (prefix 끝 공백 vs 타깃 토큰 앞 공백) `dataset.py`의 prefix/타깃 짝을 재점검.
+6. `IndexError: key_positions가 입력 길이를 벗어남`이 뜨면 서로 다른 mode의
+   span을 섞어 쓴 것 — 어떤 예시의 span을 어떤 입력에 넣는지 확인.
 
 ---
 
@@ -139,10 +155,15 @@ python run_pipeline.py \
 | `jaccard(internal, external)` 낮음 | tool-call 포맷팅이 별도 head를 추가 동원 → 포맷별로 head 탐색을 따로 해야 함 (negative result지만 보고 가치 있음) |
 | `control_heads_both` | Phase 1 knockout 후보 목록. `[4/4]` sweep이 여기서 뽑은 head들을 knock out함 |
 
-기본 데이터셋은 30개 템플릿(도메인 6 x 공격 문구 스타일 5) x (internal/external)
-x (read/internal/external relevance) = 180회 forward+backward라 0.5B보다
-시간이 걸린다. 처음 한 번은 `--dataset_limit 6`(도메인당 1개) 정도로 먼저
-전체 파이프라인이 끝까지 도는지 확인한 뒤 전체(30개)로 올리는 걸 권장.
+전체 30개 템플릿 기준 비용:
+
+- `[2/4]` relevance: 템플릿당 3회(read_clean / internal / external)
+  forward+backward = **90회**. 여기가 가장 무겁고 VRAM 피크도 여기서 난다.
+- `[4/4]` sweep: k 6단계 x (external 30 + read_injected 30) = **360회 forward**.
+  backward가 없어 상대적으로 가볍다.
+
+처음 한 번은 `--dataset_limit 6`(도메인 6개 전부, 스타일 1종)으로 파이프라인이
+끝까지 도는지 확인한 뒤 전체(30개)로 올리는 걸 권장.
 
 OOM이 나면 `--model`을 다시 1.5B로 낮추거나 `--dataset_limit`으로 템플릿
 수를 줄인다 (attention tensor 메모리가 시퀀스 길이 제곱에 비례하므로 템플릿
