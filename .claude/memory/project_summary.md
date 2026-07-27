@@ -28,8 +28,16 @@ GitHub: `jongbin03/head_poc` (origin, `atlas_poc/` 폴더가 로컬 프로젝트
 - `debug_read_target.py` — read_target 토큰이 실제로 모델 응답과 맞는지 top-k logit +
   greedy continuation으로 직접 확인하는 디버깅 스크립트
 - `head_poc.ipynb` — Colab 실행 순서를 정리한 노트북 (VS Code의 Colab GPU 연결용)
-- `RUN.md` — 로컬 5070Ti 기준 실행 가이드, `README.md` — 설계 노트
-- `TODO.md` — 다음 할 일 (아래 참고)
+- `RUN.md` — 로컬 5070Ti 기준 실행 가이드
+- `README.md` — **설계 노트가 아니라 실제 실행 중인 방법론 설명 문서** (커밋 `8b1fbeb`로
+  재작성됨: head를 찾는 AttnLRP 방법, head 랭킹/겹침 분석, edge 차단 구현 원리, 데이터셋
+  설계, 알려진 함정을 코드 그대로 설명)
+- `TODO.md` — 다음 할 일, **우선순위 P0~P3 순으로 정리됨** (아래 "다음 할 일" 및
+  `next_priorities.md` 참고)
+- `head_poc_presentation.pptx` — 내부 발표용 슬라이드(19장, python-pptx로 생성). **로컬
+  파일로만 존재, git에는 커밋 안 함** (사용자가 "그건 필요 없다"고 명시). 같은 내용을
+  claude.ai 아티팩트(HTML 슬라이드)로도 만들어 링크 공유했었음 — 세션이 달라지면 그 URL은
+  못 찾으니, 다시 필요하면 이 프로젝트 요약을 근거로 재생성할 것.
 
 ## 실행 환경 관련 확정 사항
 
@@ -93,13 +101,17 @@ GitHub: `jongbin03/head_poc` (origin, `atlas_poc/` 폴더가 로컬 프로젝트
 자세한 원본 로그: `results/2026-07-27_colab_smoketest/README.md`,
 `results/2026-07-27_colab_phase1to3/README.md` 참고.
 
-## 다음 할 일 (TODO.md 상세 참고)
+## 다음 할 일 — 우선순위 P0~P3 (자세한 내용은 `next_priorities.md` 및 `TODO.md` 참고)
 
-**채널 분기(internal vs external) 담당 head 분리 실험**: 지금까지는 `internal_heads ∩
-external_heads`(공통 control head)만 봤음. "명령을 따르기로 한 뒤, 자유 텍스트로 낼지
-tool-call로 낼지를 가르는 head"는 아직 식별 안 됨 — `external_heads - internal_heads` /
-`internal_heads - external_heads`(대칭차)를 `head_ranking.py`에 추가하고,
-`edge_ablation.py`로 그 head들만 knockout해서 채널별로 분리 검증해야 함.
+1. **P0**: 로컬 5070Ti 환경에서 지금까지의 파이프라인(Phase 0~3)을 재현 — 7B 실험의 전제 조건
+2. **P1**: Qwen2.5-7B(8B급)로 본 실험 확장, 5070Ti에서 진행
+3. **P2**: 외부/추가 데이터셋으로 기존 `control_heads_both`의 edge knockout 효과 검증
+   (held-out 분리 / 미지의 공격 문구 / InjecAgent 등 외부 IPI 벤치마크)
+4. **P3**: control head 내 internal-only vs external-only 채널 분기 검증 (기존 "채널 분기"
+   실험 — `external_heads - internal_heads` / `internal_heads - external_heads` 대칭차)
+
+부작용(collateral damage) 측정, Llama 계열 교차검증, path patching, 실전 배포 전환은
+`TODO.md`의 "보류" 섹션으로 미뤄짐.
 
 ## 협업 방식 관련 메모
 
@@ -110,3 +122,9 @@ tool-call로 낼지를 가르는 head"는 아직 식별 안 됨 — `external_he
 - 코드/설계에 대해 틀렸을 수 있는 부분은 사용자가 직접 짚어서 정정을 요구하는 경우가 많음
   (예: "control head 찾는 방법 설명해줘", "head knockout이 아니라 edge knockout 아니야?").
   설명할 때 용어를 정확히 쓰는 것을 중요하게 여김.
+- 내부 발표자료(슬라이드)를 요청할 때는 claude.ai 아티팩트(HTML)로 먼저 구상/시안을 보여준
+  뒤, 실제 파일 형식(pptx 등)이 필요하면 별도로 요청하는 패턴. pptx는 git에 커밋하지 않음
+  (바이너리 산출물은 로컬 전용으로 취급, 코드/문서만 커밋).
+- 매 세션 끝에 `.claude/memory/project_summary.md`(및 관련 파일)를 최신 상태로 갱신해달라고
+  명시적으로 요청하는 경우가 있음 — 요청 없이도 큰 진행 단계(버그 수정, 실험 완료, 우선순위
+  변경)마다 최신화해두는 게 좋음.
