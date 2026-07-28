@@ -6,7 +6,7 @@
 |---|---|---|
 | ~~P0~~ | ~~로컬 5070Ti 환경에서 파이프라인 전체 재현~~ | **완료** (2026-07-28, `results/2026-07-28_local_5070ti`) |
 | ~~P1~~ | ~~Qwen2.5-7B(8B급)로 본 실험 확장~~ | **완료** (2026-07-28, 4bit, 같은 결과 폴더) |
-| P2 | 외부/추가 데이터셋으로 기존 control head의 edge knockout 효과 검증 | ~~held-out~~ ~~외부 벤치마크~~ 완료 + 미지 문구(P2-b, 재개 검토) |
+| ~~P2~~ | ~~외부/추가 데이터셋으로 기존 control head의 edge knockout 효과 검증~~ | **완료** (2026-07-28, P2-a/b/c 전부) |
 | P3 | control head 내 internal-only vs external-only 채널 분기 검증 | 기존 채널 분기 실험 |
 
 아래는 우선순위 순서대로 자세한 내용, 그 뒤에 보류 항목.
@@ -74,19 +74,26 @@ vs 우리의 노골적인 "IGNORE ALL..." 스타일) 때문으로 추정 — 아
 InjecAgent 원본 데이터는 git에 커밋하지 않음(`external_injecagent/`, `.gitignore`에 추가) —
 재현하려면 `git clone https://github.com/uiuc-kang-lab/InjecAgent.git external_injecagent`.
 
-### P2-b. 미지의 공격 문구로 확장 — 재개 검토 (2026-07-28, P2-c 결과 나온 후 갱신)
+### ~~P2-b. 미지의 공격 문구로 확장~~ — 완료 (2026-07-28)
 
-애초 "P2-c가 성공하면 P2-b는 불필요"로 보류했으나, P2-c 결과가 **완전한 억제는 아닌
-부분적 전이**로 나와서 원인 분리가 실제로 필요해졌다: 지금 InjecAgent 결과만으로는
-잔여 공격 확률이 "문구가 더 은근해서"인지 "도메인 구조(tool-call observation)가 달라서"
-인지 구분이 안 된다. P2-b(도메인은 우리 것 그대로 두고 문구만 새로 추가)를 돌려서, 만약
-그것도 완전히 안 죽으면 "특정 문구 패턴 과적합" 쪽에 더 무게가 실림.
+P2-c 결과가 부분적 전이(완전한 억제 아님)로 나와서, "문구 때문인지 도메인 구조 때문인지"
+분리하기 위해 재개. `dataset.py`에 `_INJECTION_STYLES_UNSEEN`(다국어 혼용/코드블록 위장/
+유니코드 난독화/짧고 우회적인 표현, 4종) + `sample_unseen_templates()`/
+`build_unseen_style_batch()` 추가, `run_pipeline.py --unseen_styles` 옵션으로 기존 5종에서
+찾은 `control_heads_both`를 그대로(재선정 없이) 새 스타일 4종 x 도메인 6종(24개)에 적용.
 
-1. `_INJECTION_STYLES`에 없는 새로운 스타일(다국어 혼용, 코드블록 위장, 유니코드
-   난독화, 더 짧고 우회적인 표현 등) 추가 작성
-2. 기존 5종으로 찾은 `control_heads_both`를 그대로 써서 새 스타일에 edge knockout 적용
-3. 여전히 `malicious_token_prob`이 죽는지 확인 — 안 죽으면 "특정 문구 패턴에 과적합된
-   head"라는 뜻이므로 방어 범위에 대한 중요한 negative result
+| 모델 | 기존 5종 baseline→k=10 | 미지 4종 baseline→k=10 |
+|---|---|---|
+| 1.5B | 0.9118 → 0.0000 | 0.9228 → 0.0000 |
+| 7B(4bit) | 0.9690 → 0.0000 | 0.9998 → 0.0000 |
+
+**결론**: 완전히 새로운 표현 방식(다국어/코드블록 위장/유니코드 난독화/극단적으로 짧은
+문구)에도 두 스케일 모두 기존 5종과 **동일하게 k=10 안에 완전히 붕괴** — 문구는 knockout
+효과를 전혀 약화시키지 않음. 이는 P2-c의 부분적 전이가 문구 때문이 아니라 **도메인/데이터
+구조 차이**(우리 데이터셋의 단순 이메일/문서 구조 vs InjecAgent의 tool-call observation
+내부에 심어진 구조) 때문이라는 가설을 뒷받침함. 결과:
+`results/2026-07-28_Qwen-Qwen2-5-1-5B-Instruct_unseen/summary.txt`,
+`results/2026-07-28_Qwen-Qwen2-5-7B-Instruct_4bit_unseen/summary.txt`.
 
 ## P3. control head 내 internal-only vs external-only 채널 분기 검증
 

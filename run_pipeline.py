@@ -25,7 +25,7 @@ from typing import List
 
 import torch
 
-from dataset import build_phase0_batch
+from dataset import build_phase0_batch, build_unseen_style_batch
 from attn_relevance import load_model_for_relevance, compute_head_relevance
 from head_ranking import (
     aggregate_scores,
@@ -80,6 +80,13 @@ def main():
         "--injecagent_limit", type=int, default=None,
         help="InjecAgent test case 개수를 앞에서부터 제한 (--injecagent 사용 시, 기본 전체).",
     )
+    parser.add_argument(
+        "--unseen_styles",
+        action="store_true",
+        help="P2-b: _INJECTION_STYLES_UNSEEN(다국어 혼용/코드블록 위장/유니코드 난독화/"
+        "짧고 우회적인 표현, 4종 x 도메인 6종 = 24개)에도 control_heads_both로 knockout "
+        "sweep을 추가로 돌린다. head 선정에는 절대 섞이지 않는 순수 평가 전용 데이터셋.",
+    )
     args = parser.parse_args()
 
     if args.out_dir:
@@ -89,6 +96,8 @@ def main():
         suffix = "_4bit" if args.four_bit else ""
         if args.heldout_style_idx is not None:
             suffix += f"_heldout{args.heldout_style_idx}"
+        if args.unseen_styles:
+            suffix += "_unseen"
         date_str = datetime.date.today().isoformat()
         run_dir = os.path.join("results", f"{date_str}_{model_slug}{suffix}")
     os.makedirs(run_dir, exist_ok=True)
@@ -221,6 +230,22 @@ def main():
                 f"  (n={row['n_examples']})"
             )
 
+    unseen_sweep_results = None
+    if args.unseen_styles:
+        print("[P2-b] building unseen-style dataset (_INJECTION_STYLES_UNSEEN) ...")
+        unseen_pairs = build_unseen_style_batch(tok, device=args.device)
+        unseen_exec_examples = [ex["external"] for ex in unseen_pairs]
+        unseen_read_examples = [ex["read_injected"] for ex in unseen_pairs]
+        unseen_sweep_results = sweep_knockout(
+            model, modeling_mod, unseen_exec_examples, unseen_read_examples, control_ranking,
+        )
+        for row in unseen_sweep_results:
+            print(
+                f"  [unseen-style] k={row['k']:>3}  malicious_token_prob={row['malicious_token_prob']:.4f}"
+                f"  read_token_prob={row['read_token_prob']:.4f}"
+                f"  (n={row['n_examples']})"
+            )
+
     summary_path = os.path.join(run_dir, "summary.txt")
     with open(summary_path, "w", encoding="utf-8") as f:
         f.write(f"model={args.model} family={args.family} four_bit={args.four_bit} "
@@ -249,6 +274,14 @@ def main():
         if injecagent_sweep_results is not None:
             f.write(f"\n-- InjecAgent external benchmark (n={len(injecagent_examples)} test cases) --\n")
             for row in injecagent_sweep_results:
+                f.write(
+                    f"k={row['k']:>3}  malicious_token_prob={row['malicious_token_prob']:.4f}"
+                    f"  read_token_prob={row['read_token_prob']:.4f}"
+                    f"  (n={row['n_examples']})\n"
+                )
+        if unseen_sweep_results is not None:
+            f.write(f"\n-- unseen-style (P2-b, _INJECTION_STYLES_UNSEEN, excluded from head selection) --\n")
+            for row in unseen_sweep_results:
                 f.write(
                     f"k={row['k']:>3}  malicious_token_prob={row['malicious_token_prob']:.4f}"
                     f"  read_token_prob={row['read_token_prob']:.4f}"

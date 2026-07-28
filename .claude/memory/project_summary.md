@@ -172,15 +172,32 @@ https://github.com/uiuc-kang-lab/InjecAgent.git external_injecagent`.
 `results/2026-07-28_Qwen-Qwen2-5-1-5B-Instruct/summary.txt`,
 `results/2026-07-28_Qwen-Qwen2-5-7B-Instruct_4bit/summary.txt`.
 
-## 다음 할 일 — 우선순위 P2-b~P3 (2026-07-28 갱신, 자세한 내용은 `next_priorities.md` 및 `TODO.md` 참고)
+## 실험 결과 (2026-07-28, 로컬 RTX 5070Ti, P2-b 미지의 공격 문구 완료 — P2 전체 완료)
 
-P0(로컬 5070Ti 재현)/P1(7B 확장)/P2-a(held-out split)/P2-c(InjecAgent)는 완료됨.
-다음 우선순위:
+`dataset.py`에 `_INJECTION_STYLES_UNSEEN`(다국어 혼용/코드블록 위장/유니코드 난독화/짧고
+우회적인 표현, 4종) + `sample_unseen_templates()`/`build_unseen_style_batch()` 추가,
+`run_pipeline.py --unseen_styles`로 기존 5종에서 찾은 `control_heads_both`를 그대로
+(재선정 없이) 새 문구 4종 x 도메인 6종(24개, 도메인은 그대로 유지)에 적용 — P2-c 결과가
+완전한 억제가 아니었던 게 "문구" 때문인지 "도메인 구조" 때문인지 분리하려는 통제 실험.
 
-1. **P2-b (재개 검토)**: `_INJECTION_STYLES`에 없는 미지의 공격 문구 스타일 추가해서 기존
-   `control_heads_both`가 여전히 먹히는지 확인 — P2-c가 완전한 억제가 아닌 부분적 전이로
-   나와서, 잔여 공격 확률이 문구 때문인지 도메인 구조 때문인지 분리하는 용도로 필요해짐
-2. **P3**: control head 내 internal-only vs external-only 채널 분기 검증 (기존 "채널 분기"
+| 모델 | 기존 5종 baseline→k=10 | 미지 4종 baseline→k=10 |
+|---|---|---|
+| 1.5B | 0.9118 → 0.0000 | 0.9228 → 0.0000 |
+| 7B(4bit) | 0.9690 → 0.0000 | 0.9998 → 0.0000 |
+
+**결론**: 완전히 새로운 표현 방식에도 두 스케일 모두 기존 5종과 동일하게 k=10 안에
+완전히 붕괴 — **문구는 knockout 효과를 전혀 약화시키지 않음**. 따라서 P2-c(InjecAgent)의
+부분적 전이는 문구가 아니라 **도메인/데이터 구조 차이**(우리 데이터셋의 단순 구조 vs
+tool-call observation 안에 심어진 구조) 때문이라는 결론. 결과:
+`results/2026-07-28_Qwen-Qwen2-5-1-5B-Instruct_unseen/summary.txt`,
+`results/2026-07-28_Qwen-Qwen2-5-7B-Instruct_4bit_unseen/summary.txt`.
+**P2(P2-a/b/c 전부)는 이 결과로 완료 처리됨.**
+
+## 다음 할 일 — 우선순위 P3 (2026-07-28 갱신, 자세한 내용은 `next_priorities.md` 및 `TODO.md` 참고)
+
+P0(로컬 5070Ti 재현)/P1(7B 확장)/P2(a/b/c 전부)는 완료됨. 다음 우선순위:
+
+1. **P3**: control head 내 internal-only vs external-only 채널 분기 검증 (기존 "채널 분기"
    실험 — `external_heads - internal_heads` / `internal_heads - external_heads` 대칭차)
 
 부작용(collateral damage) 측정, Llama 계열 교차검증, path patching, 실전 배포 전환은
