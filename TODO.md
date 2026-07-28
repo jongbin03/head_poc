@@ -6,7 +6,7 @@
 |---|---|---|
 | ~~P0~~ | ~~로컬 5070Ti 환경에서 파이프라인 전체 재현~~ | **완료** (2026-07-28, `results/2026-07-28_local_5070ti`) |
 | ~~P1~~ | ~~Qwen2.5-7B(8B급)로 본 실험 확장~~ | **완료** (2026-07-28, 4bit, 같은 결과 폴더) |
-| P2 | 외부/추가 데이터셋으로 기존 control head의 edge knockout 효과 검증 | ~~held-out~~ 완료 + 외부 벤치마크(다음) + 미지 문구(보류) |
+| P2 | 외부/추가 데이터셋으로 기존 control head의 edge knockout 효과 검증 | ~~held-out~~ ~~외부 벤치마크~~ 완료 + 미지 문구(P2-b, 재개 검토) |
 | P3 | control head 내 internal-only vs external-only 채널 분기 검증 | 기존 채널 분기 실험 |
 
 아래는 우선순위 순서대로 자세한 내용, 그 뒤에 보류 항목.
@@ -48,28 +48,45 @@ control head가 **새로운/외부 데이터**에서도 여전히 먹히는지 �
 `_heldout{N}` 접미사를 추가해 수정 (1.5B 5회 실행 중 발견, 다행히 콘솔 로그에서 5개 결과
 전부 복구 가능했음 — `functional_map.png`는 텍스트 로그에 없어 마지막 1개만 복구됨).
 
-### P2-b. 미지의 공격 문구로 확장 — 보류 (2026-07-28, P2-c 결과 나올 때까지)
+### ~~P2-c. 검증된 외부 IPI 벤치마크로 재현~~ — 완료 (2026-07-28)
 
-**결정**: P2-c(외부 벤치마크)가 우리 5종과 전혀 다른 실제 공격 문구를 쓰므로, P2-c에서
-knockout이 먹히면 P2-b가 확인하려던 "미지의 문구에도 통하는가"는 사실상 같이 검증된다.
-다만 P2-c는 문구와 도메인/데이터 구조를 동시에 바꾸는 실험이라, 만약 결과가 나쁘면
-원인이 문구 때문인지 도메인 때문인지 P2-c만으로는 분리가 안 된다 — 그 경우에만 원인
-분리용으로 P2-b를 진행. 순서를 **P2-c 먼저, P2-b는 필요시에만**으로 변경.
+`adapters/injecagent.py`를 새로 추가 — InjecAgent(github.com/uiuc-kang-lab/InjecAgent)의
+`Tool Response Template`에서 `<Attacker Instruction>` placeholder 위치로 D_benign/D_inj
+span을 분리하고, `exec_target`=Attacker Tool 이름 첫 토큰(공격 성공 proxy), `read_target`=
+User Tool 이름 첫 토큰(주입에도 원래 요청한 tool을 올바르게 호출하는지, utility proxy)으로
+매핑. `run_pipeline.py --injecagent` 옵션으로 우리 합성 데이터셋에서 찾은
+`control_heads_both`를 그대로 재사용해 (head 선정에는 전혀 안 씀, 순수 평가 전용)
+InjecAgent 전체 1,054개 test case(dh_base+ds_base)에 knockout sweep 실행.
+
+| 모델 | k=0 malicious | k=40 malicious | k=0 read | k=40 read |
+|---|---|---|---|---|
+| 1.5B | 0.1894 | 0.0406 (~4.7배 ↓) | 0.7834 | 0.9474 |
+| 7B(4bit) | 0.5237 | 0.1300 (~4.0배 ↓) | 0.4881 | 0.8849 |
+
+**결론**: 완전히 다른 실제 벤치마크(다른 도메인 구조 + 훨씬 은근한 문구)에서도 knockout
+효과가 두 스케일 모두 일관되게(4~5배) 재현됨 — utility(read_token_prob)도 knockout 후
+오히려 상승. 다만 우리 합성 데이터셋만큼 완전한 억제(k=10 안에 0)는 아니고 잔여 확률이
+남음. baseline 공격 확률이 스케일이 커질수록 오히려 올라간 것(0.19→0.52)으로 보아, 남은
+효과 차이는 스케일 문제가 아니라 **도메인/문구 구조 차이**(은근한 tool-call 관찰 텍스트
+vs 우리의 노골적인 "IGNORE ALL..." 스타일) 때문으로 추정 — 아래 P2-b 재개 검토 근거.
+결과: `results/2026-07-28_Qwen-Qwen2-5-1-5B-Instruct/summary.txt`,
+`results/2026-07-28_Qwen-Qwen2-5-7B-Instruct_4bit/summary.txt`.
+InjecAgent 원본 데이터는 git에 커밋하지 않음(`external_injecagent/`, `.gitignore`에 추가) —
+재현하려면 `git clone https://github.com/uiuc-kang-lab/InjecAgent.git external_injecagent`.
+
+### P2-b. 미지의 공격 문구로 확장 — 재개 검토 (2026-07-28, P2-c 결과 나온 후 갱신)
+
+애초 "P2-c가 성공하면 P2-b는 불필요"로 보류했으나, P2-c 결과가 **완전한 억제는 아닌
+부분적 전이**로 나와서 원인 분리가 실제로 필요해졌다: 지금 InjecAgent 결과만으로는
+잔여 공격 확률이 "문구가 더 은근해서"인지 "도메인 구조(tool-call observation)가 달라서"
+인지 구분이 안 된다. P2-b(도메인은 우리 것 그대로 두고 문구만 새로 추가)를 돌려서, 만약
+그것도 완전히 안 죽으면 "특정 문구 패턴 과적합" 쪽에 더 무게가 실림.
 
 1. `_INJECTION_STYLES`에 없는 새로운 스타일(다국어 혼용, 코드블록 위장, 유니코드
    난독화, 더 짧고 우회적인 표현 등) 추가 작성
 2. 기존 5종으로 찾은 `control_heads_both`를 그대로 써서 새 스타일에 edge knockout 적용
 3. 여전히 `malicious_token_prob`이 죽는지 확인 — 안 죽으면 "특정 문구 패턴에 과적합된
    head"라는 뜻이므로 방어 범위에 대한 중요한 negative result
-
-### P2-c. 검증된 외부 IPI 벤치마크로 재현 (다음 작업)
-**후보**: **InjecAgent**(tool-calling 에이전트 대상, 우리 `external` mode와 구조 가장
-유사 — 우선 추천) / **BIPIA**(RAG/요약 시나리오, `internal` mode와 유사) / **AgentDojo**
-(멀티스텝 에이전트, 스케일 검증용)
-
-1. InjecAgent부터 시작 — 그 데이터셋 프롬프트에서 D_benign/D_inj span을 추출하는
-   어댑터를 `dataset.py` 옆에 추가
-2. 우리가 찾은 control head가 그 벤치마크의 공격 성공률(ASR)을 실제로 낮추는지 측정
 
 ## P3. control head 내 internal-only vs external-only 채널 분기 검증
 

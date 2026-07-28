@@ -219,3 +219,7 @@ __marimo__/
 
 # bkit
 .bkit/
+
+# P2-c: InjecAgent 외부 벤치마크는 third-party clone이라 커밋하지 않음.
+# `git clone https://github.com/uiuc-kang-lab/InjecAgent.git external_injecagent`로 로컬 재생성.
+external_injecagent/

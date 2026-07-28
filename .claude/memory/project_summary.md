@@ -25,6 +25,8 @@ GitHub: `jongbin03/head_poc` (origin, `atlas_poc/` 폴더가 로컬 프로젝트
 - `edge_ablation.py` — **head를 끄는 게 아니라, 특정 head가 D_inj(주입된 명령) 토큰을 보는
   attention edge만 pre-softmax `-inf`로 차단**하는 edge knockout + sweep
 - `run_pipeline.py` — 위 네 개를 엮은 진입점 (`[1/4]`~`[4/4]`)
+- `adapters/injecagent.py` — P2-c: 외부 벤치마크 InjecAgent의 test case를 우리
+  `IPIExample` 포맷으로 변환하는 어댑터 (`run_pipeline.py --injecagent`에서 사용)
 - `debug_read_target.py` — read_target 토큰이 실제로 모델 응답과 맞는지 top-k logit +
   greedy continuation으로 직접 확인하는 디버깅 스크립트
 - `head_poc.ipynb` — Colab 실행 순서를 정리한 노트북 (VS Code의 Colab GPU 연결용)
@@ -143,16 +145,42 @@ head"라는 과적합 우려 해소. 결과: `results/2026-07-28_Qwen-Qwen2-5-1-
 접미사 추가로 수정. 1.5B 5회 연속 실행 중 뒤늦게 발견했으나 콘솔 로그에서 summary 수치는
 전부 복구, `functional_map.png`(로그에 텍스트로 안 남음)는 마지막 1개만 복구 가능했음.
 
+## 실험 결과 (2026-07-28, 로컬 RTX 5070Ti, P2-c InjecAgent 외부 벤치마크 완료)
+
+`adapters/injecagent.py` 신규 추가 — InjecAgent(github.com/uiuc-kang-lab/InjecAgent)의
+`Tool Response Template`에서 `<Attacker Instruction>` placeholder로 D_benign/D_inj span을
+분리하고, `exec_target`=Attacker Tool 이름 첫 토큰(공격 성공 proxy), `read_target`=User
+Tool 이름 첫 토큰(주입에도 원래 요청한 tool을 올바르게 호출하는지, utility proxy)으로
+매핑. `run_pipeline.py --injecagent`로 우리 합성 데이터셋에서 찾은 `control_heads_both`를
+**재선정 없이 그대로** 재사용해 (head 선정은 항상 우리 데이터셋으로만, InjecAgent는 순수
+평가 전용) InjecAgent 전체 1,054개 test case(dh_base+ds_base)에 knockout sweep 실행.
+InjecAgent 원본 데이터는 third-party clone이라 git에 커밋 안 함(`.gitignore`에
+`external_injecagent/` 추가) — 재현하려면 `git clone
+https://github.com/uiuc-kang-lab/InjecAgent.git external_injecagent`.
+
+| 모델 | k=0 malicious | k=40 malicious | k=0 read | k=40 read |
+|---|---|---|---|---|
+| 1.5B | 0.1894 | 0.0406 (~4.7배 ↓) | 0.7834 | 0.9474 |
+| 7B(4bit) | 0.5237 | 0.1300 (~4.0배 ↓) | 0.4881 | 0.8849 |
+
+**결론**: 완전히 다른 실제 벤치마크(다른 도메인 구조 + 훨씬 은근한 문구)에서도 knockout
+효과가 두 스케일 모두 일관되게(4~5배) 재현되고 utility도 상승하지만, 우리 합성
+데이터셋만큼 완전한 억제(k=10 안에 0)는 아님. baseline 공격 확률이 스케일이 커질수록
+오히려 올라간 것(0.19→0.52)으로 보아, 잔여 효과 차이는 스케일 문제가 아니라
+**도메인/문구 구조 차이** 때문으로 추정됨 — 이 때문에 P2-b(보류했던 미지 문구 실험)를
+원인 분리용으로 재개 검토 중. 결과:
+`results/2026-07-28_Qwen-Qwen2-5-1-5B-Instruct/summary.txt`,
+`results/2026-07-28_Qwen-Qwen2-5-7B-Instruct_4bit/summary.txt`.
+
 ## 다음 할 일 — 우선순위 P2-b~P3 (2026-07-28 갱신, 자세한 내용은 `next_priorities.md` 및 `TODO.md` 참고)
 
-P0(로컬 5070Ti 재현)/P1(7B 확장)/P2-a(held-out split)는 완료됨. 다음 우선순위:
+P0(로컬 5070Ti 재현)/P1(7B 확장)/P2-a(held-out split)/P2-c(InjecAgent)는 완료됨.
+다음 우선순위:
 
-1. **P2-c**: InjecAgent 등 외부 IPI 벤치마크로 D_benign/D_inj span 추출 어댑터 만들어 검증
-   (2026-07-28 사용자 판단으로 P2-b보다 먼저 진행하기로 순서 변경 — P2-c가 실제 미지의
-   공격 문구를 포함하므로 성공 시 P2-b 질문도 같이 검증됨)
-2. **P2-b**: `_INJECTION_STYLES`에 없는 미지의 공격 문구 스타일 추가 — 보류. P2-c 결과가
-   나쁠 때 "문구 때문인지 도메인 때문인지" 원인을 분리하는 용도로만 필요시 진행
-3. **P3**: control head 내 internal-only vs external-only 채널 분기 검증 (기존 "채널 분기"
+1. **P2-b (재개 검토)**: `_INJECTION_STYLES`에 없는 미지의 공격 문구 스타일 추가해서 기존
+   `control_heads_both`가 여전히 먹히는지 확인 — P2-c가 완전한 억제가 아닌 부분적 전이로
+   나와서, 잔여 공격 확률이 문구 때문인지 도메인 구조 때문인지 분리하는 용도로 필요해짐
+2. **P3**: control head 내 internal-only vs external-only 채널 분기 검증 (기존 "채널 분기"
    실험 — `external_heads - internal_heads` / `internal_heads - external_heads` 대칭차)
 
 부작용(collateral damage) 측정, Llama 계열 교차검증, path patching, 실전 배포 전환은

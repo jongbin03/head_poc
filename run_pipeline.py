@@ -65,6 +65,21 @@ def main():
         help="functional_map.png / summary.txt를 저장할 디렉토리. "
         "기본값은 results/<날짜>_<모델명>[_4bit]/ (실행마다 자동 생성, 덮어쓰기 방지).",
     )
+    parser.add_argument(
+        "--injecagent",
+        action="store_true",
+        help="P2-c: [2/4]/[3/4]에서 우리 데이터셋으로 찾은 control_heads_both를 그대로 써서, "
+        "InjecAgent 외부 벤치마크(adapters/injecagent.py)에도 knockout sweep을 추가로 돌린다. "
+        "사전에 `git clone https://github.com/uiuc-kang-lab/InjecAgent.git external_injecagent` 필요.",
+    )
+    parser.add_argument(
+        "--injecagent_repo_dir", default="external_injecagent",
+        help="InjecAgent 저장소를 clone한 경로 (--injecagent 사용 시).",
+    )
+    parser.add_argument(
+        "--injecagent_limit", type=int, default=None,
+        help="InjecAgent test case 개수를 앞에서부터 제한 (--injecagent 사용 시, 기본 전체).",
+    )
     args = parser.parse_args()
 
     if args.out_dir:
@@ -187,6 +202,25 @@ def main():
                 f"  (n={row['n_examples']})"
             )
 
+    injecagent_sweep_results = None
+    if args.injecagent:
+        from adapters.injecagent import build_injecagent_batch
+
+        print(f"[P2-c] building InjecAgent dataset from {args.injecagent_repo_dir} ...")
+        injecagent_examples = build_injecagent_batch(
+            tok, device=args.device, repo_dir=args.injecagent_repo_dir, limit=args.injecagent_limit,
+        )
+        print(f"  {len(injecagent_examples)} InjecAgent examples loaded.")
+        injecagent_sweep_results = sweep_knockout(
+            model, modeling_mod, injecagent_examples, injecagent_examples, control_ranking,
+        )
+        for row in injecagent_sweep_results:
+            print(
+                f"  [InjecAgent] k={row['k']:>3}  malicious_token_prob={row['malicious_token_prob']:.4f}"
+                f"  read_token_prob={row['read_token_prob']:.4f}"
+                f"  (n={row['n_examples']})"
+            )
+
     summary_path = os.path.join(run_dir, "summary.txt")
     with open(summary_path, "w", encoding="utf-8") as f:
         f.write(f"model={args.model} family={args.family} four_bit={args.four_bit} "
@@ -207,6 +241,14 @@ def main():
         if heldout_sweep_results is not None:
             f.write(f"\n-- held-out (style_idx={args.heldout_style_idx}, excluded from head selection) --\n")
             for row in heldout_sweep_results:
+                f.write(
+                    f"k={row['k']:>3}  malicious_token_prob={row['malicious_token_prob']:.4f}"
+                    f"  read_token_prob={row['read_token_prob']:.4f}"
+                    f"  (n={row['n_examples']})\n"
+                )
+        if injecagent_sweep_results is not None:
+            f.write(f"\n-- InjecAgent external benchmark (n={len(injecagent_examples)} test cases) --\n")
+            for row in injecagent_sweep_results:
                 f.write(
                     f"k={row['k']:>3}  malicious_token_prob={row['malicious_token_prob']:.4f}"
                     f"  read_token_prob={row['read_token_prob']:.4f}"
