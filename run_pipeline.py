@@ -19,6 +19,8 @@ Phase 0~1 smoke test 진입점. 5070 Ti에서:
 """
 import argparse
 import datetime
+import gc
+import json
 import os
 import re
 from typing import List
@@ -33,6 +35,7 @@ from head_ranking import (
     plot_functional_map,
     topk_heads,
     normalize_score,
+    jaccard,
 )
 from edge_ablation import sweep_knockout
 
@@ -87,6 +90,32 @@ def main():
         "짧고 우회적인 표현, 4종 x 도메인 6종 = 24개)에도 control_heads_both로 knockout "
         "sweep을 추가로 돌린다. head 선정에는 절대 섞이지 않는 순수 평가 전용 데이터셋.",
     )
+    parser.add_argument(
+        "--injecagent_headsplit",
+        action="store_true",
+        help="P2-d: InjecAgent 일부(--injecagent_head_n개, 고정 seed로 무작위 분리)로 직접 "
+        "control head를 찾아, 우리 합성 데이터셋의 control_heads_both와 교집합한 뒤, 나머지 "
+        "InjecAgent case로 (a) 합성 단독 (b) InjecAgent 단독 (c) 교집합 knockout을 비교한다.",
+    )
+    parser.add_argument(
+        "--injecagent_head_n", type=int, default=60,
+        help="P2-d: head 선정에 쓸 InjecAgent case 개수 (나머지는 전부 평가용). 기본 60 — "
+        "compute_head_relevance에 프로세스 내내 누적되는 GPU 메모리 버그(모델 재로드로도 "
+        "안 없어짐, TODO.md 참고) 때문에 80쌍(=160회 호출) 근처에서 OOM 나는 걸 확인했으니 "
+        "그보다 크게 잡지 말 것 (필요하면 배치별 서브프로세스 분리가 근본 해결책).",
+    )
+    parser.add_argument(
+        "--injecagent_seed", type=int, default=42,
+        help="P2-d: head/eval 분리에 쓰는 고정 seed (재현성).",
+    )
+    parser.add_argument(
+        "--injecagent_headsplit_from",
+        default=None,
+        help="P2-d: 이전 실행이 저장한 p2d_heads.json 경로. 지정하면 (비용이 큰 backward-pass "
+        "head 탐색을 다시 안 하고) 그 안의 head 목록 그대로 eval sweep만 새로 돌린다 — "
+        "compute_head_relevance의 GPU 메모리 누수 때문에 head 탐색 직후 eval sweep이 물리 "
+        "VRAM 거의 꽉 찬 상태에서 극도로 느려지는 문제를 우회하는 용도(새 프로세스로 재실행).",
+    )
     args = parser.parse_args()
 
     if args.out_dir:
@@ -98,6 +127,8 @@ def main():
             suffix += f"_heldout{args.heldout_style_idx}"
         if args.unseen_styles:
             suffix += "_unseen"
+        if args.injecagent_headsplit or args.injecagent_headsplit_from:
+            suffix += "_headsplit"
         date_str = datetime.date.today().isoformat()
         run_dir = os.path.join("results", f"{date_str}_{model_slug}{suffix}")
     os.makedirs(run_dir, exist_ok=True)
@@ -246,6 +277,150 @@ def main():
                 f"  (n={row['n_examples']})"
             )
 
+    headsplit_results = None
+    if args.injecagent_headsplit or args.injecagent_headsplit_from:
+        from adapters.injecagent import build_injecagent_pairs, split_pairs
+
+        if args.injecagent_headsplit_from:
+            # 비싼 backward-pass head 탐색은 건너뛰고, 이전 실행이 저장해둔 head 목록만
+            # 새 프로세스에서 불러와 eval sweep만 돌린다 (아래 메모리 누수 문제 우회).
+            print(f"[P2-d] loading pre-computed heads from {args.injecagent_headsplit_from} ...")
+            with open(args.injecagent_headsplit_from, encoding="utf-8") as f:
+                loaded = json.load(f)
+            head_n, seed = loaded["head_n"], loaded["seed"]
+            synthetic_heads = [tuple(h) for h in loaded["synthetic_heads"]]
+            ia_heads = [tuple(h) for h in loaded["ia_heads"]]
+            intersection_heads = [tuple(h) for h in loaded["intersection_heads"]]
+
+            print(f"[P2-d] building InjecAgent pairs from {args.injecagent_repo_dir} ...")
+            ia_pairs = build_injecagent_pairs(tok, device=args.device, repo_dir=args.injecagent_repo_dir)
+            _, eval_pairs = split_pairs(ia_pairs, head_n=head_n, seed=seed)
+            print(
+                f"  {len(ia_pairs)} total pairs -> {head_n} were used for head discovery "
+                f"(seed={seed}, loaded from file), {len(eval_pairs)} for eval."
+            )
+            print(f"  synthetic_heads (loaded) = {synthetic_heads}")
+            print(f"  ia_heads (loaded) = {ia_heads}")
+            print(f"  intersection_heads (loaded) = {intersection_heads}")
+        else:
+            print(f"[P2-d] building InjecAgent pairs from {args.injecagent_repo_dir} ...")
+            ia_pairs = build_injecagent_pairs(tok, device=args.device, repo_dir=args.injecagent_repo_dir)
+            head_n, seed = args.injecagent_head_n, args.injecagent_seed
+            head_pairs, eval_pairs = split_pairs(ia_pairs, head_n=head_n, seed=seed)
+            print(
+                f"  {len(ia_pairs)} total pairs -> {len(head_pairs)} for head discovery "
+                f"(seed={seed}), {len(eval_pairs)} for eval."
+            )
+
+            # head_pairs로만 relevance 계산 (eval_pairs는 이 단계에서 전혀 안 봄 — 진짜 held-out).
+            # ⚠️ 알려진 한계: compute_head_relevance 호출 1번당 ~0.12GB씩 GPU 메모리가 계속
+            # 누적되는 버그가 있다 (gc.collect()/empty_cache()는 물론, 모델을 통째로 다시 로드해도
+            # 전혀 줄지 않음 — 실험으로 확인함, [2/4]의 90번 호출에서도 같은 비율로 이미 새고 있었음).
+            # 모델 인스턴스 문제가 아니라 프로세스 전역/CUDA 드라이버 레벨로 보이므로, 이 프로세스
+            # 안에서는 고칠 방법이 없다 — head_n을 총 호출 수(이 프로세스에서 이미 쓴 [2/4]의 90번+
+            # head_n*2)가 대략 300~350을 넘지 않는 선으로 잡아야 안전하다 (실측상 약 80쌍=160번
+            # 부근에서 OOM). 완전히 고치려면 배치마다 별도 프로세스(새 CUDA 컨텍스트)로 나눠 돌려야
+            # 하는데, TODO.md/메모리에 향후 작업으로 기록해둠 — 지금은 head_n을 안전 범위로 제한.
+            print("  [P2-d] starting head-discovery relevance loop ...")
+            ia_read_scores_list, ia_agent_scores_list = [], []
+            for i, pair in enumerate(head_pairs):
+                clean_ex = pair["clean"]
+                ia_read_scores_list.append(
+                    compute_head_relevance(
+                        model, clean_ex.input_ids, clean_ex.read_target,
+                        key_spans={"data_benign": clean_ex.spans["data_benign"]},
+                    )
+                )
+                inj_ex = pair["injected"]
+                ia_agent_scores_list.append(
+                    compute_head_relevance(
+                        model, inj_ex.input_ids, inj_ex.exec_target,
+                        key_spans={"data_inj": inj_ex.spans["data_inj"]},
+                    )
+                )
+                gc.collect()
+                torch.cuda.empty_cache()
+
+                if (i + 1) % 20 == 0:
+                    alloc = torch.cuda.memory_allocated() / (1024**3)
+                    reserv = torch.cuda.memory_reserved() / (1024**3)
+                    print(
+                        f"  [P2-d] head relevance {i + 1}/{len(head_pairs)} "
+                        f"(cuda allocated={alloc:.2f}GiB reserved={reserv:.2f}GiB) ..."
+                    )
+
+            # relevance loop가 끝나면 더 이상 새로운 backward call이 없으므로, 여기서 한 번 더
+            # 세게 정리해본다 — 하지만 실측 결과 이 정리도 전혀 효과가 없었다 (정리 전/후 GPU
+            # 메모리가 완전히 동일). 즉 이 메모리는 프로세스가 죽을 때까지 회수가 안 되므로,
+            # eval sweep을 이어서 같은 프로세스에서 돌리면 물리 VRAM이 거의 꽉 찬 상태로 시작해
+            # 스와핑/스래싱으로 극도로 느려진다. 그래서 head 목록을 json으로 저장해두고,
+            # `--injecagent_headsplit_from`으로 새 프로세스에서 eval sweep만 깨끗하게 다시
+            # 돌리는 걸 권장한다 (아래 저장 로직).
+            print("  [P2-d] head-discovery loop done, attempting cleanup (known to be ineffective, see comment above) ...")
+            for _ in range(3):
+                gc.collect()
+                torch.cuda.empty_cache()
+            alloc = torch.cuda.memory_allocated() / (1024**3)
+            reserv = torch.cuda.memory_reserved() / (1024**3)
+            print(f"  [P2-d] post-cleanup GPU memory: allocated={alloc:.2f}GiB reserved={reserv:.2f}GiB")
+
+            ia_read_score = aggregate_scores(ia_read_scores_list, "data_benign")
+            ia_agent_score = aggregate_scores(ia_agent_scores_list, "data_inj")
+            # InjecAgent는 우리 internal/external 같은 두 채널이 없고 tool-call 한 채널뿐이라,
+            # control head 후보는 이 채널 하나에서 바로 top-k를 뽑는다 (교집합 불필요).
+            ia_heads = topk_heads(ia_agent_score, args.topk)
+            synthetic_heads = summary["control_heads_both"]
+            intersection_heads = sorted(set(synthetic_heads) & set(ia_heads))
+
+            print(f"  InjecAgent-derived top-{args.topk} heads = {ia_heads}")
+            print(
+                f"  jaccard(read_ia, agent_ia) = "
+                f"{jaccard(topk_heads(ia_read_score, args.topk), ia_heads):.3f}"
+            )
+            print(f"  intersection(synthetic control_heads_both, InjecAgent heads) = {intersection_heads}")
+
+            heads_json_path = os.path.join(run_dir, "p2d_heads.json")
+            with open(heads_json_path, "w", encoding="utf-8") as f:
+                json.dump(
+                    {
+                        "head_n": head_n, "seed": seed, "topk": args.topk,
+                        "synthetic_heads": synthetic_heads, "ia_heads": ia_heads,
+                        "intersection_heads": intersection_heads,
+                    },
+                    f, indent=2,
+                )
+            print(
+                f"  [P2-d] heads saved to {heads_json_path} "
+                "(rerun with --injecagent_headsplit_from <이 경로>로 eval sweep만 새 프로세스에서 재실행 가능)"
+            )
+
+        eval_examples = [p["injected"] for p in eval_pairs]
+
+        def _headsplit_point(name, heads):
+            print(f"  [P2-d] running '{name}' sweep over {len(eval_examples)} eval examples ({len(heads)} heads) ...")
+            res = sweep_knockout(
+                model, modeling_mod, eval_examples, eval_examples, heads, ks=[0, len(heads)],
+            )
+            for row in res:
+                print(
+                    f"  [P2-d:{name}] k={row['k']:>3}  malicious_token_prob={row['malicious_token_prob']:.4f}"
+                    f"  read_token_prob={row['read_token_prob']:.4f}"
+                    f"  (n={row['n_examples']})"
+                )
+            return res
+
+        headsplit_results = {
+            "n_head": head_n,
+            "seed": seed,
+            "n_eval": len(eval_pairs),
+            "ia_heads": ia_heads,
+            "synthetic_heads": synthetic_heads,
+            "intersection_heads": intersection_heads,
+            "synthetic_only": _headsplit_point("synthetic-only", synthetic_heads),
+            "injecagent_only": _headsplit_point("injecagent-only", ia_heads),
+            "intersection": _headsplit_point("intersection", intersection_heads),
+        }
+
     summary_path = os.path.join(run_dir, "summary.txt")
     with open(summary_path, "w", encoding="utf-8") as f:
         f.write(f"model={args.model} family={args.family} four_bit={args.four_bit} "
@@ -287,6 +462,22 @@ def main():
                     f"  read_token_prob={row['read_token_prob']:.4f}"
                     f"  (n={row['n_examples']})\n"
                 )
+        if headsplit_results is not None:
+            f.write(
+                f"\n-- P2-d InjecAgent head-split (n_head={headsplit_results['n_head']}, "
+                f"n_eval={headsplit_results['n_eval']}, seed={headsplit_results['seed']}) --\n"
+            )
+            f.write(f"synthetic_heads (from our dataset) = {headsplit_results['synthetic_heads']}\n")
+            f.write(f"injecagent_heads (from {headsplit_results['n_head']} InjecAgent cases) = {headsplit_results['ia_heads']}\n")
+            f.write(f"intersection = {headsplit_results['intersection_heads']}\n\n")
+            for label in ("synthetic_only", "injecagent_only", "intersection"):
+                f.write(f"[{label}]\n")
+                for row in headsplit_results[label]:
+                    f.write(
+                        f"k={row['k']:>3}  malicious_token_prob={row['malicious_token_prob']:.4f}"
+                        f"  read_token_prob={row['read_token_prob']:.4f}"
+                        f"  (n={row['n_examples']})\n"
+                    )
     print(f"  summary saved to {summary_path}")
 
 

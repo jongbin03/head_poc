@@ -1,6 +1,6 @@
 ---
 name: atlas-poc-next-priorities
-description: atlas_poc 다음 실험 우선순위(P3, P0~P2 완료) — TODO.md 요약, 다음 세션 시작 시 바로 참고
+description: atlas_poc 다음 실험 우선순위(P3, P0~P2(a/b/c/d) 완료) — TODO.md 요약, 다음 세션 시작 시 바로 참고
 metadata:
   type: project
 ---
@@ -17,10 +17,10 @@ metadata:
 read 보존) 재현됨. 결과: `results/2026-07-28_local_5070ti/README.md`,
 요약: [[atlas-poc-summary]]. **다음 우선순위는 P2부터.**
 
-## ~~P2 — 외부/추가 데이터셋으로 기존 control head의 edge knockout 효과 검증~~ — 완료 (2026-07-28)
+## ~~P2 — 외부/추가 데이터셋으로 기존 control head의 edge knockout 효과 검증~~ — 완료 (2026-07-28, P2-a/b/c/d 전부)
 
 지금까지 head를 찾은 데이터와 knockout 효과를 검증한 데이터가 완전히 동일(30개 템플릿
-전체)했던 "이 30개에서만 통하는 head"일 위험을 세 갈래로 검증, 모두 완료:
+전체)했던 "이 30개에서만 통하는 head"일 위험을 검증:
 
 - ~~**P2-a Held-out**~~ — 스타일 5종 중 4종으로 head를 찾고 나머지 1종은 평가에만 사용 —
   1.5B로 5종 전부, 7B(4bit)로 대표 1종 재확인, 전부 재현됨.
@@ -32,6 +32,16 @@ read 보존) 재현됨. 결과: `results/2026-07-28_local_5070ti/README.md`,
   코드블록 위장/유니코드 난독화/짧고 우회적인 표현)으로 knockout 적용 — 두 스케일 모두
   기존 5종과 **동일하게 k=10 안에 완전히 붕괴**. 즉 P2-c의 잔여 효과는 문구가 아니라
   **도메인/데이터 구조 차이** 때문이라는 결론.
+- ~~**P2-d InjecAgent 자체 head 탐색**~~ — 사용자 제안: InjecAgent 60개로 직접 control head를
+  찾아 우리 합성 `control_heads_both`와 교집합한 뒤 나머지 994개로 (a) 합성 단독(14개)
+  (b) InjecAgent 단독(20개) (c) 교집합(9개) 3가지를 비교. jaccard(두 head 집합)=0.081로
+  거의 안 겹치는데도 **셋 다 거의 동일한 성능**(억제 후 malicious ~0.044~0.045) — 교집합이
+  가장 적은 개입(9개)으로 동등한 효과를 내는 것과, head 선정 방법을 뭘 바꿔도 P2-c와 같은
+  수준에서 멈추는 것 둘 다 "P2-c 잔여 효과는 head를 잘못 골라서가 아니라 도메인 구조 자체의
+  한계"라는 결론을 강화함. **작업 중 `compute_head_relevance`의 심각한 GPU 메모리 누수
+  버그를 발견함**(모델 재로드로도 전혀 안 없어짐, 프로세스 전역 문제로 추정, 미해결) —
+  자세한 내용과 우회책/근본 해결책은 [[atlas-poc-summary]] 버그 4번 및 TODO.md "보류" 섹션
+  참고. 결과: `results/2026-07-28_Qwen-Qwen2-5-1-5B-Instruct_headsplit/summary.txt`.
 
 자세한 수치는 [[atlas-poc-summary]] 참고.
 

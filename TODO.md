@@ -6,7 +6,7 @@
 |---|---|---|
 | ~~P0~~ | ~~로컬 5070Ti 환경에서 파이프라인 전체 재현~~ | **완료** (2026-07-28, `results/2026-07-28_local_5070ti`) |
 | ~~P1~~ | ~~Qwen2.5-7B(8B급)로 본 실험 확장~~ | **완료** (2026-07-28, 4bit, 같은 결과 폴더) |
-| ~~P2~~ | ~~외부/추가 데이터셋으로 기존 control head의 edge knockout 효과 검증~~ | **완료** (2026-07-28, P2-a/b/c 전부) |
+| ~~P2~~ | ~~외부/추가 데이터셋으로 기존 control head의 edge knockout 효과 검증~~ | **완료** (2026-07-28, P2-a/b/c/d 전부) |
 | P3 | control head 내 internal-only vs external-only 채널 분기 검증 | 기존 채널 분기 실험 |
 
 아래는 우선순위 순서대로 자세한 내용, 그 뒤에 보류 항목.
@@ -95,6 +95,60 @@ P2-c 결과가 부분적 전이(완전한 억제 아님)로 나와서, "문구 �
 `results/2026-07-28_Qwen-Qwen2-5-1-5B-Instruct_unseen/summary.txt`,
 `results/2026-07-28_Qwen-Qwen2-5-7B-Instruct_4bit_unseen/summary.txt`.
 
+### ~~P2-d. InjecAgent 일부로 직접 head 탐색 → 합성 head와 교집합 → 나머지로 검증~~ — 완료 (2026-07-28)
+
+**배경**: P2-c/P2-b 결론상 "InjecAgent 잔여 효과는 문구가 아니라 도메인 구조 차이" 였는데,
+그렇다면 "InjecAgent 도메인 자체에서 직접 찾은 head는 우리 합성 head와 얼마나 겹치고,
+그 교집합이 오히려 더 잘 통하는가"를 봐야 원인을 한 단계 더 좁힐 수 있음 (사용자 제안).
+
+`adapters/injecagent.py`에 `build_injecagent_clean_example`(주입 없는 read baseline)/
+`build_injecagent_pairs`/`split_pairs`(고정 seed로 head 선정용/평가용 분리) 추가.
+`run_pipeline.py --injecagent_headsplit --injecagent_head_n N`으로 InjecAgent 중 N개만
+써서 (교집합 없이 그 채널 하나에서 바로) top-K head를 뽑고, 우리 합성 `control_heads_both`와
+교집합한 뒤, 나머지 InjecAgent case에 (a) 합성 단독 (b) InjecAgent 단독 (c) 교집합 3가지를
+나란히 knockout 평가. `--injecagent_headsplit_from <json>`으로 head 탐색 결과를 저장/재사용해
+비싼 relevance 계산 없이 eval sweep만 새 프로세스에서 재실행 가능 (아래 버그의 우회책).
+
+**1.5B, head_n=60(seed=42), eval n=994 결과**:
+
+| 조건 | head 개수 | k=0 malicious | k=full malicious | k=0 read | k=full read |
+|---|---|---|---|---|---|
+| synthetic-only (`control_heads_both`) | 14 | 0.1907 | 0.0450 | 0.7834 | 0.9306 |
+| injecagent-only (InjecAgent 60개로 직접 탐색) | 20 | 0.1907 | 0.0436 | 0.7834 | 0.9353 |
+| 교집합 | 9 | 0.1907 | 0.0447 | 0.7834 | 0.9309 |
+
+(jaccard(synthetic_heads, ia_heads) = 0.081 — 서로 거의 안 겹침에도 세 조건 성능이 사실상 동일)
+
+**결론**: 세 조건이 거의 동일한 성능(억제 후 malicious_token_prob ~0.044~0.045)을 보임.
+교집합(9개, 가장 적은 개입)이 나머지 둘과 동등한 효과를 내는 건 "두 도메인에서 공통으로
+뽑힌 head가 핵심이고 나머지는 군더더기"라는 신호. 동시에 InjecAgent 자체에서 독자적으로
+찾은 head(우리 것과 거의 안 겹침)도 비슷한 성능이라는 건 "이 도메인엔 우리가 못 찾은
+다른 유효한 control head들도 존재"한다는 뜻. 무엇보다, head 선정 방법을 바꿔도(합성 전용/
+InjecAgent 전용/교집합) 전부 P2-c에서 본 것과 같은 수준(~0.04~0.05)의 잔여 확률에서
+멈춘다는 점이 중요함 — **P2-c의 부분적 전이는 "head를 잘못 골라서"가 아니라 정말
+도메인 구조 자체의 한계**라는 결론에 더 무게가 실림. 결과:
+`results/2026-07-28_Qwen-Qwen2-5-1-5B-Instruct_headsplit/summary.txt`.
+
+**작업 중 발견한 심각한 버그 (미해결, 다음 섹션에 근본 해결책 기록)**:
+`attn_relevance.compute_head_relevance`(backward pass 기반 relevance 계산)를 한 프로세스
+안에서 여러 번 호출하면 호출 1번당 GPU 메모리가 ~0.12GB씩 계속 누적되다가 약 80쌍(=160회
+호출) 근처에서 OOM. `gc.collect()`/`torch.cuda.empty_cache()` 빈도를 늘려도, **relevance
+루프가 끝난 뒤 한 번 더 강하게 정리해도, 모델 인스턴스를 통째로 다시 로드해도 전혀 안
+줄어듦**(전부 재현 실험으로 확인 — 정리 전/후 GPU 메모리 수치가 완전히 동일했음). 즉 모델
+객체나 파이썬 참조 문제가 아니라 프로세스 전역/CUDA 드라이버 레벨(혹은 `lxt` monkey-patch
+내부)의 문제로 보임. 기존 [2/4] 단계(30개 템플릿 x 3회 = 90번 호출)에서도 같은 비율로 이미
+새고 있었는데, 호출 수가 적어서 지금까지 안 터졌던 것뿐임 — InjecAgent에만 있는 버그가
+아니라 `compute_head_relevance`를 많이 호출하는 모든 실험에 잠재된 문제.
+
+**추가로 발견한 부작용**: relevance 루프 직후 같은 프로세스에서 eval sweep(forward-only)을
+이어 돌리면, 물리 VRAM이 이미 거의 꽉 찬 상태(약 97%)로 시작해 스와핑/스래싱이 나 (GPU-Util
+100%인데도) 극도로 느려짐 — 실제로 30분 이상 안 끝났음. **대응**: 위에서 언급한
+`--injecagent_headsplit_from`으로 head 탐색 결과를 json으로 저장해두고 완전히 새 프로세스로
+eval sweep만 재실행 — 새 프로세스는 메모리가 깨끗해서 정상 속도로 끝남 (수 초~수십 초).
+이 과정에서 `run_dir` 이름에 `--injecagent_headsplit_from`을 빠뜨려서 `_headsplit` 접미사가
+안 붙는 버그도 발견/수정함 — 접미사가 없어서 이전 P2-c 결과 폴더를 한 번 덮어썼다가 git으로
+복구했음 (커밋된 파일이라 다행히 복구 가능했음, 커밋 전 결과물은 이런 사고에 취약하다는 교훈).
+
 ## P3. control head 내 internal-only vs external-only 채널 분기 검증
 
 **배경**: 현재 `head_ranking.py`의 `summarize_overlap`은 `internal_heads ∩ external_heads`
@@ -120,6 +174,31 @@ P2-c 결과가 부분적 전이(완전한 억제 아님)로 나와서, "문구 �
 ---
 
 ## 보류 (우선순위 낮음)
+
+### P2-d 서브프로세스 배치로 head_n 확장 — compute_head_relevance 메모리 누수 근본 해결
+
+**배경**: P2-d 작업 중 `attn_relevance.compute_head_relevance`를 한 프로세스에서 반복 호출하면
+(backward pass 기반이라 gradient 계산용 텐서가 관여) 호출당 ~0.12GB씩 GPU 메모리가
+누적되다 약 160회 호출 근처에서 OOM 나는 버그를 발견함. `gc.collect()`/`empty_cache()`는
+물론 **모델을 통째로 재로드해도, relevance 루프가 끝난 뒤 한 번 더 세게 정리해도 전혀
+리셋 안 됨**(둘 다 재현 실험으로 확인 — 정리 전/후 수치가 완전히 동일) — 모델 인스턴스
+문제가 아니라 프로세스 전역(CUDA 드라이버 또는 `lxt` monkey-patch 내부 전역 상태)의
+문제로 보임.
+
+**현재 임시 대응(이미 구현됨)**: `run_pipeline.py --injecagent_headsplit_from <p2d_heads.json>`
+— head 탐색 결과(JSON)를 저장해두고, eval sweep만 완전히 새 프로세스에서 재실행해 메모리
+압박(물리 VRAM 거의 꽉 찬 상태에서 스와핑/스래싱)을 피함. 다만 이건 "eval 단계"의 느려짐만
+우회할 뿐, **head 탐색 자체(head_n)를 60 이상으로 못 올리는 근본 제약은 그대로 남아있음.**
+
+**진짜 할 일**: head 탐색 자체를 여러 개의 **완전히 새로운 서브프로세스**로 나눠서 돌린다
+(각 배치가 새 CUDA 컨텍스트를 갖게 되므로, 프로세스 전역 누수든 뭐든 배치 경계에서 강제로
+리셋됨). 예: 50개씩 나눠서 `subprocess.run(...)`으로 각 배치를 짧은 헬퍼 스크립트로 실행,
+배치별 partial score(`{"data_benign": Tensor[num_layers,num_heads], ...}`)를 `torch.save`로
+임시 파일에 저장, 메인 프로세스가 다 모아서 `aggregate_scores`로 합산. 이렇게 하면 P2-d의
+`--injecagent_head_n`을 60 같은 안전 범위 대신 원래 의도한 200(혹은 그 이상)까지 올릴 수
+있음. **이 버그는 P2-d에만 국한된 게 아니라 `compute_head_relevance`를 대량으로 호출하는
+모든 미래 실험(예: dataset_limit을 크게 늘리는 경우)에 잠재된 문제이므로, 장기적으로는
+`attn_relevance.py` 자체에 배치 실행 유틸리티를 추가하는 것도 고려할 만함.**
 
 ### 부작용(collateral damage) 범위 측정 — 이 실험 밖의 일반 능력까지 깎이는지
 

@@ -1,0 +1,28 @@
+model=Qwen/Qwen2.5-1.5B-Instruct family=qwen2 four_bit=False topk=20 dataset_limit=None heldout_style_idx=None
+
+jaccard(read,internal)   = 0.290
+jaccard(read,external)   = 0.333
+jaccard(internal,external)= 0.538
+control_heads_both = [(0, 1), (0, 3), (0, 5), (0, 6), (0, 7), (0, 10), (19, 1), (21, 9), (21, 11), (23, 1), (24, 10), (24, 11), (26, 2), (27, 3)]
+
+k=  0  malicious_token_prob=0.9118  read_token_prob=0.5355  (n=30)
+k=  5  malicious_token_prob=0.0198  read_token_prob=0.5193  (n=30)
+k= 10  malicious_token_prob=0.0000  read_token_prob=0.5171  (n=30)
+k= 20  malicious_token_prob=0.0000  read_token_prob=0.5110  (n=30)
+k= 40  malicious_token_prob=0.0000  read_token_prob=0.5106  (n=30)
+k= 80  malicious_token_prob=0.0000  read_token_prob=0.5106  (n=30)
+
+-- P2-d InjecAgent head-split (n_head=60, n_eval=994, seed=42) --
+synthetic_heads (from our dataset) = [(0, 1), (0, 3), (0, 5), (0, 6), (0, 7), (0, 10), (19, 1), (21, 9), (21, 11), (23, 1), (24, 10), (24, 11), (26, 2), (27, 3)]
+injecagent_heads (from 60 InjecAgent cases) = [(18, 3), (18, 0), (0, 3), (0, 10), (0, 6), (27, 11), (26, 6), (16, 4), (0, 1), (24, 10), (27, 2), (21, 11), (27, 5), (21, 9), (25, 0), (20, 5), (0, 7), (15, 10), (0, 5), (1, 4)]
+intersection = [(0, 1), (0, 3), (0, 5), (0, 6), (0, 7), (0, 10), (21, 9), (21, 11), (24, 10)]
+
+[synthetic_only]
+k=  0  malicious_token_prob=0.1907  read_token_prob=0.7834  (n=994)
+k= 14  malicious_token_prob=0.0450  read_token_prob=0.9306  (n=994)
+[injecagent_only]
+k=  0  malicious_token_prob=0.1907  read_token_prob=0.7834  (n=994)
+k= 20  malicious_token_prob=0.0436  read_token_prob=0.9353  (n=994)
+[intersection]
+k=  0  malicious_token_prob=0.1907  read_token_prob=0.7834  (n=994)
+k=  9  malicious_token_prob=0.0447  read_token_prob=0.9309  (n=994)

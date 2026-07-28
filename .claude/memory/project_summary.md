@@ -25,8 +25,9 @@ GitHub: `jongbin03/head_poc` (origin, `atlas_poc/` 폴더가 로컬 프로젝트
 - `edge_ablation.py` — **head를 끄는 게 아니라, 특정 head가 D_inj(주입된 명령) 토큰을 보는
   attention edge만 pre-softmax `-inf`로 차단**하는 edge knockout + sweep
 - `run_pipeline.py` — 위 네 개를 엮은 진입점 (`[1/4]`~`[4/4]`)
-- `adapters/injecagent.py` — P2-c: 외부 벤치마크 InjecAgent의 test case를 우리
-  `IPIExample` 포맷으로 변환하는 어댑터 (`run_pipeline.py --injecagent`에서 사용)
+- `adapters/injecagent.py` — 외부 벤치마크 InjecAgent의 test case를 우리 `IPIExample`
+  포맷으로 변환하는 어댑터. P2-c(`run_pipeline.py --injecagent`, 재사용 평가 전용)와
+  P2-d(`--injecagent_headsplit[_from]`, InjecAgent 자체로 head 탐색 + 교집합) 둘 다 사용
 - `debug_read_target.py` — read_target 토큰이 실제로 모델 응답과 맞는지 top-k logit +
   greedy continuation으로 직접 확인하는 디버깅 스크립트
 - `head_poc.ipynb` — Colab 실행 순서를 정리한 노트북 (VS Code의 Colab GPU 연결용)
@@ -77,6 +78,30 @@ GitHub: `jongbin03/head_poc` (origin, `atlas_poc/` 폴더가 로컬 프로젝트
    "공백 토큰을 건너뛰고 다음 실제 토큰을 target으로" 고치려 했으나, 오히려 잘못된 방향임을
    깨닫고 되돌림 — "공백 토큰이 나오는가 vs `" The"`가 나오는가"의 경쟁이 바로 "숫자로 바로
    답하는가 vs 말을 돌려 답하는가"를 가르는 진짜 분기점이라 원래 방식이 맞았음.
+
+4. **`attn_relevance.compute_head_relevance`의 GPU 메모리 누수 (미해결, 2026-07-28 P2-d
+   작업 중 발견)** — backward pass 기반 relevance 계산을 한 프로세스에서 반복 호출하면
+   호출 1번당 GPU 메모리가 ~0.12GB씩 계속 누적되다 약 160회 호출(=80쌍) 근처에서 OOM.
+   - `gc.collect()`/`torch.cuda.empty_cache()`를 매 호출마다 불러도 전혀 안 줄어듦
+   - **모델 인스턴스를 통째로 재로드해도, relevance 루프가 끝난 뒤 한 번 더 세게 정리해도
+     완전히 동일한 수치로 깨짐** (둘 다 재현 실험으로 확인 — 정리 전/후 GPU 메모리가
+     한 바이트도 안 바뀜. 즉 모델 객체나 파이썬 참조 문제가 아니라 프로세스 전역/CUDA
+     드라이버 또는 `lxt` monkey-patch 내부의 전역 상태로 추정)
+   - 기존 `[2/4]` 단계(템플릿 30개 x 3회 = 90번 호출)에서도 같은 비율로 이미 새고 있었으나,
+     호출 수가 적어 지금까지 드러나지 않았을 뿐 — `compute_head_relevance`를 대량 호출하는
+     모든 실험(P2-d뿐 아니라 향후 `dataset_limit`을 키우는 경우 등)에 잠재된 문제
+   - **부작용**: relevance 루프 직후 같은 프로세스에서 eval sweep(forward-only)을 이어
+     돌리면 물리 VRAM이 이미 거의 꽉 찬 상태(~97%)로 시작해 GPU-Util은 100%인데 스와핑/
+     스래싱으로 실제로는 거의 진행이 안 되는 현상 발생 (30분 이상 안 끝남).
+   - **우회책(구현 완료)**: `run_pipeline.py --injecagent_headsplit_from <p2d_heads.json>` —
+     head 탐색 결과(head 목록)를 json으로 저장해두고, eval sweep만 완전히 새 프로세스에서
+     재실행(새 프로세스는 메모리가 깨끗해서 정상 속도). 다만 head 탐색 자체(head_n)의 상한
+     (~60)은 여전히 그대로 — **미해결**: 근본 해결책(배치별 서브프로세스로 head 탐색 자체를
+     나눠 CUDA 컨텍스트를 매번 새로 만들기)은 TODO.md "보류" 섹션에 기록.
+   - **부수적으로 발견한 버그**: `--injecagent_headsplit_from`만 쓰고 `--injecagent_headsplit`은
+     안 쓴 조합에서 결과 디렉토리 접미사(`_headsplit`) 로직이 빠져 있어서, 이전 P2-c 결과
+     폴더(같은 날짜+모델)를 한 번 덮어썼음 — git에 커밋된 파일이라 `git checkout`으로 복구,
+     코드도 두 플래그 다 체크하도록 수정.
 
 ## 용어 정정 (중요)
 
@@ -191,11 +216,40 @@ https://github.com/uiuc-kang-lab/InjecAgent.git external_injecagent`.
 tool-call observation 안에 심어진 구조) 때문이라는 결론. 결과:
 `results/2026-07-28_Qwen-Qwen2-5-1-5B-Instruct_unseen/summary.txt`,
 `results/2026-07-28_Qwen-Qwen2-5-7B-Instruct_4bit_unseen/summary.txt`.
-**P2(P2-a/b/c 전부)는 이 결과로 완료 처리됨.**
+
+## 실험 결과 (2026-07-28, 로컬 RTX 5070Ti, P2-d InjecAgent 자체 head 탐색 완료 — P2 전체 완료)
+
+사용자 제안: InjecAgent 60개(seed=42)로 **직접** control head를 찾아, 우리 합성 데이터셋으로
+찾은 `control_heads_both`와 교집합한 뒤, 나머지 994개로 (a) 합성 단독 (b) InjecAgent 단독
+(c) 교집합 3가지를 비교. `adapters/injecagent.py`에 `build_injecagent_clean_example`(주입
+없는 read baseline)/`build_injecagent_pairs`/`split_pairs`(고정 seed로 head/eval 분리)
+추가, `run_pipeline.py --injecagent_headsplit --injecagent_head_n N`으로 실행. head 탐색은
+항상 InjecAgent의 별도 부분집합(60개)에서만 하고, 최종 994개 eval에는 절대 안 섞임(진짜
+held-out). `--injecagent_headsplit_from <json>`으로 head 탐색 결과를 저장해두고 eval sweep만
+새 프로세스에서 재실행하는 기능도 추가함 (위 버그 4번의 우회책).
+
+| 조건 | head 개수 | k=0 malicious | k=full malicious | k=0 read | k=full read |
+|---|---|---|---|---|---|
+| synthetic-only (`control_heads_both`) | 14 | 0.1907 | 0.0450 | 0.7834 | 0.9306 |
+| injecagent-only (InjecAgent 60개로 직접 탐색) | 20 | 0.1907 | 0.0436 | 0.7834 | 0.9353 |
+| 교집합 | 9 | 0.1907 | 0.0447 | 0.7834 | 0.9309 |
+
+jaccard(synthetic_heads, ia_heads) = 0.081 (거의 안 겹침에도 세 조건 성능이 사실상 동일).
+
+**결론**: 세 조건 다 거의 동일한 성능(억제 후 malicious ~0.044~0.045). 교집합(9개, 가장 적은
+개입)이 나머지 둘과 동등한 효과를 낸다는 건 "두 도메인에서 공통으로 뽑힌 head가 핵심이고
+나머지는 군더더기"라는 신호. 동시에 InjecAgent 자체에서 독자적으로 찾은 head(우리 것과 거의
+안 겹침)도 비슷한 성능이라는 건 "이 도메인엔 우리가 못 찾은 다른 유효한 control head들도
+존재"한다는 뜻. 가장 중요한 건, head 선정 방법을 뭘 바꿔도(합성 전용/InjecAgent 전용/교집합)
+전부 P2-c에서 본 것과 같은 수준(~0.04~0.05)의 잔여 확률에서 멈춘다는 점 — **P2-c의 부분적
+전이는 "head를 잘못 골라서"가 아니라 정말 도메인 구조 자체의 한계**라는 결론이 세 번째
+독립적인 증거로 뒷받침됨. 결과:
+`results/2026-07-28_Qwen-Qwen2-5-1-5B-Instruct_headsplit/summary.txt`.
+**P2(P2-a/b/c/d 전부)는 이 결과로 완료 처리됨.**
 
 ## 다음 할 일 — 우선순위 P3 (2026-07-28 갱신, 자세한 내용은 `next_priorities.md` 및 `TODO.md` 참고)
 
-P0(로컬 5070Ti 재현)/P1(7B 확장)/P2(a/b/c 전부)는 완료됨. 다음 우선순위:
+P0(로컬 5070Ti 재현)/P1(7B 확장)/P2(a/b/c/d 전부)는 완료됨. 다음 우선순위:
 
 1. **P3**: control head 내 internal-only vs external-only 채널 분기 검증 (기존 "채널 분기"
    실험 — `external_heads - internal_heads` / `internal_heads - external_heads` 대칭차)

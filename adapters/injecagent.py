@@ -16,10 +16,15 @@ Attacker Instruction) span 분리가 dataset.py의 PromptBuilder 방식 그대�
 
 사용 전 `git clone https://github.com/uiuc-kang-lab/InjecAgent.git external_injecagent`
 로 데이터를 로컬에 받아야 한다 (pip 패키지나 HF dataset이 아닌 순수 JSON 파일).
+
+P2-d: InjecAgent 일부(기본 200개)로 직접 control head를 찾아, 우리 합성 데이터셋으로
+찾은 control_heads_both와 교집합해본 뒤 나머지로 검증한다 (build_injecagent_pairs/
+split_pairs/build_injecagent_clean_example 참고, run_pipeline.py --injecagent_headsplit).
 """
 import json
 import os
-from typing import Dict, List, Optional
+import random
+from typing import Dict, List, Optional, Tuple
 
 from dataset import IPIExample, PromptBuilder, IM_START, IM_END
 
@@ -139,6 +144,101 @@ def build_injecagent_example(
         meta={"mode": "injecagent", "attack_type": case.get("Attack Type"), "user_tool": user_tool,
               "attacker_tool": attacker_tool},
     )
+
+
+def build_injecagent_clean_example(
+    tokenizer,
+    case: dict,
+    tool_lookup: Dict[str, str],
+    device: str = "cuda",
+) -> Optional[IPIExample]:
+    """
+    P2-d: build_injecagent_example()의 주입-없는 버전 (dataset.py의 read_clean과 동일한 역할).
+    Attacker Instruction을 아예 넣지 않고 benign_prefix+benign_suffix만 이어붙여, "주입 없이도
+    원래 User Tool을 올바르게 호출하는가"(read_target)의 baseline 관련도를 재는 데 쓴다.
+
+    exec_target은 이 예시에서 실제로 쓰이지 않지만(공격 문구 자체가 없음) IPIExample
+    dataclass가 필수 필드라서 read_target과 같은 값을 채워 넣는다 — P2-d에서는 절대
+    참조하지 않음(read_target만 사용).
+    """
+    attacker_tools = case.get("Attacker Tools") or []
+    if not attacker_tools:
+        return None
+    split = _split_on_placeholder(case["Tool Response Template"], case["Attacker Instruction"])
+    if split is None:
+        return None
+    benign_prefix, benign_suffix = split
+
+    user_tool = case["User Tool"]
+    attacker_tool = attacker_tools[0]
+
+    tool_list_lines = []
+    for name in {user_tool, attacker_tool}:
+        summary = tool_lookup.get(name, "")
+        tool_list_lines.append(f"- {name}: {summary}")
+    tool_list_text = "\n".join(sorted(tool_list_lines))
+
+    pb = PromptBuilder(tokenizer)
+    pb.add("special", f"{IM_START}system\n", add_special_tokens=False)
+    pb.add("system", AGENT_SYSTEM_PROMPT + "\n" + tool_list_text)
+    pb.add("special", IM_END, add_special_tokens=False)
+
+    pb.add("special", f"{IM_START}user\n", add_special_tokens=False)
+    pb.add("question", case["User Instruction"])
+    pb.add("special", IM_END, add_special_tokens=False)
+
+    pb.add("special", f"{IM_START}tool\n", add_special_tokens=False)
+    pb.add("data_benign", "Tool Response: " + benign_prefix + benign_suffix)
+    pb.add("special", IM_END, add_special_tokens=False)
+
+    pb.add("special", f"{IM_START}assistant\n", add_special_tokens=False)
+    pb.add("assistant_prefix", "Thought: Based on the tool response, the next action is:\nAction:")
+
+    input_ids, spans = pb.build(device=device)
+    read_target = tokenizer(" " + user_tool, add_special_tokens=False)["input_ids"][0]
+
+    return IPIExample(
+        input_ids=input_ids,
+        spans=spans,
+        read_target=read_target,
+        exec_target=read_target,  # 미사용 placeholder (이 예시엔 공격 문구가 아예 없음)
+        meta={"mode": "injecagent_clean", "user_tool": user_tool},
+    )
+
+
+def build_injecagent_pairs(
+    tokenizer,
+    device: str = "cuda",
+    repo_dir: str = DEFAULT_REPO_DIR,
+    files: Optional[List[str]] = None,
+    limit: Optional[int] = None,
+) -> List[Dict[str, IPIExample]]:
+    """P2-d: 각 test case -> {"clean": IPIExample, "injected": IPIExample} 쌍.
+    "clean"은 read baseline(head 선정용), "injected"는 exec_target/read_target 둘 다
+    있는 기존 build_injecagent_example 결과 (head 선정 relevance 계산 + knockout 평가 둘 다에 씀)."""
+    tool_lookup = build_tool_lookup(repo_dir)
+    cases = load_test_cases(repo_dir, files)
+    if limit is not None:
+        cases = cases[:limit]
+
+    out = []
+    for case in cases:
+        injected = build_injecagent_example(tokenizer, case, tool_lookup, device=device)
+        clean = build_injecagent_clean_example(tokenizer, case, tool_lookup, device=device)
+        if injected is not None and clean is not None:
+            out.append({"clean": clean, "injected": injected})
+    return out
+
+
+def split_pairs(
+    pairs: List[Dict[str, IPIExample]], head_n: int = 200, seed: int = 42
+) -> Tuple[List[Dict[str, IPIExample]], List[Dict[str, IPIExample]]]:
+    """P2-d: pairs를 고정 seed로 섞은 뒤 앞 head_n개는 head 선정용, 나머지는 평가 전용으로 분리.
+    head 선정에 쓰인 case는 평가 세트에 절대 다시 등장하지 않는다(진짜 held-out)."""
+    shuffled = list(pairs)
+    random.Random(seed).shuffle(shuffled)
+    head_n = min(head_n, len(shuffled))
+    return shuffled[:head_n], shuffled[head_n:]
 
 
 def build_injecagent_batch(
