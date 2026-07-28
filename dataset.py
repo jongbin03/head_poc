@@ -253,7 +253,7 @@ _INJECTION_STYLES = [
 ]
 
 
-def sample_templates() -> List[dict]:
+def sample_templates(style_indices: Optional[List[int]] = None) -> List[dict]:
     """
     Phase 1+ 본 실험용 템플릿 생성기. _base_domains() x _INJECTION_STYLES 곱집합
     (6 x 5 = 30개)으로 콘텐츠 종류와 공격 문구 스타일을 독립적으로 다양화한다.
@@ -263,10 +263,16 @@ def sample_templates() -> List[dict]:
     build_phase0_batch(limit=N)으로 앞에서 N개만 잘랐을 때 도메인이 골고루 섞인다
     (domain-major면 limit=6이 "도메인 0번 5개 + 도메인 1번 1개"가 되어 스모크
     테스트에서 콘텐츠 다양성이 전혀 안 나온다). limit=6 -> 6개 도메인 전부 x 스타일 1개.
+
+    style_indices: _INJECTION_STYLES 중 사용할 인덱스만 필터링 (P2-a held-out split용).
+                   None이면 5종 전부 사용.
     """
     domains = _base_domains()
+    styles = _INJECTION_STYLES if style_indices is None else [
+        _INJECTION_STYLES[i] for i in style_indices
+    ]
     out = []
-    for style in _INJECTION_STYLES:
+    for style in styles:
         for domain in domains:
             out.append(
                 dict(
@@ -283,7 +289,10 @@ def sample_templates() -> List[dict]:
 
 
 def build_phase0_batch(
-    tokenizer, device: str = "cuda", limit: Optional[int] = None
+    tokenizer,
+    device: str = "cuda",
+    limit: Optional[int] = None,
+    style_indices: Optional[List[int]] = None,
 ) -> List[Dict[str, IPIExample]]:
     """
     각 템플릿에 대해 4가지 mode의 IPIExample을 만들어 dict로 묶어 반환한다.
@@ -299,8 +308,9 @@ def build_phase0_batch(
 
     limit: Phase 0 smoke test처럼 빠르게 돌리고 싶을 때 템플릿 개수를 앞에서부터
            잘라서 쓴다 (예: limit=2). None이면 sample_templates() 전체(기본 30개) 사용.
+    style_indices: sample_templates()에 그대로 전달 (P2-a held-out split용).
     """
-    templates = sample_templates()
+    templates = sample_templates(style_indices=style_indices)
     if limit is not None:
         templates = templates[:limit]
 

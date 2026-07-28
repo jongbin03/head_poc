@@ -118,13 +118,41 @@ GitHub: `jongbin03/head_poc` (origin, `atlas_poc/` 폴더가 로컬 프로젝트
 자세한 로그: `results/2026-07-28_local_5070ti/README.md`. **TODO.md의 P0/P1은 이 결과로
 완료 처리됨.**
 
-## 다음 할 일 — 우선순위 P2~P3 (2026-07-28 기준, 자세한 내용은 `next_priorities.md` 및 `TODO.md` 참고)
+## 실험 결과 (2026-07-28, 로컬 RTX 5070Ti, P2-a held-out split 완료)
 
-P0(로컬 5070Ti 재현)/P1(7B 확장)은 완료됨 (위 실험 결과 참고). 다음 우선순위:
+`dataset.py`에 `style_indices` 필터, `run_pipeline.py`에 `--heldout_style_idx {0..4}` 옵션을
+추가 — 지정한 공격 문구 스타일을 head 선정(`[2/4]`/`[3/4]`)에서 완전히 배제하고, knockout
+sweep(`[4/4]`)을 in-distribution(4종)/held-out(1종) 양쪽으로 나눠 실행.
 
-1. **P2**: 외부/추가 데이터셋으로 기존 `control_heads_both`의 edge knockout 효과 검증
-   (held-out 분리 / 미지의 공격 문구 / InjecAgent 등 외부 IPI 벤치마크)
-2. **P3**: control head 내 internal-only vs external-only 채널 분기 검증 (기존 "채널 분기"
+| 모델 | held-out 스타일 | k=0 malicious | k=10 malicious | k=0 read | k=10 read |
+|---|---|---|---|---|---|
+| 1.5B | 0 | 0.9913 | 0.0000 | 0.5487 | 0.5181 |
+| 1.5B | 1 | 0.9890 | 0.0000 | 0.5231 | 0.5147 |
+| 1.5B | 2 | 0.9767 | 0.0000 | 0.5259 | 0.5100 |
+| 1.5B | 3 | 0.9465 | 0.0000 | 0.5245 | 0.5206 |
+| 1.5B | 4 | 0.6555 | 0.0000 | 0.5552 | 0.5222 |
+| 7B(4bit) | 0 | 0.9999 | 0.0002 | 0.8418 | 0.9261 |
+
+**결론**: head 선정에 전혀 쓰이지 않은 held-out 스타일에서도 knockout 효과(공격 억제 +
+read 보존)가 5종 전부, 두 스케일(1.5B/7B) 모두에서 재현됨. "30개 템플릿에만 통하는
+head"라는 과적합 우려 해소. 결과: `results/2026-07-28_Qwen-Qwen2-5-1-5B-Instruct_heldout{0..4}/`,
+`results/2026-07-28_Qwen-Qwen2-5-7B-Instruct_4bit_heldout0/`.
+
+**발견한 버그**: `run_pipeline.py`의 `run_dir` 기본값이 `<날짜>_<모델명>`만 사용해 같은 날
+같은 모델로 `--heldout_style_idx`만 바꿔 여러 번 돌리면 결과가 덮어써짐 → `_heldout{N}`
+접미사 추가로 수정. 1.5B 5회 연속 실행 중 뒤늦게 발견했으나 콘솔 로그에서 summary 수치는
+전부 복구, `functional_map.png`(로그에 텍스트로 안 남음)는 마지막 1개만 복구 가능했음.
+
+## 다음 할 일 — 우선순위 P2-b~P3 (2026-07-28 갱신, 자세한 내용은 `next_priorities.md` 및 `TODO.md` 참고)
+
+P0(로컬 5070Ti 재현)/P1(7B 확장)/P2-a(held-out split)는 완료됨. 다음 우선순위:
+
+1. **P2-c**: InjecAgent 등 외부 IPI 벤치마크로 D_benign/D_inj span 추출 어댑터 만들어 검증
+   (2026-07-28 사용자 판단으로 P2-b보다 먼저 진행하기로 순서 변경 — P2-c가 실제 미지의
+   공격 문구를 포함하므로 성공 시 P2-b 질문도 같이 검증됨)
+2. **P2-b**: `_INJECTION_STYLES`에 없는 미지의 공격 문구 스타일 추가 — 보류. P2-c 결과가
+   나쁠 때 "문구 때문인지 도메인 때문인지" 원인을 분리하는 용도로만 필요시 진행
+3. **P3**: control head 내 internal-only vs external-only 채널 분기 검증 (기존 "채널 분기"
    실험 — `external_heads - internal_heads` / `internal_heads - external_heads` 대칭차)
 
 부작용(collateral damage) 측정, Llama 계열 교차검증, path patching, 실전 배포 전환은
@@ -132,6 +160,7 @@ P0(로컬 5070Ti 재현)/P1(7B 확장)은 완료됨 (위 실험 결과 참고). 
 
 ## 협업 방식 관련 메모
 
+- **응답 언어는 한국어** (2026-07-28 명시적 요청, [[atlas-poc-feedback-language]] 참고).
 - 사용자는 Colab 무료 T4로 실험을 돌리고, 결과를 대화에 붙여넣으면 원인 분석/코드 수정을
   요청하는 방식으로 작업함. VS Code에서 Colab 확장으로 GPU만 연결해 쓰는 중.
 - 실험 결과가 나올 때마다 `results/YYYY-MM-DD_설명/README.md` 형태로 원본 로그 + 해석 +

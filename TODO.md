@@ -6,7 +6,7 @@
 |---|---|---|
 | ~~P0~~ | ~~로컬 5070Ti 환경에서 파이프라인 전체 재현~~ | **완료** (2026-07-28, `results/2026-07-28_local_5070ti`) |
 | ~~P1~~ | ~~Qwen2.5-7B(8B급)로 본 실험 확장~~ | **완료** (2026-07-28, 4bit, 같은 결과 폴더) |
-| P2 | 외부/추가 데이터셋으로 기존 control head의 edge knockout 효과 검증 | held-out + 미지 문구 + 외부 벤치마크 |
+| P2 | 외부/추가 데이터셋으로 기존 control head의 edge knockout 효과 검증 | ~~held-out~~ 완료 + 외부 벤치마크(다음) + 미지 문구(보류) |
 | P3 | control head 내 internal-only vs external-only 채널 분기 검증 | 기존 채널 분기 실험 |
 
 아래는 우선순위 순서대로 자세한 내용, 그 뒤에 보류 항목.
@@ -32,20 +32,37 @@ P0와 같은 세션에서 `--four_bit`로 7B까지 바로 실행, knockout sweep
 (30개 템플릿 전체). "이 30개 조합에서만 통하는 head"일 위험이 있어, 우리가 찾은
 control head가 **새로운/외부 데이터**에서도 여전히 먹히는지 확인이 필요.
 
-### P2-a. Held-out 분리 (같은 데이터셋 안에서)
-1. `dataset.sample_templates()`의 스타일 5종 중 4종(24개)으로 control head를 찾고,
-   나머지 1종(6개)은 head 선정에서 완전히 배제했다가 knockout 검증에만 사용
-2. `run_pipeline.py`에 head 선정용 템플릿과 평가용 템플릿을 분리하는 옵션 추가
-3. held-out에서도 같은 패턴(공격 억제 + read 보존)이 재현되면 과적합 우려 해소
+### ~~P2-a. Held-out 분리 (같은 데이터셋 안에서)~~ — 완료 (2026-07-28)
 
-### P2-b. 미지의 공격 문구로 확장
+`dataset.py`의 `sample_templates()`/`build_phase0_batch()`에 `style_indices` 필터를,
+`run_pipeline.py`에 `--heldout_style_idx {0..4}` 옵션을 추가 (해당 스타일을 head 선정
+`[2/4]`/`[3/4]`에서 완전히 배제하고 `[4/4]` knockout sweep을 in-distribution/held-out
+양쪽으로 나눠 실행). 1.5B로 스타일 0~4 전부, 7B(4bit)로 대표 스타일(0번) 재확인 — 5개
+스타일 전부에서 held-out 데이터에도 knockout 효과(`malicious_token_prob`이 k=10~20 안에
+0으로 붕괴, `read_token_prob` 유지/상승)가 그대로 재현됨. "30개 템플릿에만 통하는 head"
+과적합 우려 해소. 결과: `results/2026-07-28_Qwen-Qwen2-5-1-5B-Instruct_heldout{0..4}/`,
+`results/2026-07-28_Qwen-Qwen2-5-7B-Instruct_4bit_heldout0/`.
+
+**작업 중 발견한 버그**: `run_pipeline.py`의 `run_dir` 기본값이 `<날짜>_<모델명>`만 써서
+같은 날 같은 모델로 `--heldout_style_idx`만 바꿔 여러 번 돌리면 결과가 서로 덮어써짐.
+`_heldout{N}` 접미사를 추가해 수정 (1.5B 5회 실행 중 발견, 다행히 콘솔 로그에서 5개 결과
+전부 복구 가능했음 — `functional_map.png`는 텍스트 로그에 없어 마지막 1개만 복구됨).
+
+### P2-b. 미지의 공격 문구로 확장 — 보류 (2026-07-28, P2-c 결과 나올 때까지)
+
+**결정**: P2-c(외부 벤치마크)가 우리 5종과 전혀 다른 실제 공격 문구를 쓰므로, P2-c에서
+knockout이 먹히면 P2-b가 확인하려던 "미지의 문구에도 통하는가"는 사실상 같이 검증된다.
+다만 P2-c는 문구와 도메인/데이터 구조를 동시에 바꾸는 실험이라, 만약 결과가 나쁘면
+원인이 문구 때문인지 도메인 때문인지 P2-c만으로는 분리가 안 된다 — 그 경우에만 원인
+분리용으로 P2-b를 진행. 순서를 **P2-c 먼저, P2-b는 필요시에만**으로 변경.
+
 1. `_INJECTION_STYLES`에 없는 새로운 스타일(다국어 혼용, 코드블록 위장, 유니코드
    난독화, 더 짧고 우회적인 표현 등) 추가 작성
 2. 기존 5종으로 찾은 `control_heads_both`를 그대로 써서 새 스타일에 edge knockout 적용
 3. 여전히 `malicious_token_prob`이 죽는지 확인 — 안 죽으면 "특정 문구 패턴에 과적합된
    head"라는 뜻이므로 방어 범위에 대한 중요한 negative result
 
-### P2-c. 검증된 외부 IPI 벤치마크로 재현
+### P2-c. 검증된 외부 IPI 벤치마크로 재현 (다음 작업)
 **후보**: **InjecAgent**(tool-calling 에이전트 대상, 우리 `external` mode와 구조 가장
 유사 — 우선 추천) / **BIPIA**(RAG/요약 시나리오, `internal` mode와 유사) / **AgentDojo**
 (멀티스텝 에이전트, 스케일 검증용)

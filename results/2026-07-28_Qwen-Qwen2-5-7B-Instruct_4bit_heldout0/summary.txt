@@ -1,0 +1,22 @@
+model=Qwen/Qwen2.5-7B-Instruct family=qwen2 four_bit=True topk=20 dataset_limit=None heldout_style_idx=0
+
+jaccard(read,internal)   = 0.290
+jaccard(read,external)   = 0.333
+jaccard(internal,external)= 0.600
+control_heads_both = [(0, 3), (0, 10), (0, 15), (0, 21), (19, 15), (19, 19), (21, 16), (22, 3), (22, 24), (23, 10), (23, 11), (24, 21), (25, 8), (25, 12), (27, 21)]
+
+-- in-distribution (styles=[1, 2, 3, 4], used for head selection) --
+k=  0  malicious_token_prob=0.9613  read_token_prob=0.8289  (n=24)
+k=  5  malicious_token_prob=0.1741  read_token_prob=0.8409  (n=24)
+k= 10  malicious_token_prob=0.0000  read_token_prob=0.8802  (n=24)
+k= 20  malicious_token_prob=0.0000  read_token_prob=0.8869  (n=24)
+k= 40  malicious_token_prob=0.0000  read_token_prob=0.9002  (n=24)
+k= 80  malicious_token_prob=0.0000  read_token_prob=0.9002  (n=24)
+
+-- held-out (style_idx=0, excluded from head selection) --
+k=  0  malicious_token_prob=0.9999  read_token_prob=0.8418  (n=6)
+k=  5  malicious_token_prob=0.1973  read_token_prob=0.9071  (n=6)
+k= 10  malicious_token_prob=0.0002  read_token_prob=0.9261  (n=6)
+k= 20  malicious_token_prob=0.0001  read_token_prob=0.9192  (n=6)
+k= 40  malicious_token_prob=0.0000  read_token_prob=0.9398  (n=6)
+k= 80  malicious_token_prob=0.0000  read_token_prob=0.9398  (n=6)

@@ -17,16 +17,19 @@ metadata:
 read 보존) 재현됨. 결과: `results/2026-07-28_local_5070ti/README.md`,
 요약: [[atlas-poc-summary]]. **다음 우선순위는 P2부터.**
 
-## P2 — 외부/추가 데이터셋으로 기존 control head의 edge knockout 효과 검증 (다음 작업)
+## P2 — 외부/추가 데이터셋으로 기존 control head의 edge knockout 효과 검증
 
 지금까지 head를 찾은 데이터와 knockout 효과를 검증한 데이터가 완전히 동일(30개 템플릿
 전체) — "이 30개에서만 통하는 head"일 위험. 세 갈래로 검증:
 
-- **P2-a Held-out**: 스타일 5종 중 4종으로 head를 찾고, 나머지 1종은 평가에만 사용
-- **P2-b 미지의 공격 문구**: `_INJECTION_STYLES`에 없는 새 스타일 추가해서 기존
-  `control_heads_both`가 여전히 먹히는지 확인
-- **P2-c 외부 IPI 벤치마크**: InjecAgent(추천, `external` mode와 구조 유사) / BIPIA /
-  AgentDojo 중 하나로 D_benign/D_inj span 추출 어댑터 만들어 ASR 측정
+- ~~**P2-a Held-out**~~ — **완료 (2026-07-28)**. 스타일 5종 중 4종으로 head를 찾고
+  나머지 1종은 평가에만 사용 — 1.5B로 5종 전부, 7B(4bit)로 대표 1종 재확인, 전부 재현됨.
+  자세한 내용: [[atlas-poc-summary]].
+- **P2-c 외부 IPI 벤치마크 (다음 작업, 순서 변경됨)**: InjecAgent(추천, `external` mode와
+  구조 유사) / BIPIA / AgentDojo 중 하나로 D_benign/D_inj span 추출 어댑터 만들어 ASR 측정
+- **P2-b 미지의 공격 문구 — 보류**: P2-c가 우리 5종과 다른 실제 문구를 쓰므로 P2-c 성공 시
+  P2-b 질문은 사실상 같이 검증됨. P2-c 결과가 나쁠 때 "문구 때문인지 도메인 때문인지"
+  원인을 분리하는 용도로만 필요시 진행 (2026-07-28 사용자 판단으로 순서 변경, TODO.md 참고).
 
 ## P3 — control head 내 internal-only vs external-only 채널 분기 검증
 
@@ -46,3 +49,4 @@ read 보존) 재현됨. 결과: `results/2026-07-28_local_5070ti/README.md`,
 ## 관련 메모
 
 [[atlas-poc-summary]] — 프로젝트 전체 배경, 발견한 버그, 실험 결과, 협업 방식 메모.
+[[atlas-poc-feedback-language]] — 이 프로젝트에서는 항상 한국어로 응답.

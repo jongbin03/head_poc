@@ -51,6 +51,15 @@ def main():
         help="템플릿 개수를 앞에서부터 제한 (Phase 0 smoke test용, 예: 2). 기본값은 전체(30개).",
     )
     parser.add_argument(
+        "--heldout_style_idx",
+        type=int,
+        default=None,
+        choices=range(5),
+        help="P2-a held-out split: _INJECTION_STYLES(5종) 중 이 인덱스는 head 선정("
+        "[2/4],[3/4])에서 완전히 배제하고, [4/4] knockout sweep에서 held-out 전용으로만 "
+        "평가한다. 기본값 None이면 held-out 없이 5종 전부 사용(기존 동작).",
+    )
+    parser.add_argument(
         "--out_dir",
         default=None,
         help="functional_map.png / summary.txt를 저장할 디렉토리. "
@@ -63,6 +72,8 @@ def main():
     else:
         model_slug = re.sub(r"[^A-Za-z0-9]+", "-", args.model).strip("-")
         suffix = "_4bit" if args.four_bit else ""
+        if args.heldout_style_idx is not None:
+            suffix += f"_heldout{args.heldout_style_idx}"
         date_str = datetime.date.today().isoformat()
         run_dir = os.path.join("results", f"{date_str}_{model_slug}{suffix}")
     os.makedirs(run_dir, exist_ok=True)
@@ -72,8 +83,18 @@ def main():
         model_path=args.model, four_bit=args.four_bit, device=args.device, model_family=args.family
     )
 
+    head_style_indices = None
+    if args.heldout_style_idx is not None:
+        head_style_indices = [i for i in range(5) if i != args.heldout_style_idx]
+        print(
+            f"[P2-a] held-out split: style_idx={args.heldout_style_idx} excluded from "
+            f"head selection, styles={head_style_indices} used instead."
+        )
+
     print("[2/4] building synthetic IPI dataset ...")
-    pairs = build_phase0_batch(tok, device=args.device, limit=args.dataset_limit)
+    pairs = build_phase0_batch(
+        tok, device=args.device, limit=args.dataset_limit, style_indices=head_style_indices
+    )
 
     read_scores_list, internal_scores_list, external_scores_list = [], [], []
 
@@ -145,20 +166,52 @@ def main():
             f"  (n={row['n_examples']})"
         )
 
+    heldout_sweep_results = None
+    if args.heldout_style_idx is not None:
+        print(
+            f"[P2-a] building held-out dataset (style_idx={args.heldout_style_idx} only) "
+            "for out-of-distribution knockout eval ..."
+        )
+        heldout_pairs = build_phase0_batch(
+            tok, device=args.device, style_indices=[args.heldout_style_idx]
+        )
+        heldout_exec_examples = [ex["external"] for ex in heldout_pairs]
+        heldout_read_examples = [ex["read_injected"] for ex in heldout_pairs]
+        heldout_sweep_results = sweep_knockout(
+            model, modeling_mod, heldout_exec_examples, heldout_read_examples, control_ranking,
+        )
+        for row in heldout_sweep_results:
+            print(
+                f"  [held-out] k={row['k']:>3}  malicious_token_prob={row['malicious_token_prob']:.4f}"
+                f"  read_token_prob={row['read_token_prob']:.4f}"
+                f"  (n={row['n_examples']})"
+            )
+
     summary_path = os.path.join(run_dir, "summary.txt")
     with open(summary_path, "w", encoding="utf-8") as f:
         f.write(f"model={args.model} family={args.family} four_bit={args.four_bit} "
-                 f"topk={args.topk} dataset_limit={args.dataset_limit}\n\n")
+                 f"topk={args.topk} dataset_limit={args.dataset_limit} "
+                 f"heldout_style_idx={args.heldout_style_idx}\n\n")
         f.write(f"jaccard(read,internal)   = {summary['jaccard_read_internal']:.3f}\n")
         f.write(f"jaccard(read,external)   = {summary['jaccard_read_external']:.3f}\n")
         f.write(f"jaccard(internal,external)= {summary['jaccard_internal_external']:.3f}\n")
         f.write(f"control_heads_both = {summary['control_heads_both']}\n\n")
+        if args.heldout_style_idx is not None:
+            f.write(f"-- in-distribution (styles={head_style_indices}, used for head selection) --\n")
         for row in sweep_results:
             f.write(
                 f"k={row['k']:>3}  malicious_token_prob={row['malicious_token_prob']:.4f}"
                 f"  read_token_prob={row['read_token_prob']:.4f}"
                 f"  (n={row['n_examples']})\n"
             )
+        if heldout_sweep_results is not None:
+            f.write(f"\n-- held-out (style_idx={args.heldout_style_idx}, excluded from head selection) --\n")
+            for row in heldout_sweep_results:
+                f.write(
+                    f"k={row['k']:>3}  malicious_token_prob={row['malicious_token_prob']:.4f}"
+                    f"  read_token_prob={row['read_token_prob']:.4f}"
+                    f"  (n={row['n_examples']})\n"
+                )
     print(f"  summary saved to {summary_path}")
 
 
