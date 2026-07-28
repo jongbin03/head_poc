@@ -18,6 +18,9 @@ Phase 0~1 smoke test 진입점. 5070 Ti에서:
      ASR proxy / read 정확도 proxy sweep 실행 및 출력
 """
 import argparse
+import datetime
+import os
+import re
 from typing import List
 
 import torch
@@ -47,7 +50,22 @@ def main():
         default=None,
         help="템플릿 개수를 앞에서부터 제한 (Phase 0 smoke test용, 예: 2). 기본값은 전체(30개).",
     )
+    parser.add_argument(
+        "--out_dir",
+        default=None,
+        help="functional_map.png / summary.txt를 저장할 디렉토리. "
+        "기본값은 results/<날짜>_<모델명>[_4bit]/ (실행마다 자동 생성, 덮어쓰기 방지).",
+    )
     args = parser.parse_args()
+
+    if args.out_dir:
+        run_dir = args.out_dir
+    else:
+        model_slug = re.sub(r"[^A-Za-z0-9]+", "-", args.model).strip("-")
+        suffix = "_4bit" if args.four_bit else ""
+        date_str = datetime.date.today().isoformat()
+        run_dir = os.path.join("results", f"{date_str}_{model_slug}{suffix}")
+    os.makedirs(run_dir, exist_ok=True)
 
     print(f"[1/4] loading {args.model} (family={args.family}, four_bit={args.four_bit}) ...")
     model, tok = load_model_for_relevance(
@@ -96,7 +114,10 @@ def main():
     print(f"  top-{args.topk} Jaccard(internal,external)= {summary['jaccard_internal_external']:.3f}")
     print(f"  control_heads_both (internal ∩ external)  = {summary['control_heads_both']}")
 
-    plot_path = plot_functional_map(read_score, internal_score, external_score, top_k=args.topk)
+    plot_path = plot_functional_map(
+        read_score, internal_score, external_score, top_k=args.topk,
+        save_path=os.path.join(run_dir, "functional_map.png"),
+    )
     print(f"  functional map saved to {plot_path}")
 
     print("[4/4] edge-knockout sweep on control head candidates ...")
@@ -123,6 +144,22 @@ def main():
             f"  read_token_prob={row['read_token_prob']:.4f}"
             f"  (n={row['n_examples']})"
         )
+
+    summary_path = os.path.join(run_dir, "summary.txt")
+    with open(summary_path, "w", encoding="utf-8") as f:
+        f.write(f"model={args.model} family={args.family} four_bit={args.four_bit} "
+                 f"topk={args.topk} dataset_limit={args.dataset_limit}\n\n")
+        f.write(f"jaccard(read,internal)   = {summary['jaccard_read_internal']:.3f}\n")
+        f.write(f"jaccard(read,external)   = {summary['jaccard_read_external']:.3f}\n")
+        f.write(f"jaccard(internal,external)= {summary['jaccard_internal_external']:.3f}\n")
+        f.write(f"control_heads_both = {summary['control_heads_both']}\n\n")
+        for row in sweep_results:
+            f.write(
+                f"k={row['k']:>3}  malicious_token_prob={row['malicious_token_prob']:.4f}"
+                f"  read_token_prob={row['read_token_prob']:.4f}"
+                f"  (n={row['n_examples']})\n"
+            )
+    print(f"  summary saved to {summary_path}")
 
 
 if __name__ == "__main__":

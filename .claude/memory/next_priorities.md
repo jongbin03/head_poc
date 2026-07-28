@@ -1,36 +1,23 @@
 ---
 name: atlas-poc-next-priorities
-description: atlas_poc 다음 실험 우선순위(P0~P3) — TODO.md 요약, 다음 세션 시작 시 바로 참고
+description: atlas_poc 다음 실험 우선순위(P2~P3, P0/P1 완료) — TODO.md 요약, 다음 세션 시작 시 바로 참고
 metadata:
   type: project
 ---
 
-# 다음 할 일 (우선순위 순, 2026-07-27 확정)
+# 다음 할 일 (우선순위 순, 2026-07-28 갱신)
 
-전체 상세 내용은 프로젝트 루트 `TODO.md` 참고 (커밋 `59dd065`로 이 순서 확정). 이 파일은
-다음 세션에서 "지금 뭐부터 하면 되지?"를 바로 답하기 위한 요약.
+전체 상세 내용은 프로젝트 루트 `TODO.md` 참고. 이 파일은 다음 세션에서 "지금 뭐부터 하면
+되지?"를 바로 답하기 위한 요약.
 
-## P0 — 로컬 5070Ti 환경에서 파이프라인 전체 재현
+## ~~P0/P1 — 로컬 5070Ti 재현 + 7B 확장~~ — 완료 (2026-07-28)
 
-지금까지 결과는 전부 Colab 무료 T4에서 나온 것. 7B로 올리려면 Colab 세션 제약(끊김, 휘발성
-디스크, VRAM/시간 한계)보다 로컬 5070Ti(16GB, 상시 가동)가 유리해서, 먼저 이 환경에서
-Phase 0~3(0.5B 스모크 → 1.5B/3B 30개 템플릿)이 Colab과 동일하게 재현되는지 확인해야 함.
-`RUN.md`에 로컬 가이드는 있으나 실제 5070Ti 실행 검증은 아직 안 됨.
+로컬 5070Ti에서 `transformers==4.51.3`으로 lxt 호환성 이슈 해결 후 0.5B/1.5B/3B/7B(4bit)
+전부 실행 완료. Colab 결과와 수치 근접(재현성 확인), 7B(4bit)도 같은 패턴(공격 억제 +
+read 보존) 재현됨. 결과: `results/2026-07-28_local_5070ti/README.md`,
+요약: [[atlas-poc-summary]]. **다음 우선순위는 P2부터.**
 
-- pyenv 3.11.9 + cu128 PyTorch 확인 → 0.5B 스모크 → 1.5B/3B 전체 30개 재실행
-- Colab 결과(`results/2026-07-27_colab_phase1to3`)와 수치 대조
-
-## P1 — Qwen2.5-7B(8B급)로 본 실험 확장 (5070Ti)
-
-**전제**: P0 완료 후 진행. RUN.md Phase 4 계획에 있던 단계.
-
-- bf16 우선 시도 (VRAM 실측), OOM이면 `--four_bit` + checkpointing 끔
-- 최소한 `edge_ablation.py`의 knockout sweep(forward-only, 항상 안전)만이라도 반드시 수행 —
-  1.5B/3B에서 찾은 `control_heads_both`가 7B에서도 먹히는지가 head relevance를 7B에서
-  새로 뽑는 것보다 우선순위 높음
-- 결과는 `results/YYYY-MM-DD_5070ti_7b/README.md`로 기록
-
-## P2 — 외부/추가 데이터셋으로 기존 control head의 edge knockout 효과 검증
+## P2 — 외부/추가 데이터셋으로 기존 control head의 edge knockout 효과 검증 (다음 작업)
 
 지금까지 head를 찾은 데이터와 knockout 효과를 검증한 데이터가 완전히 동일(30개 템플릿
 전체) — "이 30개에서만 통하는 head"일 위험. 세 갈래로 검증:

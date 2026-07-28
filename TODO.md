@@ -4,8 +4,8 @@
 
 | 순위 | 항목 | 비고 |
 |---|---|---|
-| P0 | 로컬 5070Ti 환경에서 파이프라인 전체 재현 | 아래 P1(7B)의 전제 조건 |
-| P1 | Qwen2.5-7B(8B급)로 본 실험 확장 | 5070Ti에서 진행 |
+| ~~P0~~ | ~~로컬 5070Ti 환경에서 파이프라인 전체 재현~~ | **완료** (2026-07-28, `results/2026-07-28_local_5070ti`) |
+| ~~P1~~ | ~~Qwen2.5-7B(8B급)로 본 실험 확장~~ | **완료** (2026-07-28, 4bit, 같은 결과 폴더) |
 | P2 | 외부/추가 데이터셋으로 기존 control head의 edge knockout 효과 검증 | held-out + 미지 문구 + 외부 벤치마크 |
 | P3 | control head 내 internal-only vs external-only 채널 분기 검증 | 기존 채널 분기 실험 |
 
@@ -13,39 +13,18 @@
 
 ---
 
-## P0. 로컬 5070Ti 환경에서 파이프라인 전체 재현
+## ~~P0. 로컬 5070Ti 환경에서 파이프라인 전체 재현~~ — 완료 (2026-07-28)
 
-**배경**: 지금까지 결과는 전부 Colab 무료 T4에서 나왔음. 7B 이상으로 올리려면 Colab 무료
-세션(세션 끊김, 디스크 휘발성, VRAM/시간 제약)보다 로컬 5070Ti(16GB, 상시 가동)가 유리함.
-`RUN.md`에 로컬 실행 가이드는 이미 있지만 실제로 이 환경에서 실행 검증된 적은 없음
-(README.md 문서에도 명시된 사실).
+`transformers==4.51.3` 고정으로 lxt import 이슈 해결 후, 0.5B(smoke)/1.5B/3B 전체 30개
+템플릿 재실행. Colab(T4) 결과와 수치 근접(1.5B/3B 오차 범위 내) — 환경 재현성 확인됨.
+자세한 로그: `results/2026-07-28_local_5070ti/README.md`.
 
-**할 일**:
-1. `RUN.md` 0~2단계대로 pyenv 3.11.9 + cu128 PyTorch 환경 구성, `torch.cuda.is_available()`
-   / `get_device_name(0)` 확인
-2. Phase 0 스모크 테스트(0.5B, `--dataset_limit 2`)부터 돌려서 로컬 환경 자체가 Colab과
-   동일하게 동작하는지 확인 (lxt/transformers 버전 조합도 로컬에서 다시 검증 — Colab에서
-   쓴 `transformers==4.51.3` 고정이 로컬 cu128 PyTorch와도 호환되는지 체크)
-3. 1.5B/3B 30개 템플릿 전체를 로컬에서 재실행해 Colab 결과(`results/2026-07-27_colab_phase1to3`)와
-   수치가 재현되는지 대조 — 환경 차이로 인한 편차가 있는지 확인
+## ~~P1. Qwen2.5-7B(8B급)로 본 실험 확장 (5070Ti)~~ — 완료 (2026-07-28)
 
-## P1. Qwen2.5-7B(8B급)로 본 실험 확장 (5070Ti)
-
-**배경**: RUN.md Phase 4 계획에 있던 단계. 1.5B/3B에서 확인한 패턴(read/control 분리,
-internal∩external 공유, edge knockout으로 공격 억제+read 보존)이 7B로 스케일을 올려도
-재현되는지가 다음 확인 대상. 5070Ti 16GB는 Colab 무료 T4보다 크고 안정적이라 이 스케일
-검증에 적합.
-
-**할 일**:
-1. `--four_bit` 없이 bf16으로 먼저 시도 (7B bf16 weight만 ~14GB — backward 포함하면 VRAM
-   빠듯할 수 있으니 `nvidia-smi -l 1`로 실측하며 진행, OOM 시 2번으로)
-2. OOM이면 `--four_bit` 4bit 양자화 + checkpointing 끔 조합으로 head-level relevance
-   추출 시도 (README.md §6 "알려진 함정" 참고 — checkpointing 켜면 embedding-level
-   relevance만 가능해지므로 head relevance가 필요하면 반드시 checkpointing 끄고 VRAM 확인)
-3. 최소한 `edge_ablation.py`의 knockout sweep(forward-only, 4bit/checkpointing 무관하게
-   항상 안전)만이라도 반드시 수행 — 1.5B/3B에서 찾은 `control_heads_both`가 7B에서도
-   knockout으로 먹히는지 검증 (head relevance를 7B에서 새로 뽑는 것보다 우선순위 높음)
-4. 결과를 `results/YYYY-MM-DD_5070ti_7b/README.md`로 기록 (Colab 결과와 비교 표 포함)
+P0와 같은 세션에서 `--four_bit`로 7B까지 바로 실행, knockout sweep 정상 수행
+(`malicious_token_prob`이 k=10~20 안에 0으로 붕괴, `read_token_prob`은 k=20까지
+오히려 소폭 상승). 결과는 P0와 같은 폴더(`results/2026-07-28_local_5070ti/README.md`)에
+통합 기록됨 — 별도 폴더 분리하지 않음.
 
 ## P2. 외부/추가 데이터셋으로 기존 control head의 edge knockout 효과 검증
 

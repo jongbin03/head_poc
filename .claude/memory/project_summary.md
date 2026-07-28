@@ -101,13 +101,30 @@ GitHub: `jongbin03/head_poc` (origin, `atlas_poc/` 폴더가 로컬 프로젝트
 자세한 원본 로그: `results/2026-07-27_colab_smoketest/README.md`,
 `results/2026-07-27_colab_phase1to3/README.md` 참고.
 
-## 다음 할 일 — 우선순위 P0~P3 (자세한 내용은 `next_priorities.md` 및 `TODO.md` 참고)
+## 실험 결과 (2026-07-28, 로컬 RTX 5070Ti, P0+P1 완료)
 
-1. **P0**: 로컬 5070Ti 환경에서 지금까지의 파이프라인(Phase 0~3)을 재현 — 7B 실험의 전제 조건
-2. **P1**: Qwen2.5-7B(8B급)로 본 실험 확장, 5070Ti에서 진행
-3. **P2**: 외부/추가 데이터셋으로 기존 `control_heads_both`의 edge knockout 효과 검증
+`transformers 5.14.1`에서 lxt import 실패(`find_pruneable_heads_and_indices` 제거됨) →
+`transformers==4.51.3`으로 다운그레이드해 해결 (Colab에서 이미 확인된 동일한 버전 제약).
+
+| 모델 | 방식 | jaccard(internal,external) | k=0 malicious | k=20 malicious | k=0 read | k=20 read |
+|---|---|---|---|---|---|---|
+| 0.5B (smoke, n=2) | fp | 0.481 | 0.9463 | 0.0000 | 0.8204 | 0.8322 |
+| 1.5B | fp | 0.538 | 0.9118 | 0.0000 | 0.5355 | 0.5110 |
+| 3B   | fp | 0.538 | 0.9995 | 0.0000 | 0.6989 | 0.6788 |
+| 7B   | 4bit | 0.600 | 0.9690 | 0.0000 | 0.8315 | 0.8934 |
+
+**결론**: Colab(T4) 수치와 1.5B/3B가 오차 범위 내로 일치 — 환경(5070Ti) 재현성 확인.
+7B(4bit)까지 같은 패턴(공격 억제 + read 보존, 오히려 k가 커질수록 read 소폭 상승) 재현됨.
+자세한 로그: `results/2026-07-28_local_5070ti/README.md`. **TODO.md의 P0/P1은 이 결과로
+완료 처리됨.**
+
+## 다음 할 일 — 우선순위 P2~P3 (2026-07-28 기준, 자세한 내용은 `next_priorities.md` 및 `TODO.md` 참고)
+
+P0(로컬 5070Ti 재현)/P1(7B 확장)은 완료됨 (위 실험 결과 참고). 다음 우선순위:
+
+1. **P2**: 외부/추가 데이터셋으로 기존 `control_heads_both`의 edge knockout 효과 검증
    (held-out 분리 / 미지의 공격 문구 / InjecAgent 등 외부 IPI 벤치마크)
-4. **P3**: control head 내 internal-only vs external-only 채널 분기 검증 (기존 "채널 분기"
+2. **P3**: control head 내 internal-only vs external-only 채널 분기 검증 (기존 "채널 분기"
    실험 — `external_heads - internal_heads` / `internal_heads - external_heads` 대칭차)
 
 부작용(collateral damage) 측정, Llama 계열 교차검증, path patching, 실전 배포 전환은
@@ -128,3 +145,10 @@ GitHub: `jongbin03/head_poc` (origin, `atlas_poc/` 폴더가 로컬 프로젝트
 - 매 세션 끝에 `.claude/memory/project_summary.md`(및 관련 파일)를 최신 상태로 갱신해달라고
   명시적으로 요청하는 경우가 있음 — 요청 없이도 큰 진행 단계(버그 수정, 실험 완료, 우선순위
   변경)마다 최신화해두는 게 좋음.
+
+## 코드/결과 조직 방식
+
+phase(P1/P2/P3)별로 디렉토리를 복제하지 않고, 코드는 루트에 단일 유지 + git 태그로
+구분, 결과물(`functional_map.png`/`summary.txt`)만 `run_pipeline.py` 실행마다
+`results/<날짜>_<모델명>/`에 자동 생성되도록 구현함 (2026-07-28). 자세한 이유:
+[[atlas-poc-code-organization]].
