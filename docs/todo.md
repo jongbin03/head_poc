@@ -4,12 +4,23 @@
 
 | 순위 | 항목 | 비고 |
 |---|---|---|
-| ~~P0~~ | ~~로컬 5070Ti 환경에서 파이프라인 전체 재현~~ | **완료** (2026-07-28, `results/2026-07-28_local_5070ti`) |
+| ~~P0~~ | ~~로컬 5070Ti 환경에서 파이프라인 전체 재현~~ | **완료** (2026-07-28, `../results/2026-07-28_local_5070ti`) |
 | ~~P1~~ | ~~Qwen2.5-7B(8B급)로 본 실험 확장~~ | **완료** (2026-07-28, 4bit, 같은 결과 폴더) |
 | ~~P2~~ | ~~외부/추가 데이터셋으로 기존 control head의 edge knockout 효과 검증~~ | **완료** (2026-07-28, P2-a/b/c/d 전부) |
-| P3 | control head 내 internal-only vs external-only 채널 분기 검증 | 기존 채널 분기 실험 |
+| **P7** | **방법론 진단 — 랜덤 head 기준선 / top-K sweep / jaccard 우연 기준선 / 문서-코드 불일치 정정** | **최우선.** forward-only라 반나절. 지금까지의 결론이 유효한지 판별하는 단계 |
+| P8 | 합성 데이터셋의 content-availability 교란 제거 | P7 결과와 무관하게 필요. 하루 |
+| P4 | (교수님 피드백) Head 탐색 방법론 재설계 — AgentDojo를 탐색 소스로, utility 지표 정비 | 구 P4+P6 통합, P3 흡수. 가장 비중 큰 작업 |
+| P5 | (교수님 피드백) 키 그룹 2개 vs 데이터셋 모드 4개 문서 정비 | P7/P8이 서술을 바꾸므로 그 뒤에 |
+| P3 | control head 내 internal-only vs external-only 채널 분기 검증 | P4에 통합해 진행 |
 
 아래는 우선순위 순서대로 자세한 내용, 그 뒤에 보류 항목.
+자세한 대응 계획(특히 "키 그룹" 정의 재확인)은 `feedback-2026-07-29.md`,
+**현재 방법론의 교란 요인 분석은 `review-2026-07-29.md`** 참고.
+
+> ⚠️ **2026-07-29 자체 리뷰로 우선순위가 크게 바뀌었다.** `review-2026-07-29.md`에서
+> 합성 데이터의 완전 억제(`0.0000`)가 content-availability 교란으로 부풀려졌을 가능성,
+> InjecAgent utility 지표가 ASR의 산술적 뒷면이라 독립 정보가 없다는 점이 확인됐다.
+> 측정을 고치기 전에 AgentDojo(P4)로 넘어가면 신뢰할 수 없는 숫자만 하나 더 늘어난다.
 
 ---
 
@@ -17,13 +28,13 @@
 
 `transformers==4.51.3` 고정으로 lxt import 이슈 해결 후, 0.5B(smoke)/1.5B/3B 전체 30개
 템플릿 재실행. Colab(T4) 결과와 수치 근접(1.5B/3B 오차 범위 내) — 환경 재현성 확인됨.
-자세한 로그: `results/2026-07-28_local_5070ti/README.md`.
+자세한 로그: `../results/2026-07-28_local_5070ti/README.md`.
 
 ## ~~P1. Qwen2.5-7B(8B급)로 본 실험 확장 (5070Ti)~~ — 완료 (2026-07-28)
 
 P0와 같은 세션에서 `--four_bit`로 7B까지 바로 실행, knockout sweep 정상 수행
 (`malicious_token_prob`이 k=10~20 안에 0으로 붕괴, `read_token_prob`은 k=20까지
-오히려 소폭 상승). 결과는 P0와 같은 폴더(`results/2026-07-28_local_5070ti/README.md`)에
+오히려 소폭 상승). 결과는 P0와 같은 폴더(`../results/2026-07-28_local_5070ti/README.md`)에
 통합 기록됨 — 별도 폴더 분리하지 않음.
 
 ## P2. 외부/추가 데이터셋으로 기존 control head의 edge knockout 효과 검증
@@ -40,8 +51,8 @@ control head가 **새로운/외부 데이터**에서도 여전히 먹히는지 �
 양쪽으로 나눠 실행). 1.5B로 스타일 0~4 전부, 7B(4bit)로 대표 스타일(0번) 재확인 — 5개
 스타일 전부에서 held-out 데이터에도 knockout 효과(`malicious_token_prob`이 k=10~20 안에
 0으로 붕괴, `read_token_prob` 유지/상승)가 그대로 재현됨. "30개 템플릿에만 통하는 head"
-과적합 우려 해소. 결과: `results/2026-07-28_Qwen-Qwen2-5-1-5B-Instruct_heldout{0..4}/`,
-`results/2026-07-28_Qwen-Qwen2-5-7B-Instruct_4bit_heldout0/`.
+과적합 우려 해소. 결과: `../results/2026-07-28_Qwen-Qwen2-5-1-5B-Instruct_heldout{0..4}/`,
+`../results/2026-07-28_Qwen-Qwen2-5-7B-Instruct_4bit_heldout0/`.
 
 **작업 중 발견한 버그**: `run_pipeline.py`의 `run_dir` 기본값이 `<날짜>_<모델명>`만 써서
 같은 날 같은 모델로 `--heldout_style_idx`만 바꿔 여러 번 돌리면 결과가 서로 덮어써짐.
@@ -69,8 +80,8 @@ InjecAgent 전체 1,054개 test case(dh_base+ds_base)에 knockout sweep 실행.
 남음. baseline 공격 확률이 스케일이 커질수록 오히려 올라간 것(0.19→0.52)으로 보아, 남은
 효과 차이는 스케일 문제가 아니라 **도메인/문구 구조 차이**(은근한 tool-call 관찰 텍스트
 vs 우리의 노골적인 "IGNORE ALL..." 스타일) 때문으로 추정 — 아래 P2-b 재개 검토 근거.
-결과: `results/2026-07-28_Qwen-Qwen2-5-1-5B-Instruct/summary.txt`,
-`results/2026-07-28_Qwen-Qwen2-5-7B-Instruct_4bit/summary.txt`.
+결과: `../results/2026-07-28_Qwen-Qwen2-5-1-5B-Instruct/summary.txt`,
+`../results/2026-07-28_Qwen-Qwen2-5-7B-Instruct_4bit/summary.txt`.
 InjecAgent 원본 데이터는 git에 커밋하지 않음(`external_injecagent/`, `.gitignore`에 추가) —
 재현하려면 `git clone https://github.com/uiuc-kang-lab/InjecAgent.git external_injecagent`.
 
@@ -92,8 +103,8 @@ P2-c 결과가 부분적 전이(완전한 억제 아님)로 나와서, "문구 �
 효과를 전혀 약화시키지 않음. 이는 P2-c의 부분적 전이가 문구 때문이 아니라 **도메인/데이터
 구조 차이**(우리 데이터셋의 단순 이메일/문서 구조 vs InjecAgent의 tool-call observation
 내부에 심어진 구조) 때문이라는 가설을 뒷받침함. 결과:
-`results/2026-07-28_Qwen-Qwen2-5-1-5B-Instruct_unseen/summary.txt`,
-`results/2026-07-28_Qwen-Qwen2-5-7B-Instruct_4bit_unseen/summary.txt`.
+`../results/2026-07-28_Qwen-Qwen2-5-1-5B-Instruct_unseen/summary.txt`,
+`../results/2026-07-28_Qwen-Qwen2-5-7B-Instruct_4bit_unseen/summary.txt`.
 
 ### ~~P2-d. InjecAgent 일부로 직접 head 탐색 → 합성 head와 교집합 → 나머지로 검증~~ — 완료 (2026-07-28)
 
@@ -127,7 +138,7 @@ P2-c 결과가 부분적 전이(완전한 억제 아님)로 나와서, "문구 �
 InjecAgent 전용/교집합) 전부 P2-c에서 본 것과 같은 수준(~0.04~0.05)의 잔여 확률에서
 멈춘다는 점이 중요함 — **P2-c의 부분적 전이는 "head를 잘못 골라서"가 아니라 정말
 도메인 구조 자체의 한계**라는 결론에 더 무게가 실림. 결과:
-`results/2026-07-28_Qwen-Qwen2-5-1-5B-Instruct_headsplit/summary.txt`.
+`../results/2026-07-28_Qwen-Qwen2-5-1-5B-Instruct_headsplit/summary.txt`.
 
 **작업 중 발견한 심각한 버그 (미해결, 다음 섹션에 근본 해결책 기록)**:
 `attn_relevance.compute_head_relevance`(backward pass 기반 relevance 계산)를 한 프로세스
@@ -149,7 +160,105 @@ eval sweep만 재실행 — 새 프로세스는 메모리가 깨끗해서 정상
 안 붙는 버그도 발견/수정함 — 접미사가 없어서 이전 P2-c 결과 폴더를 한 번 덮어썼다가 git으로
 복구했음 (커밋된 파일이라 다행히 복구 가능했음, 커밋 전 결과물은 이런 사고에 취약하다는 교훈).
 
-## P3. control head 내 internal-only vs external-only 채널 분기 검증
+## P7. 방법론 진단 — 지금까지의 결론이 유효한지 판별 (최우선)
+
+**배경**: 2026-07-29 자체 리뷰(`review-2026-07-29.md`) 결과. 합성 데이터에서 나온
+완전 억제(`malicious_token_prob = 0.0000`)가 "control head를 껐기 때문"인지 "공격 대상
+문자열을 못 보게 했기 때문"인지 구분할 실험이 지금 하나도 없다. 전부 forward-only라
+`compute_head_relevance`의 메모리 누수와 무관하고 비용이 거의 없다.
+
+**할 일**:
+1. **랜덤 head 기준선** (`edge_ablation.py`에 옵션 추가) — 같은 개수의 무작위 head에
+   D_inj 엣지 knockout. 똑같이 0으로 떨어지면 head 선정이 기여하는 바가 없다는 뜻이고,
+   안 떨어지면 지금까지의 모든 주장이 한 번에 튼튼해진다. **어느 쪽이든 반드시 알아야
+   하는 값** — 이 항목 하나가 P7의 존재 이유다.
+2. **top-K sweep** (K=5/10/20/40)으로 `control_heads_both` 크기와 억제율의 민감도 곡선 —
+   "왜 K=20인가"에 대한 답이 지금 없음.
+3. **jaccard 우연 기준선** — 1.5B는 28층×12head=336 슬롯이라 top-20 두 집합의 기대
+   jaccard ≈ 0.031. 관측값 0.29/0.33/0.54는 각각 우연의 9배/11배/17배로 **명백히
+   유의하다**. 계산 한 줄로 방법론 신뢰도를 크게 올릴 수 있는데 지금 비어 있음.
+4. `head_ranking.py:71`의 `dual_use_candidates`(read와 control에 동시에 걸치는 head)를
+   출력/저장 — 이미 계산하는데 아무도 안 보고 있음. jaccard 0.29 = top-20 중 9개 겹침이라
+   "read와 control이 분리됐다"는 서술의 근거가 약함을 바로 드러내는 진단값.
+5. **문서-코드 불일치 정정**: 메인 sweep과 P2-c는 `control_heads_both`(교집합)가 아니라
+   `normalize_score(internal)+normalize_score(external)`의 top-40(`run_pipeline.py:207-208`)을
+   쓴다. 교집합이 실제로 쓰인 곳은 P2-d의 synthetic-only 조건 하나뿐. 서술을 코드에
+   맞추거나 코드를 서술에 맞출 것. 겸사겸사 랭킹 길이가 40이라 항상 k=40과 동일한
+   **k=80 행을 표에서 제거**.
+
+## P8. 합성 데이터셋의 content-availability 교란 제거
+
+**배경**: `review-2026-07-29.md` 1절. `exec_target`이 30개 템플릿 전부 `"attacker"` 하나로
+고정돼 있고(`dataset.py:294`) 이 문자열이 **오직 `data_inj` 안에만** 존재한다. 게다가
+assistant prefix가 이미 tool 호출을 열어둔 상태(`dataset.py:73`)라, 측정 대상이 "명령을
+따르기로 결정하는가"가 아니라 "이미 정해진 forward의 수신자를 받아쓰는가"다. D_inj 엣지를
+끊으면 그 문자열이 시야에서 사라지므로 확률 붕괴가 거의 자동이다. P2-a/P2-b도 문구만
+바꿨을 뿐 이 교란을 그대로 물려받는다 (unseen 4종 전부 `attacker@evil.com` 포함).
+
+**할 일**:
+1. 공격 대상 문자열을 D_inj 밖에도 배치 — system prompt의 주소록이나 tool 목록에 넣어,
+   D_inj를 가려도 대상 자체는 보이게 (InjecAgent가 이미 이렇게 돼 있고
+   `adapters/injecagent.py:110-118`, 정확히 거기서만 억제가 부분적이다).
+2. assistant prefix를 InjecAgent처럼 중립적으로 바꿔 모델이 **결정**하게 만들기.
+3. 공격 목표를 템플릿마다 다르게 (지금은 30개 전부 같은 주소·같은 행동·같은 타깃 토큰).
+
+**예상 결과**: 여기서 `0.0000`이 안 나올 가능성이 높은데, **그 자체가 정직하고 발표 가능한
+결과**다. 이 단계를 거쳐야 합성 지표가 비로소 "명령 추종"을 측정하고 InjecAgent와 공정하게
+비교된다.
+
+## P5. (교수님 피드백) 키 그룹 2개 vs 데이터셋 모드 4개 문서 정비
+
+**배경**: 2026-07-29 피드백 — head 선정에 쓰는 "키 그룹"은 `internal`/`external` 2개뿐인데
+(`head_ranking.py:69`, `control_heads_both = internal_heads ∩ external_heads`), 합성 데이터셋
+모드는 `read_clean`/`read_injected`/`internal`/`external` 4개(`dataset.py:75`)라 왜 4개인지,
+특히 `read_injected`는 왜 있는지 설명이 부족했음.
+
+**중요한 확인 사항(2026-07-29 논의)**: 이 2 groups는 "정상 토큰 vs injected 토큰"이 아니라
+**둘 다 `data_inj`(injected) 스팬 기준이고, 차이는 backward 타깃(주입 지시가 자유 텍스트로
+새는 경로 vs tool-call로 새는 경로)**임. `read`(정상 토큰, `data_benign` 스팬)는 세 번째로
+따로 계산되지만 교집합엔 안 들어감. 이 오해가 "2 vs 4" 질문의 근본 원인 중 하나로 보임.
+
+**할 일**: `dataset.py` MODES 주석 정비(위 구분 명시), `methodology.md`/`presentation-notes.md`/
+`presentation/`의 "4개 모드" 서술을 "head 탐색용 2 groups(둘 다 injected 스팬, 경로만 다름) +
+utility 측정용 2 baselines(read_clean/read_injected, 정상 스팬)" 구조로 재서술,
+데이터셋 커버리지(스타일x도메인) 표 추가. 자세한 내용: `feedback-2026-07-29.md` 0절, 2절.
+
+## P4. (교수님 피드백, 구 P4+P6 통합) Head 탐색 방법론 재설계 — AgentDojo를 탐색 소스로
+
+**배경**: 2026-07-29 피드백 — (a) AgentDojo로 재현 + utility 측정 방법 정비, (b) attention
+head 탐색 방법 체계화, 두 요구를 논의 끝에 하나로 통합. 이유: P2-d에서 이미 synthetic-only/
+InjecAgent-only/교집합 세 조건이 거의 동일한 성능(jaccard=0.36)을 보였는데, 이는 "synthetic
+데이터로 찾은 head를 실제 벤치마크에 전이시키는" 지금 구조가 synthetic의 한계(노골적 문구,
+단순 문서 구조)를 상속할 수 있다는 신호. 그렇다면 AgentDojo를 단순 재현 대상으로만 쓰기보다
+**head 탐색 자체의 소스로 삼는 실험을 먼저 설계**하는 게 순서상 맞음.
+
+**할 일** (자세한 내용: `feedback-2026-07-29.md` 1절):
+1. `adapters/agentdojo.py` 작성 — InjecAgent 어댑터를 템플릿으로, AgentDojo에서 internal
+   (자유 텍스트로 새는 경로)에 대응하는 태스크가 있는지 확인 후 없으면 조작적 정의 설계.
+   ⚠️ **InjecAgent는 구조상 internal/external 구분이 없음**(전부 "Action: tool" 단일 포맷) —
+   P2-d의 "InjecAgent 자체 head 탐색"은 교집합이 아니라 단일 그룹 top-K였다는 점을 문서에
+   바로잡을 것.
+2. Head 탐색 소스 4조건 비교: synthetic-only / InjecAgent-only / AgentDojo-only / 교집합·합집합
+   — cross-domain transfer matrix(3x3)로 "어느 소스가 가장 일반적인 head를 주는가" 정량화.
+   (`build_injecagent_pairs`/`split_pairs` 패턴을 AgentDojo에도 이식)
+3. Top-K sweep(K=5/10/20/40) + `edge_ablation.py` random-head baseline + jaccard 유의성 검정 —
+   위 4조건 전부에 동일 적용.
+4. Utility 지표를 `read_token_prob` 단일 확률에서 AgentDojo 자체 채점 또는 greedy decoding
+   exact-match로 보강 (`run_pipeline.py --agentdojo` 옵션 추가).
+   ⚠️ **InjecAgent의 현재 utility 수치는 쓰면 안 된다** — `run_pipeline.py:255`가 exec/read
+   양쪽에 같은 예시를 넘기고 두 타깃이 같은 위치에서 경쟁하는 토큰이라
+   (`adapters/injecagent.py:136-137`), "utility 상승"은 ASR 감소의 산술적 뒷면일 뿐
+   독립 정보가 0이다. AgentDojo의 네이티브 utility checker가 이 문제를 근본적으로 해결해준다 —
+   P4를 P7/P8 뒤에 두는 이유이자, AgentDojo로 가야 하는 진짜 이유.
+5. 결과를 `methodology.md`/`run-guide.md`에 "Head Selection Methodology" 섹션으로 통합, P3(채널 분기
+   검증)도 AgentDojo에서 internal/external 재정의 후 같은 틀로 재실행.
+
+신규 어댑터 작성 + 다조건 비교 실험이 필요해 비중이 큰 작업 — 별도 세션에서 단계별 진행 권장
+(0. 어댑터 → 1. 소스 비교 → 2. K/baseline → 3. utility → 4. 문서화 순).
+
+## P3. control head 내 internal-only vs external-only 채널 분기 검증 (P4에 통합)
+
+P4의 1-5 단계에서 AgentDojo 기반 internal/external 재정의 후 함께 진행. 아래는 기존 배경 기록.
 
 **배경**: 현재 `head_ranking.py`의 `summarize_overlap`은 `internal_heads ∩ external_heads`
 (=`control_heads_both`, "명령을 명령으로 받아들여 실행하는" 공통 회로)만 계산한다.
@@ -166,9 +275,9 @@ eval sweep만 재실행 — 새 프로세스는 메모리가 깨끗해서 정상
    - internal 쪽 자유 텍스트 오염(`internal` mode의 exec_target 확률)은 안 떨어지는지 검증
    - (반대 방향도 `internal_only`로 대칭 검증)
 4. 결과가 "채널 전용 head가 실제로 존재"로 나오면, idea1의 knockout 방어 범위를
-   프롬프트 포맷별로 따로 설계해야 한다는 뜻이므로 README.md/RUN.md에 반영
+   프롬프트 포맷별로 따로 설계해야 한다는 뜻이므로 methodology.md/run-guide.md에 반영
 
-**참고**: 2026-07-27 대화에서 나온 논의. `results/2026-07-27_colab_phase1to3/README.md`의
+**참고**: 2026-07-27 대화에서 나온 논의. `../results/2026-07-27_colab_phase1to3/README.md`의
 `control_heads_both` 결과가 이 실험의 출발점(내부/외부 공통 control head 후보)이 됨.
 
 ---
@@ -226,7 +335,7 @@ QA 등)까지 깎아먹는지는 전혀 안 봤음.
 
 **할 일**: `control_heads_both`에서 나온 head들을 하나씩만 개별 knockout해서 개별 기여도를
 측정하거나, activation patching(clean run의 activation을 corrupted run에 이식)으로 인과
-방향을 더 정밀하게 검증. RUN.md/README.md의 원래 계획(Phase 2)에 있던 것.
+방향을 더 정밀하게 검증. run-guide.md/methodology.md의 원래 계획(Phase 2)에 있던 것.
 
 ### 실전 배포 형태로 전환
 

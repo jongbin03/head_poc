@@ -31,11 +31,11 @@ GitHub: `jongbin03/head_poc` (origin, `atlas_poc/` 폴더가 로컬 프로젝트
 - `debug_read_target.py` — read_target 토큰이 실제로 모델 응답과 맞는지 top-k logit +
   greedy continuation으로 직접 확인하는 디버깅 스크립트
 - `head_poc.ipynb` — Colab 실행 순서를 정리한 노트북 (VS Code의 Colab GPU 연결용)
-- `RUN.md` — 로컬 5070Ti 기준 실행 가이드
-- `README.md` — **설계 노트가 아니라 실제 실행 중인 방법론 설명 문서** (커밋 `8b1fbeb`로
+- `docs/run-guide.md` — 로컬 5070Ti 기준 실행 가이드
+- `docs/methodology.md` — **설계 노트가 아니라 실제 실행 중인 방법론 설명 문서** (커밋 `8b1fbeb`로
   재작성됨: head를 찾는 AttnLRP 방법, head 랭킹/겹침 분석, edge 차단 구현 원리, 데이터셋
   설계, 알려진 함정을 코드 그대로 설명)
-- `TODO.md` — 다음 할 일, **우선순위 P0~P3 순으로 정리됨** (아래 "다음 할 일" 및
+- `docs/todo.md` — 다음 할 일, **우선순위 P0~P3 순으로 정리됨** (아래 "다음 할 일" 및
   `next_priorities.md` 참고)
 - `head_poc_presentation.pptx` — 내부 발표용 슬라이드(19장, python-pptx로 생성). **로컬
   파일로만 존재, git에는 커밋 안 함** (사용자가 "그건 필요 없다"고 명시). 같은 내용을
@@ -97,7 +97,7 @@ GitHub: `jongbin03/head_poc` (origin, `atlas_poc/` 폴더가 로컬 프로젝트
      head 탐색 결과(head 목록)를 json으로 저장해두고, eval sweep만 완전히 새 프로세스에서
      재실행(새 프로세스는 메모리가 깨끗해서 정상 속도). 다만 head 탐색 자체(head_n)의 상한
      (~60)은 여전히 그대로 — **미해결**: 근본 해결책(배치별 서브프로세스로 head 탐색 자체를
-     나눠 CUDA 컨텍스트를 매번 새로 만들기)은 TODO.md "보류" 섹션에 기록.
+     나눠 CUDA 컨텍스트를 매번 새로 만들기)은 docs/todo.md "보류" 섹션에 기록.
    - **부수적으로 발견한 버그**: `--injecagent_headsplit_from`만 쓰고 `--injecagent_headsplit`은
      안 쓴 조합에서 결과 디렉토리 접미사(`_headsplit`) 로직이 빠져 있어서, 이전 P2-c 결과
      폴더(같은 날짜+모델)를 한 번 덮어썼음 — git에 커밋된 파일이라 `git checkout`으로 복구,
@@ -142,7 +142,7 @@ GitHub: `jongbin03/head_poc` (origin, `atlas_poc/` 폴더가 로컬 프로젝트
 
 **결론**: Colab(T4) 수치와 1.5B/3B가 오차 범위 내로 일치 — 환경(5070Ti) 재현성 확인.
 7B(4bit)까지 같은 패턴(공격 억제 + read 보존, 오히려 k가 커질수록 read 소폭 상승) 재현됨.
-자세한 로그: `results/2026-07-28_local_5070ti/README.md`. **TODO.md의 P0/P1은 이 결과로
+자세한 로그: `results/2026-07-28_local_5070ti/README.md`. **docs/todo.md의 P0/P1은 이 결과로
 완료 처리됨.**
 
 ## 실험 결과 (2026-07-28, 로컬 RTX 5070Ti, P2-a held-out split 완료)
@@ -247,7 +247,7 @@ jaccard(synthetic_heads, ia_heads) = 0.36 (상당수 겹치지만 동일 집합�
 `results/2026-07-28_Qwen-Qwen2-5-1-5B-Instruct_headsplit/summary.txt`.
 **P2(P2-a/b/c/d 전부)는 이 결과로 완료 처리됨.**
 
-## 다음 할 일 — 우선순위 P3 (2026-07-28 갱신, 자세한 내용은 `next_priorities.md` 및 `TODO.md` 참고)
+## 다음 할 일 — 우선순위 P3 (2026-07-28 갱신, 자세한 내용은 `next_priorities.md` 및 `docs/todo.md` 참고)
 
 P0(로컬 5070Ti 재현)/P1(7B 확장)/P2(a/b/c/d 전부)는 완료됨. 다음 우선순위:
 
@@ -255,7 +255,7 @@ P0(로컬 5070Ti 재현)/P1(7B 확장)/P2(a/b/c/d 전부)는 완료됨. 다음 �
    실험 — `external_heads - internal_heads` / `internal_heads - external_heads` 대칭차)
 
 부작용(collateral damage) 측정, Llama 계열 교차검증, path patching, 실전 배포 전환은
-`TODO.md`의 "보류" 섹션으로 미뤄짐.
+`docs/todo.md`의 "보류" 섹션으로 미뤄짐.
 
 ## 협업 방식 관련 메모
 

@@ -1,13 +1,13 @@
 ---
 name: atlas-poc-next-priorities
-description: atlas_poc 다음 실험 우선순위(P3, P0~P2(a/b/c/d) 완료) — TODO.md 요약, 다음 세션 시작 시 바로 참고
+description: atlas_poc 다음 실험 우선순위(P3, P0~P2(a/b/c/d) 완료) — docs/todo.md 요약, 다음 세션 시작 시 바로 참고
 metadata:
   type: project
 ---
 
 # 다음 할 일 (우선순위 순, 2026-07-28 갱신)
 
-전체 상세 내용은 프로젝트 루트 `TODO.md` 참고. 이 파일은 다음 세션에서 "지금 뭐부터 하면
+전체 상세 내용은 `docs/todo.md` 참고. 이 파일은 다음 세션에서 "지금 뭐부터 하면
 되지?"를 바로 답하기 위한 요약.
 
 ## ~~P0/P1 — 로컬 5070Ti 재현 + 7B 확장~~ — 완료 (2026-07-28)
@@ -40,7 +40,7 @@ read 보존) 재현됨. 결과: `results/2026-07-28_local_5070ti/README.md`,
   수준에서 멈추는 것 둘 다 "P2-c 잔여 효과는 head를 잘못 골라서가 아니라 도메인 구조 자체의
   한계"라는 결론을 강화함. **작업 중 `compute_head_relevance`의 심각한 GPU 메모리 누수
   버그를 발견함**(모델 재로드로도 전혀 안 없어짐, 프로세스 전역 문제로 추정, 미해결) —
-  자세한 내용과 우회책/근본 해결책은 [[atlas-poc-summary]] 버그 4번 및 TODO.md "보류" 섹션
+  자세한 내용과 우회책/근본 해결책은 [[atlas-poc-summary]] 버그 4번 및 docs/todo.md "보류" 섹션
   참고. 결과: `results/2026-07-28_Qwen-Qwen2-5-1-5B-Instruct_headsplit/summary.txt`.
 
 자세한 수치는 [[atlas-poc-summary]] 참고.
@@ -58,7 +58,7 @@ read 보존) 재현됨. 결과: `results/2026-07-28_local_5070ti/README.md`,
 부작용(collateral damage: 일반 QA/MMLU 능력 훼손 여부) 측정, Llama 계열 교차검증(코드는
 `--family llama` 지원, 실행만 안 함), path patching(개별 head 인과관계 정밀 검증), 실전
 배포 형태 전환(`edge_knockout()`을 상시 forward hook/서빙 프레임워크로) — 자세한 배경은
-`TODO.md` 하단 "보류" 섹션 참고.
+`docs/todo.md` 하단 "보류" 섹션 참고.
 
 ## 관련 메모
 

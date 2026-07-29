@@ -101,7 +101,7 @@ def main():
         "--injecagent_head_n", type=int, default=60,
         help="P2-d: head 선정에 쓸 InjecAgent case 개수 (나머지는 전부 평가용). 기본 60 — "
         "compute_head_relevance에 프로세스 내내 누적되는 GPU 메모리 버그(모델 재로드로도 "
-        "안 없어짐, TODO.md 참고) 때문에 80쌍(=160회 호출) 근처에서 OOM 나는 걸 확인했으니 "
+        "안 없어짐, docs/todo.md 참고) 때문에 80쌍(=160회 호출) 근처에서 OOM 나는 걸 확인했으니 "
         "그보다 크게 잡지 말 것 (필요하면 배치별 서브프로세스 분리가 근본 해결책).",
     )
     parser.add_argument(
@@ -320,7 +320,7 @@ def main():
             # 안에서는 고칠 방법이 없다 — head_n을 총 호출 수(이 프로세스에서 이미 쓴 [2/4]의 90번+
             # head_n*2)가 대략 300~350을 넘지 않는 선으로 잡아야 안전하다 (실측상 약 80쌍=160번
             # 부근에서 OOM). 완전히 고치려면 배치마다 별도 프로세스(새 CUDA 컨텍스트)로 나눠 돌려야
-            # 하는데, TODO.md/메모리에 향후 작업으로 기록해둠 — 지금은 head_n을 안전 범위로 제한.
+            # 하는데, docs/todo.md/메모리에 향후 작업으로 기록해둠 — 지금은 head_n을 안전 범위로 제한.
             print("  [P2-d] starting head-discovery relevance loop ...")
             ia_read_scores_list, ia_agent_scores_list = [], []
             for i, pair in enumerate(head_pairs):
