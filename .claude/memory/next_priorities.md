@@ -34,8 +34,8 @@ read 보존) 재현됨. 결과: `results/2026-07-28_local_5070ti/README.md`,
   **도메인/데이터 구조 차이** 때문이라는 결론.
 - ~~**P2-d InjecAgent 자체 head 탐색**~~ — 사용자 제안: InjecAgent 60개로 직접 control head를
   찾아 우리 합성 `control_heads_both`와 교집합한 뒤 나머지 994개로 (a) 합성 단독(14개)
-  (b) InjecAgent 단독(20개) (c) 교집합(9개) 3가지를 비교. jaccard(두 head 집합)=0.081로
-  거의 안 겹치는데도 **셋 다 거의 동일한 성능**(억제 후 malicious ~0.044~0.045) — 교집합이
+  (b) InjecAgent 단독(20개) (c) 교집합(9개) 3가지를 비교. jaccard(두 head 집합)=0.36으로
+  일부만 겹치는데도 **셋 다 거의 동일한 성능**(억제 후 malicious ~0.044~0.045) — 교집합이
   가장 적은 개입(9개)으로 동등한 효과를 내는 것과, head 선정 방법을 뭘 바꿔도 P2-c와 같은
   수준에서 멈추는 것 둘 다 "P2-c 잔여 효과는 head를 잘못 골라서가 아니라 도메인 구조 자체의
   한계"라는 결론을 강화함. **작업 중 `compute_head_relevance`의 심각한 GPU 메모리 누수
