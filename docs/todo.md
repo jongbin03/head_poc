@@ -357,14 +357,41 @@ agentdojo가 이미 제공.
 - 세 jaccard 모두 우연 대비 8~12배로 유의함 — 세 소스가 서로 무관한 head를 찾은 게 아님은
   확실하나, 완전히 같지도 않음(교집합 5~9개 vs 각 소스 14~20개).
 
+**Track B 하네스 구현 결과 (2026-07-31)**: 하네스 자체는 완성돼 작동하지만, **작은 모델의
+tool-calling 신뢰도가 병목**이라 아직 knockout 효과를 비교할 만한 신호를 못 얻음 — 아래
+"막힌 지점"을 먼저 풀어야 5번(최종 head 집합 결정)으로 넘어갈 수 있음.
+
+- `adapters/agentdojo_pipeline.py`(`KnockoutLocalLLM`) — `AgentPipeline`/`ToolsExecutionLoop`
+  안에 우리 HF 모델을 직접 끼워 넣는 커스텀 `BasePipelineElement`. `model.generate()`를
+  `edge_knockout()` 컨텍스트 안에서 호출해 D_inj(주입 문구, `<INFORMATION>...</INFORMATION>`
+  블록) 엣지를 롤아웃 내내 끊을 수 있음. `run_agentdojo_eval.py` — (user_task, injection_task)
+  쌍마다 k=0 vs k=지정 head로 두 번 롤아웃을 돌려 `TaskSuite.run_task_with_pipeline`의 네이티브
+  utility/security를 비교하는 러너.
+- ⚠️ **agentdojo 기본 tool-call 문법(`<function=name>{...}</function>`)은 1.5B가 안 따름** —
+  마크다운 코드블록으로 응답해버려 `tool_calls`가 매번 빈 리스트로 파싱되고 롤아웃이 첫 턴에
+  끊김. **Qwen2.5 네이티브 포맷**(`tokenizer.apply_chat_template(..., tools=...)` +
+  `<tool_call>{"name":...,"arguments":{...}}</tool_call>`)으로 바꾸니 최소한 파싱은 정상화됨
+  (`agentdojo`의 `_make_system_prompt`/`_parse_model_output`은 재사용 안 함).
+- ⚠️ **그래도 신호가 안 나옴**: banking suite 무작위 15쌍(1.5B)에서 `security_rate`(공격
+  성공률)이 **k=0(방어 없음)에서도 0.000** — 모델이 tool을 안 부르고 되묻기만 해서 주입문이
+  담긴 tool 응답에 아예 도달을 못 함. 7B(4bit)로 바꾸면 tool은 부르는데(진전) 인자를
+  잘못 타이핑해서(`bill-december-22023.txt`) 호출이 실패하는 걸 확인 — "knockout이 공격을
+  막아서"가 아니라 "모델이 애초에 공격에 노출될 만큼 tool을 못 쓰는" 상태라 head 집합 비교
+  자체가 불가능한 상황. 2026-07-31 논의 결과, 우선 여기서 멈추고 상황만 기록(이 문단) — 다음
+  세션에서 아래 두 방향 중 골라 재개할 것:
+  - (A) 표본을 크게 늘려서(4개 suite 전체, 수십~수백 쌍) 작은 확률로라도 성공하는 공격
+    사례를 자연스럽게 더 모은다 — 가장 정직하지만 가장 오래 걸림.
+    - (B) system 메시지에 few-shot 예시나 "모르면 묻지 말고 tool부터 불러라" 지시를 추가해
+    tool 호출률을 인위적으로 올린다 — 빠르지만 "자연스러운 에이전트 행동" 측정이라는 순수성이
+    옅어짐.
+
 **할 일** (구체 순서):
 1. ~~`pip install agentdojo` 설치 + API 코드 조사~~ — 완료 (위 참고).
 2. ~~`adapters/agentdojo.py` 작성 (Track A)~~ — 완료 (위 참고).
 3. ~~synthetic / InjecAgent / AgentDojo(Track A) 세 소스 각각 head 탐색 실행, jaccard 비교표
    작성~~ — 완료 (위 참고).
-4. Track B 평가 하네스 구현: 커스텀 `BasePipelineElement` LLM 요소(`edge_knockout` 적용)
-   + D_inj 위치 추적 로직 + `TaskSuite.run_task_with_pipeline`으로 네이티브 utility/security
-   채점 연동 — **다음 단계**.
+4. ~~Track B 평가 하네스 구현~~ — 하네스는 완료, 하지만 작은 모델 tool-calling 신뢰도 문제로
+   유효한 신호를 아직 못 얻음(위 참고) — **다음 단계는 그 문제 해결(A 또는 B)부터**.
 5. 세 소스 단독(특히 3소스 교집합 5개 layer-0 head) vs 합집합 vs 교집합을 Track B로 평가해
    최종 head 집합 결정.
 6. Top-K sweep + random-head baseline(P7 인프라 재사용, `discover-parallel` 패턴으로 필요시
