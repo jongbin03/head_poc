@@ -429,17 +429,72 @@ baseline 공격 성공률이 너무 낮은 게(2%) "공격 문구가 약해서"(
 - banking suite에서 knockout 후 utility가 0.42→0.33으로 소폭 하락(12쌍 중 1개) — 처음으로
   knockout의 utility 비용을 시사하는 관측이지만 표본이 얇아(12쌍) 노이즈일 가능성도 큼.
 
+**14B 모델 시도 (2026-07-31, `unsloth/Qwen2.5-14B-Instruct-bnb-4bit`)**: "공격 기법을 바꿔도
+안 되면 모델을 키우는 것밖에 없다"는 위 결론을 실제로 검증. 16GB GPU 하드웨어 제약상
+GGUF(Q4_K_M/Q5_K_M, llama.cpp 전용)는 `edge_knockout()`이 `transformers`의
+`eager_attention_forward`를 몽키패치하는 방식이라 애초에 호환 안 됨 — bitsandbytes 4bit
+그대로 유지.
+
+*다운로드 트러블슈팅*: `AutoModelForCausalLM.from_pretrained()`의 기본 다운로더가 연결
+수십 개를 열어둔 채 바이트가 전혀 안 늘어나는 정체 상태에 빠짐(Windows 심볼릭 링크
+미지원 + 기본 다운로더 재시도 로직 한계로 추정) — `pip install hf_transfer` +
+`HF_HUB_ENABLE_HF_TRANSFER=1`로 해결(단, hf_transfer는 부분 다운로드를 이어받지 않고
+해당 shard를 처음부터 다시 받음). 그래도 실측 ~4.6MB/s로 네트워크 자체가 병목이라 fp16
+원본(~28GB)은 1시간 이상 걸릴 상황 — 대신 **사전 양자화된 저장소**
+`unsloth/Qwen2.5-14B-Instruct-bnb-4bit`(총 ~10GB, fp16의 1/3)로 전환해 시간을 크게 단축.
+이런 `-bnb-4bit` 접미사 저장소는 HF Hub 검색으로 존재 여부를 바로 확인할 수 있고,
+`AutoModelForCausalLM.from_pretrained()`에 `four_bit`(우리 쪽 `BitsAndBytesConfig`) 인자를
+안 줘도 저장소 자체의 `quantization_config`로 정상적으로 4bit 로드됨.
+
+*Track A(head 탐색)*: 48층×40헤드, 로드 9.28GiB, synthetic 30개 템플릿(60회 backward 호출)
+문제없이 완주. **13개 head** 발견: `(0,0) (0,14) (0,27) (0,38) (29,11) (36,21) (36,22)
+(36,23) (37,16) (40,10) (42,5) (43,19) (44,35)` — layer 0 지배가 여기서도 유지(13개 중
+4개), layer 36에서 인접 head 3개가 클러스터로 뽑히는 새로운 패턴 관찰(1.5B/7B에는 없었음).
+결과: `results/2026-07-31_source_compare/heads_synthetic_14b.json`.
+
+*Track B(평가) 트러블슈팅*: 첫 실행이 **2시간 30분** 동안 GPU-Util 100%인데 전력 소모
+56W(정상 부하라면 훨씬 높아야 함)로 멈춰 있는 것처럼 보였음 — 실제로는 완전히 멈춘 게
+아니라 48쌍 중 44쌍까지는 진행됐었는데, travel suite에서 CUDA OOM이 반복되며 "reserved
+but unallocated" 메모리가 계속 쌓여(파편화) 갈수록 느려진 것으로 확인(로그 재확인으로
+발견). 원인 두 가지를 고쳐 재실행: ① `run_agentdojo_eval.py` 메인 루프에 원래
+없던 매 쌍마다 `gc.collect()`/`torch.cuda.empty_cache()` 추가(`compare_head_sources.py`의
+호출별 정리 패턴과 동일하게 맞춤), ② CUDA 에러 메시지가 직접 권장한
+`PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True` 적용. 재실행은 45/48쌍 정상 완주(3건
+travel OOM, 여전히 travel이 가장 취약).
+
+**7B vs 14B 비교** (`important_instructions` 공격, 동일 조건 4 suite×12쌍):
+
+| | 7B utility | 14B utility | 7B 공격성공률 | 14B 공격성공률 |
+|---|---|---|---|---|
+| k=0 | 0.188 | **0.267** | 0.021(1/48) | 0.022(1/45) |
+| knockout 후 | 0.188 | 0.222 | 0.000 | 0.000 |
+
+- **utility는 실제로 오름**(0.188→0.267) — banking 0.42→0.50, travel **0.00→0.11**(처음으로
+  travel 성공 사례 발생), workspace 0.08→0.17. 모델을 키우면 정상 과업 수행력은 개선됨.
+- **공격 성공률은 그대로**(~2%, 1건) — 모델을 키워도 "공격에 걸리는 비율" 자체는 안 바뀜.
+  utility는 올랐는데 공격 케이스는 그 개선의 혜택을 못 받은 셈 — "병목이 공격 이해력이
+  아니라 멀티스텝 실행 신뢰도"라는 진단과 여전히 일치하되, "모델을 키우면 다 해결된다"는
+  아니라는 것도 같이 확인됨.
+- knockout 후 utility가 이번엔 소폭 하락(0.267→0.222, slack/travel에서 각 1건) — 7B
+  `important_instructions`에선 전혀 안 깎였던 것과 다름(45쌍 중 2건이라 노이즈 가능성도
+  있음, 5절 참고).
+- 성공한 유일한 공격은 `banking/user_task_12+injection_task_7` — 7B `tool_knowledge`
+  실행 때와 같은 케이스. 여기서도 knockout으로 억제됨.
+- 결과: `results/2026-07-31_source_compare/agentdojo_eval_synthetic_14b_all_suites.json`.
+
 **할 일** (구체 순서):
 1. ~~`pip install agentdojo` 설치 + API 코드 조사~~ — 완료 (위 참고).
 2. ~~`adapters/agentdojo.py` 작성 (Track A)~~ — 완료 (위 참고).
 3. ~~synthetic / InjecAgent / AgentDojo(Track A) 세 소스 각각 head 탐색 실행, jaccard 비교표
    작성~~ — 완료 (위 참고).
 4. ~~Track B 평가 하네스 구현~~ — 완료, 7B로 첫 실제 신호 확보, 공격 기법 교체는 효과
-   없음 확인(위 참고).
+   없음 확인, 14B로 모델 크기 확대도 시도 완료(위 참고 — utility는 오르지만 공격
+   성공률은 안 오름).
 5. 표본을 훨씬 크게 늘려(수백 쌍) 성공한 공격 사례를 더 모은 뒤, 세 소스 단독(특히 3소스
    교집합 5개 layer-0 head) vs 합집합 vs 교집합을 Track B로 평가해 최종 head 집합 결정 —
-   **다음 단계**. travel suite는 난이도가 너무 높아 보이니 배분 비중 재검토. 모델을 더
-   키우는 방안(하드웨어 제약상 8-bit/오프로딩 등 타협 필요)도 병행 검토.
+   **다음 단계**. travel suite는 난이도가 너무 높아 보이니 배분 비중 재검토. 14B용
+   InjecAgent/AgentDojo head도 아직 안 찾았으니(지금은 synthetic 13개만) 필요시
+   `compare_head_sources.py`로 마저 탐색.
 6. Top-K sweep + random-head baseline(P7 인프라 재사용, `discover-parallel` 패턴으로 필요시
    확장)을 세 소스 전부에 동일 적용.
 7. 결과를 `methodology.md`/`run-guide.md`에 "Head Selection Methodology" 섹션으로 통합.

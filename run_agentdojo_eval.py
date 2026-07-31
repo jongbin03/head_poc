@@ -18,6 +18,7 @@ knockout이 잘 작동하면 security가 True->False로 줄고 utility는 유지
         --suite banking --limit_pairs 15 --out_json results/.../agentdojo_eval_synthetic.json
 """
 import argparse
+import gc
 import json
 import random
 from typing import Dict, List, Tuple
@@ -149,7 +150,12 @@ def main():
                 # 생성하는 등 예측 못 한 오류가 있을 수 있다 — 한 쌍이 실패해도 전체
                 # sweep을 죽이지 않고 건너뛴다.
                 print(f"  [{total_idx}] {suite_name}/{ut.ID}+{it.ID}: ERROR ({type(e).__name__}: {e}), skipping")
+                gc.collect()
+                torch.cuda.empty_cache()
                 continue
+
+            gc.collect()
+            torch.cuda.empty_cache()
 
             row = {
                 "suite": suite_name, "user_task": ut.ID, "injection_task": it.ID,
