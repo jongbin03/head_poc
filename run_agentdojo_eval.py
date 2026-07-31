@@ -28,13 +28,10 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 from agentdojo.agent_pipeline.agent_pipeline import AgentPipeline, load_system_message
 from agentdojo.agent_pipeline.basic_elements import InitQuery, SystemMessage
 from agentdojo.agent_pipeline.tool_execution import ToolsExecutionLoop, ToolsExecutor
-from agentdojo.attacks.base_attacks import DEFAULT_MODEL_NAME, DEFAULT_USER_NAME
-from agentdojo.attacks.important_instructions_attacks import ImportantInstructionsAttack
+from agentdojo.attacks.attack_registry import load_attack
 from agentdojo.task_suite.load_suites import get_suite
 
 from adapters.agentdojo_pipeline import KnockoutLocalLLM
-
-_JB_STRING = ImportantInstructionsAttack._JB_STRING
 
 
 def _load_model(model_path: str, family: str, four_bit: bool, device: str):
@@ -85,6 +82,12 @@ def main():
     parser.add_argument("--four_bit", action="store_true")
     parser.add_argument("--heads_json", required=True, help="compare_head_sources.py discover(-parallel) 결과 JSON")
     parser.add_argument(
+        "--attack", default="important_instructions",
+        help="agentdojo.attacks.attack_registry에 등록된 공격 이름 (예: important_instructions, "
+        "tool_knowledge, injecagent, direct, ignore_previous, system_message). "
+        "python -c \"from agentdojo.attacks.attack_registry import ATTACKS; print(list(ATTACKS))\"로 전체 목록 확인 가능.",
+    )
+    parser.add_argument(
         "--suite", nargs="+", default=["banking", "slack", "travel", "workspace"],
         choices=["banking", "slack", "travel", "workspace"],
         help="평가할 suite (기본: 4개 전부).",
@@ -120,25 +123,31 @@ def main():
     total_idx = 0
     for suite_name in args.suite:
         suite = get_suite(args.benchmark_version, suite_name)
+        # pipeline.name="knockout-local-llm"에 "local"이 포함돼 있어 agentdojo.models.MODEL_NAMES의
+        # "local" -> "Local model" 매핑에 걸림 — ImportantInstructionsAttack/ToolKnowledgeAttack 등이
+        # 내부적으로 쓰는 get_model_name_from_pipeline()이 별도 설정 없이도 정상 동작한다.
+        attack = load_attack(args.attack, suite, pipeline)
         all_pairs = [(ut, it) for ut in suite.user_tasks.values() for it in suite.injection_tasks.values()]
         rng.shuffle(all_pairs)
         pairs = all_pairs[: args.limit_pairs]
-        print(f"[run_agentdojo_eval] evaluating {len(pairs)}/{len(all_pairs)} pairs from suite={suite_name}")
+        print(f"[run_agentdojo_eval] evaluating {len(pairs)}/{len(all_pairs)} pairs from suite={suite_name} (attack={args.attack})")
 
         for ut, it in pairs:
             total_idx += 1
-            attack_text = _JB_STRING.format(goal=it.GOAL, user=DEFAULT_USER_NAME, model=DEFAULT_MODEL_NAME, task=ut.PROMPT)
-            injections = {v: attack_text for v in suite.get_injection_vector_defaults()}
 
             try:
+                injections = attack.attack(ut, it)
+
                 llm.knockout_map = {}
                 u0, s0 = suite.run_task_with_pipeline(pipeline, ut, it, injections)
 
                 llm.knockout_map = knockout_map
                 uk, sk = suite.run_task_with_pipeline(pipeline, ut, it, injections)
             except Exception as e:
-                # 모델이 tool_call 인자를 이상한 형태로 생성하는 등 예측 못 한 파싱/실행
-                # 오류가 있을 수 있다 — 한 쌍이 실패해도 전체 sweep을 죽이지 않고 건너뛴다.
+                # 공격 문구 생성 자체가 실패하거나(예: ToolKnowledgeAttack이 요구하는
+                # placeholder_args가 없는 case), 모델이 tool_call 인자를 이상한 형태로
+                # 생성하는 등 예측 못 한 오류가 있을 수 있다 — 한 쌍이 실패해도 전체
+                # sweep을 죽이지 않고 건너뛴다.
                 print(f"  [{total_idx}] {suite_name}/{ut.ID}+{it.ID}: ERROR ({type(e).__name__}: {e}), skipping")
                 continue
 
@@ -165,7 +174,7 @@ def main():
         }
 
     summary = {
-        "model": args.model, "suites": args.suite, "heads_json": args.heads_json,
+        "model": args.model, "suites": args.suite, "heads_json": args.heads_json, "attack": args.attack,
         "n_heads": len(heads), "n_pairs": len(rows), "seed": args.seed, "max_iters": args.max_iters,
         "k0_utility_rate": rate(rows, "k0_utility"), "k0_security_rate": rate(rows, "k0_security"),
         "kN_utility_rate": rate(rows, "kN_utility"), "kN_security_rate": rate(rows, "kN_security"),

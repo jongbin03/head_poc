@@ -402,15 +402,44 @@ tool-calling 신뢰도가 병목**이라 아직 knockout 효과를 비교할 만
   성공률을 부풀렸을 수 있다"는 가설과 방향이 일치 — AgentDojo 네이티브 채점으로 가는 게
   옳은 방향이었음을 뒷받침하는 정황.
 
+**공격 기법 교체 실험 (2026-07-31)**: `results/2026-07-31_source_compare/agentdojo_eval_synthetic_7b_toolknowledge.json`.
+baseline 공격 성공률이 너무 낮은 게(2%) "공격 문구가 약해서"(모델이 뭘 해야 할지 추론을
+못 해서)인지 확인하려고, agentdojo가 이미 등록해둔 공격 중 가장 노골적인
+`tool_knowledge`(정확히 어떤 tool을 어떤 인자로 부를지까지 문구에 박아 넣어 추론 부담을
+없앰, `agentdojo.attacks.attack_registry.load_attack`으로 로드)로 교체해 동일 조건(7B 4bit,
+4 suite, suite당 12쌍)으로 재실행. `run_agentdojo_eval.py`에 `--attack` 옵션 추가(agentdojo
+공격 레지스트리 아무거나 지정 가능 — `direct`/`ignore_previous`/`injecagent`/
+`important_instructions`/`tool_knowledge` 등).
+
+- **가설 기각**: 공격 성공률이 **거의 그대로**(0.022, 46쌍 중 1건 — 이전 0.021과 사실상 동일).
+  성공한 case 자체는 바뀜(`banking/user_task_12+injection_task_7`, 이전 실행의
+  `slack/user_task_10+injection_task_1`과 다름) — 즉 "이 공격이 이 조합엔 통한다"는 개별
+  결과는 문구에 따라 바뀌지만, **전체 성공률 자체는 문구를 아무리 노골적으로 바꿔도 안
+  오름**.
+- **재해석**: 문제는 "모델이 공격을 이해 못 해서"가 아니라, **모델의 멀티스텝 tool 실행
+  자체가 전반적으로 신뢰도가 낮은 것**(utility도 20% 안팎)으로 보임 — 정상 과업이든 공격
+  이행이든 여러 단계를 정확히 이어가야 성공하는 건 마찬가지라, 공격 문구를 더 명확하게
+  써도 "모델이 여러 tool call을 정확히 연속으로 해낼 확률" 자체가 안 오르면 성공률도 안
+  오름. 이 진단이 맞다면 **공격 기법을 더 바꿔봐도 큰 개선은 안 될 가능성이 높고**,
+  모델의 tool-calling 실행 신뢰도 자체를 올리는 것(더 큰/똑똑한 모델)이 사실상 유일한
+  남은 손잡이.
+- 실행 중 7B가 특정 travel case에서 CUDA OOM(2건, `run_agentdojo_eval.py`의 try/except로
+  스킵되고 sweep은 계속됨)— travel suite의 tool 응답이 길어서로 추정, `compare_head_sources.py`
+  discover 때 봤던 것과 같은 종류의 문제.
+- banking suite에서 knockout 후 utility가 0.42→0.33으로 소폭 하락(12쌍 중 1개) — 처음으로
+  knockout의 utility 비용을 시사하는 관측이지만 표본이 얇아(12쌍) 노이즈일 가능성도 큼.
+
 **할 일** (구체 순서):
 1. ~~`pip install agentdojo` 설치 + API 코드 조사~~ — 완료 (위 참고).
 2. ~~`adapters/agentdojo.py` 작성 (Track A)~~ — 완료 (위 참고).
 3. ~~synthetic / InjecAgent / AgentDojo(Track A) 세 소스 각각 head 탐색 실행, jaccard 비교표
    작성~~ — 완료 (위 참고).
-4. ~~Track B 평가 하네스 구현~~ — 완료, 7B로 첫 실제 신호(1건) 확보 (위 참고).
+4. ~~Track B 평가 하네스 구현~~ — 완료, 7B로 첫 실제 신호 확보, 공격 기법 교체는 효과
+   없음 확인(위 참고).
 5. 표본을 훨씬 크게 늘려(수백 쌍) 성공한 공격 사례를 더 모은 뒤, 세 소스 단독(특히 3소스
    교집합 5개 layer-0 head) vs 합집합 vs 교집합을 Track B로 평가해 최종 head 집합 결정 —
-   **다음 단계**. travel suite는 난이도가 너무 높아 보이니 배분 비중 재검토.
+   **다음 단계**. travel suite는 난이도가 너무 높아 보이니 배분 비중 재검토. 모델을 더
+   키우는 방안(하드웨어 제약상 8-bit/오프로딩 등 타협 필요)도 병행 검토.
 6. Top-K sweep + random-head baseline(P7 인프라 재사용, `discover-parallel` 패턴으로 필요시
    확장)을 세 소스 전부에 동일 적용.
 7. 결과를 `methodology.md`/`run-guide.md`에 "Head Selection Methodology" 섹션으로 통합.

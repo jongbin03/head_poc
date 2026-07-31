@@ -24,6 +24,7 @@ dataset.py  ──▶  attn_relevance.py  ──▶  head_ranking.py  ──▶ 
 | [docs/run-guide.md](docs/run-guide.md) | 실행 가이드 (로컬 5070Ti / Colab) |
 | [docs/review-2026-07-29.md](docs/review-2026-07-29.md) | **방법론 자체 검토** — 현재 결과의 교란 요인과 권장 작업 순서 |
 | [docs/feedback-2026-07-29.md](docs/feedback-2026-07-29.md) | 교수님 피드백 대응 계획 |
+| [docs/feedback-response-2026-07-31.md](docs/feedback-response-2026-07-31.md) | **교수님 피드백 대응 결과 정리** — 데이터셋/head 탐색/AgentDojo 평가 결과와 한계 |
 | [docs/todo.md](docs/todo.md) | 작업 이력(P0~P2 완료) + 다음 할 일(P3~P6) |
 | [docs/presentation-notes.md](docs/presentation-notes.md) | 발표 준비용 정리 (개요→방법론→결과) |
 | [docs/presentation/](docs/presentation/) | 발표 슬라이드 및 스크립트 |
