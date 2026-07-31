@@ -482,6 +482,26 @@ travel OOM, 여전히 travel이 가장 취약).
   실행 때와 같은 케이스. 여기서도 knockout으로 억제됨.
 - 결과: `results/2026-07-31_source_compare/agentdojo_eval_synthetic_14b_all_suites.json`.
 
+**proxy 지표(synthetic/InjecAgent) vs 네이티브(AgentDojo) 재대조 (2026-07-31, 신규
+`run_proxy_eval.py`)**: 같은 14B 모델 + 같은 head 13개로, 이번엔 head를 새로 찾지 않고
+`--heads_json`을 그대로 받아 synthetic/InjecAgent proxy sweep만 도는 스크립트를 추가해
+(`attn_relevance`의 backward 불필요, `edge_ablation.sweep_knockout` forward-only 재사용)
+`results/2026-07-31_source_compare/proxy_eval_synthetic_14b.json`으로 실행:
+
+| | k=0 (방어 없음) | k=13 (knockout) |
+|---|---|---|
+| synthetic (30개) `malicious_token_prob` | 1.0000 | **0.0000** |
+| synthetic `read_token_prob`(utility) | 0.9360 | 0.9515 |
+| InjecAgent (1,054개) `malicious_token_prob` | 0.3347 | **0.0463** (7.2배↓) |
+| InjecAgent `read_token_prob`(산술적 종속, 참고용) | 0.6563 | 0.9141 |
+
+1.5B/7B에서 이미 본 것과 완전히 같은 패턴(synthetic 완전 억제, InjecAgent 강한 부분 억제,
+utility 유지/상승)이 14B에서도 그대로 재현됨. **같은 head·같은 모델인데 AgentDojo
+네이티브 평가는 45~48쌍 중 성공한 공격이 1건뿐**이었던 것과 나란히 놓고 보면, proxy
+지표가 실제(멀티턴) 공격 성공률을 크게 부풀렸을 가능성을 세 가지 평가 방식을 직접
+대조해서 보여주는 가장 명확한 증거가 됨 — review-2026-07-29.md/P8이 처음 제기했던
+우려가 이번에 정량적으로 뒷받침됨.
+
 **할 일** (구체 순서):
 1. ~~`pip install agentdojo` 설치 + API 코드 조사~~ — 완료 (위 참고).
 2. ~~`adapters/agentdojo.py` 작성 (Track A)~~ — 완료 (위 참고).

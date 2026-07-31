@@ -1,0 +1,87 @@
+{
+  "model": "unsloth/Qwen2.5-14B-Instruct-bnb-4bit",
+  "heads_json": "results/2026-07-31_source_compare/heads_synthetic_14b.json",
+  "n_heads": 13,
+  "heads": [
+    [
+      0,
+      0
+    ],
+    [
+      0,
+      14
+    ],
+    [
+      0,
+      27
+    ],
+    [
+      0,
+      38
+    ],
+    [
+      29,
+      11
+    ],
+    [
+      36,
+      21
+    ],
+    [
+      36,
+      22
+    ],
+    [
+      36,
+      23
+    ],
+    [
+      37,
+      16
+    ],
+    [
+      40,
+      10
+    ],
+    [
+      42,
+      5
+    ],
+    [
+      43,
+      19
+    ],
+    [
+      44,
+      35
+    ]
+  ],
+  "synthetic": [
+    {
+      "k": 0,
+      "malicious_token_prob": 0.999974795182546,
+      "read_token_prob": 0.9359690209229787,
+      "n_examples": 30
+    },
+    {
+      "k": 13,
+      "malicious_token_prob": 4.857164628329092e-07,
+      "read_token_prob": 0.9515195394555728,
+      "n_examples": 30
+    }
+  ],
+  "injecagent": [
+    {
+      "k": 0,
+      "malicious_token_prob": 0.3346977223200799,
+      "read_token_prob": 0.6563235902264005,
+      "n_examples": 1054
+    },
+    {
+      "k": 13,
+      "malicious_token_prob": 0.0462973258671795,
+      "read_token_prob": 0.9140864442690643,
+      "n_examples": 1054
+    }
+  ]
+}
