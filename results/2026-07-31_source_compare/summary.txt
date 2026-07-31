@@ -1,0 +1,15 @@
+sources = ['synthetic', 'injecagent', 'agentdojo']
+head set sizes = [14, 20, 20] (of 336 slots)
+
+-- pairwise jaccard --
+  jaccard(synthetic, injecagent) = 0.308  (chance=0.025, 12.2x)
+  jaccard(synthetic, agentdojo) = 0.214  (chance=0.025, 8.5x)
+  jaccard(injecagent, agentdojo) = 0.290  (chance=0.031, 9.5x)
+
+union of all 3 sources        = 36 heads: [(0, 1), (0, 3), (0, 5), (0, 6), (0, 7), (0, 10), (1, 2), (15, 0), (15, 10), (16, 4), (16, 7), (17, 2), (18, 0), (18, 3), (19, 1), (20, 5), (20, 8), (20, 9), (20, 11), (21, 0), (21, 4), (21, 9), (21, 11), (23, 1), (23, 3), (24, 10), (24, 11), (25, 0), (26, 2), (26, 3), (26, 6), (27, 2), (27, 3), (27, 4), (27, 5), (27, 11)]
+intersection of all 3 sources = 5 heads: [(0, 1), (0, 3), (0, 6), (0, 7), (0, 10)]
+
+-- pairwise union / intersection --
+  synthetic ∪ injecagent = 26 heads,  synthetic ∩ injecagent = 8 heads: [(0, 1), (0, 3), (0, 6), (0, 7), (0, 10), (21, 9), (21, 11), (24, 10)]
+  synthetic ∪ agentdojo = 28 heads,  synthetic ∩ agentdojo = 6 heads: [(0, 1), (0, 3), (0, 6), (0, 7), (0, 10), (27, 3)]
+  injecagent ∪ agentdojo = 31 heads,  injecagent ∩ agentdojo = 9 heads: [(0, 1), (0, 3), (0, 6), (0, 7), (0, 10), (16, 4), (18, 0), (18, 3), (20, 5)]

@@ -330,16 +330,45 @@ agentdojo가 이미 제공.
   템플릿)을 클래스 속성만 가져와 재사용 — `BaseAttack` 인스턴스화는 `target_pipeline.name`이
   agentdojo가 아는 모델 이름이어야 해서 우리 커스텀 모델과 안 맞아 피함.
 
+**3소스 head 비교 결과 (2026-07-31, `compare_head_sources.py`, 1.5B)**: `results/2026-07-31_source_compare/`.
+
+- 새로 만든 `compare_head_sources.py`가 `discover`(단일 프로세스)/`discover-batch`+`discover-parallel`
+  (배치마다 새 서브프로세스로 분리)/`compare` 세 단계로 나뉨. synthetic(60회 호출)·InjecAgent
+  (150회 호출, head_n=150)는 `discover`로 문제없이 끝났지만, **AgentDojo는 길이 필터(≤2000
+  토큰)를 걸어도 `discover` 단일 프로세스에서 150번 중 18번만 성공**(나머지는 이미 알려진
+  `compute_head_relevance`의 프로세스 전역 GPU 메모리 누적 버그로 OOM) — todo.md 보류
+  섹션에 적어뒀던 근본 해결책(배치마다 완전히 새 CUDA 컨텍스트)을 `discover-parallel`로 구현해
+  batch_size=15로 재실행하니 **118/150(79%) 성공**으로 크게 개선됨. 이 근본 해결책이 실제로
+  효과가 있음을 처음으로 실측 확인 — 향후 head_n을 더 키우거나(예: InjecAgent도 200 이상)
+  다른 대량 relevance 계산에도 `discover-parallel` 패턴을 재사용할 수 있음.
+
+| 비교 | jaccard | 우연 대비 |
+|---|---|---|
+| synthetic vs InjecAgent | 0.308 | 12.2배 |
+| synthetic vs AgentDojo | 0.214 | 8.5배 |
+| InjecAgent vs AgentDojo | 0.290 | 9.5배 |
+
+- head 집합 크기: synthetic 14 / InjecAgent 20 / AgentDojo 20.
+- **3소스 교집합 = 5개**: `(0,1) (0,3) (0,6) (0,7) (0,10)` — **전부 layer 0**. review.md 3-4가
+  지적한 "layer 0 지배"가 소스를 3개로 늘려도 그대로 유지됨 — "초기 정보 대역폭 차단" 대안
+  가설이 여전히 배제되지 않았다는 신호로 볼 수 있음, 다음 단계(Track B)에서 이 5개만 knockout
+  했을 때 효과가 어떤지 반드시 볼 것.
+- 2소스씩 교집합은 6~9개(대부분 위 5개 + 소스쌍마다 1~4개 추가), 3소스 합집합은 36개.
+- 세 jaccard 모두 우연 대비 8~12배로 유의함 — 세 소스가 서로 무관한 head를 찾은 게 아님은
+  확실하나, 완전히 같지도 않음(교집합 5~9개 vs 각 소스 14~20개).
+
 **할 일** (구체 순서):
 1. ~~`pip install agentdojo` 설치 + API 코드 조사~~ — 완료 (위 참고).
 2. ~~`adapters/agentdojo.py` 작성 (Track A)~~ — 완료 (위 참고).
-3. synthetic / InjecAgent / AgentDojo(Track A) 세 소스 각각 head 탐색 실행, jaccard 비교표
-   작성 (P2-d/P7 코드 재사용) — **다음 단계**.
+3. ~~synthetic / InjecAgent / AgentDojo(Track A) 세 소스 각각 head 탐색 실행, jaccard 비교표
+   작성~~ — 완료 (위 참고).
 4. Track B 평가 하네스 구현: 커스텀 `BasePipelineElement` LLM 요소(`edge_knockout` 적용)
    + D_inj 위치 추적 로직 + `TaskSuite.run_task_with_pipeline`으로 네이티브 utility/security
-   채점 연동.
-5. 세 소스 단독 vs 합집합 vs 교집합을 Track B로 평가해 최종 head 집합 결정.
-6. Top-K sweep + random-head baseline(P7 인프라 재사용)을 세 소스 전부에 동일 적용.
+   채점 연동 — **다음 단계**.
+5. 세 소스 단독(특히 3소스 교집합 5개 layer-0 head) vs 합집합 vs 교집합을 Track B로 평가해
+   최종 head 집합 결정.
+6. Top-K sweep + random-head baseline(P7 인프라 재사용, `discover-parallel` 패턴으로 필요시
+   확장)을 세 소스 전부에 동일 적용.
 7. 결과를 `methodology.md`/`run-guide.md`에 "Head Selection Methodology" 섹션으로 통합.
 
 별도 세션에서 단계별 진행 권장 (1. Track A 어댑터 → 2. 소스 비교 → 3. Track B 하네스 →
