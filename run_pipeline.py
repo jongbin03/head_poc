@@ -36,8 +36,17 @@ from head_ranking import (
     topk_heads,
     normalize_score,
     jaccard,
+    random_heads,
+    expected_jaccard_by_chance,
 )
 from edge_ablation import sweep_knockout
+
+
+def _clean_ks(full_ks: List[int], n_heads: int) -> List[int]:
+    """sweep_knockout에 넘길 ks 목록을 head 개수에 맞게 정리한다. n_heads보다 큰
+    k는 어차피 전체 head를 다 쓰는 것과 같은 결과라 (review-2026-07-29.md 3-1의
+    k=80==k=40 문제와 동일 패턴), n_heads로 캡하고 0/n_heads는 항상 포함시킨다."""
+    return sorted({0, n_heads} | {k for k in full_ks if 0 < k < n_heads})
 
 
 def main():
@@ -189,6 +198,12 @@ def main():
     print(f"  top-{args.topk} Jaccard(read, external)   = {summary['jaccard_read_external']:.3f}")
     print(f"  top-{args.topk} Jaccard(internal,external)= {summary['jaccard_internal_external']:.3f}")
     print(f"  control_heads_both (internal ∩ external)  = {summary['control_heads_both']}")
+    print(
+        f"  jaccard_chance_at_k={args.topk} (우연 기대값)     = {summary['jaccard_chance_at_k']:.3f}"
+        f"  (internal,external 관측값 대비 {summary['jaccard_internal_external'] / summary['jaccard_chance_at_k']:.1f}배)"
+        if summary["jaccard_chance_at_k"] > 0 else ""
+    )
+    print(f"  dual_use_candidates (read와도 겹치는 control head) = {summary['dual_use_candidates']}")
 
     plot_path = plot_functional_map(
         read_score, internal_score, external_score, top_k=args.topk,
@@ -219,6 +234,88 @@ def main():
             f"  k={row['k']:>3}  malicious_token_prob={row['malicious_token_prob']:.4f}"
             f"  read_token_prob={row['read_token_prob']:.4f}"
             f"  (n={row['n_examples']})"
+        )
+
+    # [P7] 랜덤 head 기준선: control_ranking(top-40, union 기반)과 같은 개수의 무작위
+    # head를 knockout해서 같은 sweep을 돌린다. review-2026-07-29.md 3-4/3-5 —
+    # 똑같이 떨어지면 head 선정이 기여하는 바가 없다는 뜻이고, 안 떨어지면 지금까지의
+    # 결론이 튼튼해진다. forward-only라 비용이 거의 없음.
+    num_layers, num_heads_per_layer = internal_score.shape
+    print(f"[P7] random-head baseline sweep (control_ranking과 동일 개수={len(control_ranking)}) ...")
+    random_ranking = random_heads(num_layers, num_heads_per_layer, len(control_ranking), seed=42)
+    random_sweep_results = sweep_knockout(
+        model, modeling_mod, exec_examples, read_examples, random_ranking,
+    )
+    for row in random_sweep_results:
+        print(
+            f"  [random] k={row['k']:>3}  malicious_token_prob={row['malicious_token_prob']:.4f}"
+            f"  read_token_prob={row['read_token_prob']:.4f}"
+            f"  (n={row['n_examples']})"
+        )
+
+    # [P7] control_heads_both(internal ∩ external, 교집합) sweep. review-2026-07-29.md
+    # 3-1 — methodology.md/발표자료는 "control head = 교집합"이라 서술하지만 위
+    # sweep_results는 실제로 top-40 union 랭킹을 쓴다. 서술과 실제 개입 대상을
+    # 코드는 그대로 두고(사용자 결정) 교집합 sweep을 별도로 돌려 나란히 비교한다.
+    intersection_ranking = summary["control_heads_both"]
+    intersection_ks = _clean_ks([5, 10, 20, 40], len(intersection_ranking))
+    print(
+        f"[P7] control_heads_both(교집합, n={len(intersection_ranking)}) sweep "
+        f"(union top-40 sweep과 나란히 비교용) ..."
+    )
+    intersection_sweep_results = sweep_knockout(
+        model, modeling_mod, exec_examples, read_examples, intersection_ranking, ks=intersection_ks,
+    )
+    for row in intersection_sweep_results:
+        print(
+            f"  [intersection] k={row['k']:>3}  malicious_token_prob={row['malicious_token_prob']:.4f}"
+            f"  read_token_prob={row['read_token_prob']:.4f}"
+            f"  (n={row['n_examples']})"
+        )
+    intersection_random_ranking = random_heads(
+        num_layers, num_heads_per_layer, len(intersection_ranking), seed=42
+    )
+    intersection_random_sweep_results = sweep_knockout(
+        model, modeling_mod, exec_examples, read_examples, intersection_random_ranking, ks=intersection_ks,
+    )
+    for row in intersection_random_sweep_results:
+        print(
+            f"  [intersection-random] k={row['k']:>3}  malicious_token_prob={row['malicious_token_prob']:.4f}"
+            f"  read_token_prob={row['read_token_prob']:.4f}"
+            f"  (n={row['n_examples']})"
+        )
+
+    # [P7] top-K sweep (K=5/10/20/40): K를 바꿔가며 internal/external을 다시 top-K로
+    # 뽑고 그 교집합 크기·jaccard·knockout 효과가 어떻게 변하는지 본다 — "왜 K=20인가"
+    # 에 대한 근거(review-2026-07-29.md 3-2, todo.md P7 항목2). 각 K의 교집합 크기만큼
+    # 무작위 head를 뽑은 기준선도 같이 비교한다.
+    print("[P7] top-K sensitivity sweep (K=5/10/20/40) ...")
+    topk_sweep_results = []
+    for K in (5, 10, 20, 40):
+        internal_heads_K = topk_heads(internal_score, K)
+        external_heads_K = topk_heads(external_score, K)
+        heads_K = sorted(set(internal_heads_K) & set(external_heads_K))
+        jacc_K = jaccard(internal_heads_K, external_heads_K)
+        chance_K = expected_jaccard_by_chance(K, num_layers, num_heads_per_layer)
+
+        real_res = sweep_knockout(
+            model, modeling_mod, exec_examples, read_examples, heads_K,
+            ks=[0, len(heads_K)],
+        )
+        random_heads_K = random_heads(num_layers, num_heads_per_layer, len(heads_K), seed=42)
+        random_res = sweep_knockout(
+            model, modeling_mod, exec_examples, read_examples, random_heads_K,
+            ks=[0, len(heads_K)],
+        )
+        row = {
+            "K": K, "n_intersection": len(heads_K), "jaccard": jacc_K, "jaccard_chance": chance_K,
+            "heads": heads_K, "real": real_res, "random": random_res,
+        }
+        topk_sweep_results.append(row)
+        print(
+            f"  K={K:>3}  |intersection|={len(heads_K):>3}  jaccard={jacc_K:.3f} (chance={chance_K:.3f})  "
+            f"real: k=0 {real_res[0]['malicious_token_prob']:.4f} -> k={real_res[-1]['k']} {real_res[-1]['malicious_token_prob']:.4f}  "
+            f"random: k=0 {random_res[0]['malicious_token_prob']:.4f} -> k={random_res[-1]['k']} {random_res[-1]['malicious_token_prob']:.4f}"
         )
 
     heldout_sweep_results = None
@@ -429,7 +526,9 @@ def main():
         f.write(f"jaccard(read,internal)   = {summary['jaccard_read_internal']:.3f}\n")
         f.write(f"jaccard(read,external)   = {summary['jaccard_read_external']:.3f}\n")
         f.write(f"jaccard(internal,external)= {summary['jaccard_internal_external']:.3f}\n")
-        f.write(f"control_heads_both = {summary['control_heads_both']}\n\n")
+        f.write(f"jaccard_chance_at_k={args.topk}  = {summary['jaccard_chance_at_k']:.3f}\n")
+        f.write(f"control_heads_both = {summary['control_heads_both']}\n")
+        f.write(f"dual_use_candidates = {summary['dual_use_candidates']}\n\n")
         if args.heldout_style_idx is not None:
             f.write(f"-- in-distribution (styles={head_style_indices}, used for head selection) --\n")
         for row in sweep_results:
@@ -438,6 +537,47 @@ def main():
                 f"  read_token_prob={row['read_token_prob']:.4f}"
                 f"  (n={row['n_examples']})\n"
             )
+
+        f.write(f"\n-- [P7] random-head baseline (n={len(control_ranking)}, same size as control_ranking) --\n")
+        for row in random_sweep_results:
+            f.write(
+                f"k={row['k']:>3}  malicious_token_prob={row['malicious_token_prob']:.4f}"
+                f"  read_token_prob={row['read_token_prob']:.4f}"
+                f"  (n={row['n_examples']})\n"
+            )
+
+        f.write(f"\n-- [P7] control_heads_both intersection sweep (n={len(intersection_ranking)}) --\n")
+        f.write(f"heads = {intersection_ranking}\n")
+        for row in intersection_sweep_results:
+            f.write(
+                f"k={row['k']:>3}  malicious_token_prob={row['malicious_token_prob']:.4f}"
+                f"  read_token_prob={row['read_token_prob']:.4f}"
+                f"  (n={row['n_examples']})\n"
+            )
+        f.write(f"\n-- [P7] control_heads_both intersection sweep - random baseline (n={len(intersection_ranking)}) --\n")
+        for row in intersection_random_sweep_results:
+            f.write(
+                f"k={row['k']:>3}  malicious_token_prob={row['malicious_token_prob']:.4f}"
+                f"  read_token_prob={row['read_token_prob']:.4f}"
+                f"  (n={row['n_examples']})\n"
+            )
+
+        f.write("\n-- [P7] top-K sensitivity sweep (K=5/10/20/40) --\n")
+        for row in topk_sweep_results:
+            f.write(
+                f"K={row['K']:>3}  |intersection|={row['n_intersection']:>3}  "
+                f"jaccard={row['jaccard']:.3f}  jaccard_chance={row['jaccard_chance']:.3f}\n"
+            )
+            f.write(f"  heads = {row['heads']}\n")
+            f.write(
+                f"  real:   k=0 malicious={row['real'][0]['malicious_token_prob']:.4f} read={row['real'][0]['read_token_prob']:.4f}"
+                f"  ->  k={row['real'][-1]['k']} malicious={row['real'][-1]['malicious_token_prob']:.4f} read={row['real'][-1]['read_token_prob']:.4f}\n"
+            )
+            f.write(
+                f"  random: k=0 malicious={row['random'][0]['malicious_token_prob']:.4f} read={row['random'][0]['read_token_prob']:.4f}"
+                f"  ->  k={row['random'][-1]['k']} malicious={row['random'][-1]['malicious_token_prob']:.4f} read={row['random'][-1]['read_token_prob']:.4f}\n"
+            )
+
         if heldout_sweep_results is not None:
             f.write(f"\n-- held-out (style_idx={args.heldout_style_idx}, excluded from head selection) --\n")
             for row in heldout_sweep_results:

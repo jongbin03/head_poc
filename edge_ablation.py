@@ -151,7 +151,9 @@ def sweep_knockout(
     주입문이 없는 read_clean을 넣으면 끊을 엣지가 없어 utility 축이 k와 무관하게
     평평해진다.
     """
-    ks = ks if ks is not None else [0, 5, 10, 20, 40, 80]
+    # 기본 랭킹 길이가 topk*2=40이라(run_pipeline.py) k=80은 항상 k=40과 동일한 결과가
+    # 나온다(review-2026-07-29.md 3-1) — 표에서 의미 없는 행이 되므로 기본값에서 제외.
+    ks = ks if ks is not None else [0, 5, 10, 20, 40]
 
     results = []
     for k in ks:

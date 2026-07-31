@@ -6,7 +6,8 @@ Atlas Eq.(9) 스타일로 top-K head를 뽑은 뒤, read / internal / external �
 사이의 overlap(Jaccard)을 계산한다. 교수님 질문("read와 instruction-following이
 구분되는가?")에 대한 1차 정량적 답이 여기서 나온다.
 """
-from typing import Dict, List, Tuple
+import random
+from typing import Dict, List, Optional, Tuple
 import torch
 
 
@@ -47,6 +48,38 @@ def jaccard(set_a: List[Tuple[int, int]], set_b: List[Tuple[int, int]]) -> float
     return len(a & b) / len(a | b)
 
 
+def expected_jaccard_by_chance(k: int, num_layers: int, num_heads: int) -> float:
+    """
+    두 독립적인(무작위) top-k 부분집합이 우연히 겹칠 것으로 기대되는 Jaccard (근사치).
+
+    N=num_layers*num_heads개 슬롯에서 무작위로 뽑은 두 k-부분집합의 기대 교집합
+    크기는 k^2/N (비복원추출 하이퍼기하분포 기댓값). Jaccard는 비율의 기댓값이라
+    E[X]/E[Y]로 정확히 안 나오지만(E[X/Y] != E[X]/E[Y]), E[교집합]과
+    E[합집합]=2k-E[교집합]을 그대로 대입한 근사값을 쓴다 — review-2026-07-29.md
+    3-2절에서 이미 이 방식으로 "관측 jaccard가 우연 대비 몇 배인가"를 계산했으므로
+    기존 수치와 일관되게 맞춘다.
+    """
+    n_slots = num_layers * num_heads
+    if n_slots <= 0 or k <= 0:
+        return 0.0
+    expected_overlap = (k * k) / n_slots
+    expected_union = 2 * k - expected_overlap
+    if expected_union <= 0:
+        return 0.0
+    return expected_overlap / expected_union
+
+
+def random_heads(
+    num_layers: int, num_heads: int, n: int, seed: Optional[int] = None
+) -> List[Tuple[int, int]]:
+    """전체 (layer, head) 슬롯 중 무작위로 n개를 비복원 추출 (랜덤 head 기준선용).
+    topk_heads()와 같은 (layer, head) 튜플 리스트 형태라 sweep_knockout에 그대로 넘길 수 있다."""
+    rng = random.Random(seed)
+    all_slots = [(l, h) for l in range(num_layers) for h in range(num_heads)]
+    n = min(n, len(all_slots))
+    return rng.sample(all_slots, n)
+
+
 def summarize_overlap(
     read_score: torch.Tensor,
     internal_score: torch.Tensor,
@@ -56,6 +89,7 @@ def summarize_overlap(
     read_heads = topk_heads(read_score, k)
     internal_heads = topk_heads(internal_score, k)
     external_heads = topk_heads(external_score, k)
+    num_layers, num_heads = read_score.shape
 
     return {
         "top_k": k,
@@ -65,6 +99,9 @@ def summarize_overlap(
         "jaccard_read_internal": jaccard(read_heads, internal_heads),
         "jaccard_read_external": jaccard(read_heads, external_heads),
         "jaccard_internal_external": jaccard(internal_heads, external_heads),
+        # review-2026-07-29.md 3-2: 우연으로 기대되는 jaccard 대비 관측값이 몇 배인지
+        # 보려면 이 값과 위 세 jaccard_* 값을 나누면 된다.
+        "jaccard_chance_at_k": expected_jaccard_by_chance(k, num_layers, num_heads),
         # idea1의 "control head"는 internal/external 양쪽에서 다 상위권인 head들
         "control_heads_both": sorted(set(internal_heads) & set(external_heads)),
         # read/control 어느 쪽에도 강하게 안 걸치는지 확인용 (dual-use head 후보)

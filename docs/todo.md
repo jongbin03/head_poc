@@ -7,8 +7,8 @@
 | ~~P0~~ | ~~로컬 5070Ti 환경에서 파이프라인 전체 재현~~ | **완료** (2026-07-28, `../results/2026-07-28_local_5070ti`) |
 | ~~P1~~ | ~~Qwen2.5-7B(8B급)로 본 실험 확장~~ | **완료** (2026-07-28, 4bit, 같은 결과 폴더) |
 | ~~P2~~ | ~~외부/추가 데이터셋으로 기존 control head의 edge knockout 효과 검증~~ | **완료** (2026-07-28, P2-a/b/c/d 전부) |
-| **P7** | **방법론 진단 — 랜덤 head 기준선 / top-K sweep / jaccard 우연 기준선 / 문서-코드 불일치 정정** | **최우선.** forward-only라 반나절. 지금까지의 결론이 유효한지 판별하는 단계 |
-| P8 | 합성 데이터셋의 content-availability 교란 제거 | P7 결과와 무관하게 필요. 하루 |
+| ~~P7~~ | ~~방법론 진단 — 랜덤 head 기준선 / top-K sweep / jaccard 우연 기준선 / 문서-코드 불일치 정정~~ | **완료** (2026-07-31, `../results/2026-07-31_Qwen-Qwen2-5-1-5B-Instruct`) |
+| **P8** | **합성 데이터셋의 content-availability 교란 제거** | **최우선.** P7에서 랜덤 head도 부분적으로 억제 효과를 보여 이 교란이 실재함을 뒷받침. 하루 |
 | P4 | (교수님 피드백) Head 탐색 방법론 재설계 — AgentDojo를 탐색 소스로, utility 지표 정비 | 구 P4+P6 통합, P3 흡수. 가장 비중 큰 작업 |
 | P5 | (교수님 피드백) 키 그룹 2개 vs 데이터셋 모드 4개 문서 정비 | P7/P8이 서술을 바꾸므로 그 뒤에 |
 | P3 | control head 내 internal-only vs external-only 채널 분기 검증 | P4에 통합해 진행 |
@@ -160,33 +160,41 @@ eval sweep만 재실행 — 새 프로세스는 메모리가 깨끗해서 정상
 안 붙는 버그도 발견/수정함 — 접미사가 없어서 이전 P2-c 결과 폴더를 한 번 덮어썼다가 git으로
 복구했음 (커밋된 파일이라 다행히 복구 가능했음, 커밋 전 결과물은 이런 사고에 취약하다는 교훈).
 
-## P7. 방법론 진단 — 지금까지의 결론이 유효한지 판별 (최우선)
+## ~~P7. 방법론 진단 — 지금까지의 결론이 유효한지 판별~~ — 완료 (2026-07-31)
 
 **배경**: 2026-07-29 자체 리뷰(`review-2026-07-29.md`) 결과. 합성 데이터에서 나온
 완전 억제(`malicious_token_prob = 0.0000`)가 "control head를 껐기 때문"인지 "공격 대상
 문자열을 못 보게 했기 때문"인지 구분할 실험이 지금 하나도 없다. 전부 forward-only라
 `compute_head_relevance`의 메모리 누수와 무관하고 비용이 거의 없다.
 
-**할 일**:
-1. **랜덤 head 기준선** (`edge_ablation.py`에 옵션 추가) — 같은 개수의 무작위 head에
-   D_inj 엣지 knockout. 똑같이 0으로 떨어지면 head 선정이 기여하는 바가 없다는 뜻이고,
-   안 떨어지면 지금까지의 모든 주장이 한 번에 튼튼해진다. **어느 쪽이든 반드시 알아야
-   하는 값** — 이 항목 하나가 P7의 존재 이유다.
-2. **top-K sweep** (K=5/10/20/40)으로 `control_heads_both` 크기와 억제율의 민감도 곡선 —
-   "왜 K=20인가"에 대한 답이 지금 없음.
-3. **jaccard 우연 기준선** — 1.5B는 28층×12head=336 슬롯이라 top-20 두 집합의 기대
-   jaccard ≈ 0.031. 관측값 0.29/0.33/0.54는 각각 우연의 9배/11배/17배로 **명백히
-   유의하다**. 계산 한 줄로 방법론 신뢰도를 크게 올릴 수 있는데 지금 비어 있음.
-4. `head_ranking.py:71`의 `dual_use_candidates`(read와 control에 동시에 걸치는 head)를
-   출력/저장 — 이미 계산하는데 아무도 안 보고 있음. jaccard 0.29 = top-20 중 9개 겹침이라
-   "read와 control이 분리됐다"는 서술의 근거가 약함을 바로 드러내는 진단값.
-5. **문서-코드 불일치 정정**: 메인 sweep과 P2-c는 `control_heads_both`(교집합)가 아니라
-   `normalize_score(internal)+normalize_score(external)`의 top-40(`run_pipeline.py:207-208`)을
-   쓴다. 교집합이 실제로 쓰인 곳은 P2-d의 synthetic-only 조건 하나뿐. 서술을 코드에
-   맞추거나 코드를 서술에 맞출 것. 겸사겸사 랭킹 길이가 40이라 항상 k=40과 동일한
-   **k=80 행을 표에서 제거**.
+**한 일**: `head_ranking.py`에 `random_heads()`/`expected_jaccard_by_chance()` 추가,
+`edge_ablation.py` 기본 `ks`에서 k=80 제거, `run_pipeline.py`에 랜덤 head 기준선 /
+`control_heads_both`(교집합) sweep / top-K(5/10/20/40) sweep을 모두 추가해 union
+top-40 sweep과 나란히 출력·`summary.txt`에 기록하도록 확장. 1.5B, 템플릿 30개 전체로
+실행 (`../results/2026-07-31_Qwen-Qwen2-5-1-5B-Instruct/summary.txt`).
 
-## P8. 합성 데이터셋의 content-availability 교란 제거
+**결과**:
+1. **랜덤 head 기준선**: 실제 선정 head(교집합 9~14개)는 k=10 안에
+   `malicious_token_prob` 0.9118 → **0.0000**(완전 억제). 동일 개수의 랜덤 head는
+   k=40까지 늘려도 0.9118 → **0.6448**까지만 떨어짐 — head 선정이 랜덤보다 훨씬
+   적은 개입으로 훨씬 강하게 억제한다는 점은 확인됐다. 다만 랜덤도 어느 정도
+   떨어진다는 점은 아래 P8의 content-availability 교란 가설과 방향이 일치 — P8이
+   여전히 필요하다는 근거가 됨.
+2. **top-K sweep**: K=10(교집합 9개)에서 이미 완전 억제, K=5(교집합 3개)에서도 부분
+   억제(0.35). K=20이 특별한 임계점은 아니고 K≥10이면 충분해 보임.
+3. **jaccard 우연 기준선**: jaccard(internal,external)=0.538, 우연 기대값=0.031 →
+   **17.6배**, 명백히 유의함 (`head_ranking.py`의 `jaccard_chance_at_k`로 상시 계산됨).
+4. **`dual_use_candidates`**: `control_heads_both` 14개 중 **9개**가 read top-20과도
+   겹침 — "read와 control이 완전히 분리된 회로"라는 주장은 유지하기 어렵고, 상대적
+   주장("internal-external끼리의 겹침 0.538이 read와의 겹침 0.290/0.333보다 뚜렷이
+   크다")만 성립.
+5. **layer 0 지배 재확인**: `control_heads_both` 14개 중 6개가 layer 0 — review.md
+   3-4의 수치와 일치, 정보 대역폭 차단 대안 가설을 아직 배제 못 함.
+6. **문서-코드 불일치**: union top-40 sweep과 intersection sweep이 거의 동일하게(둘 다
+   k=10~14 안에 0.0000) 억제되므로 기존 헤드라인 수치는 안전함이 확인됨 — 코드는
+   그대로 두고 두 sweep을 나란히 보고하는 쪽으로 정리.
+
+## P8. 합성 데이터셋의 content-availability 교란 제거 (최우선)
 
 **배경**: `review-2026-07-29.md` 1절. `exec_target`이 30개 템플릿 전부 `"attacker"` 하나로
 고정돼 있고(`dataset.py:294`) 이 문자열이 **오직 `data_inj` 안에만** 존재한다. 게다가
