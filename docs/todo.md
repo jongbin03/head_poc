@@ -8,10 +8,10 @@
 | ~~P1~~ | ~~Qwen2.5-7B(8B급)로 본 실험 확장~~ | **완료** (2026-07-28, 4bit, 같은 결과 폴더) |
 | ~~P2~~ | ~~외부/추가 데이터셋으로 기존 control head의 edge knockout 효과 검증~~ | **완료** (2026-07-28, P2-a/b/c/d 전부) |
 | ~~P7~~ | ~~방법론 진단 — 랜덤 head 기준선 / top-K sweep / jaccard 우연 기준선 / 문서-코드 불일치 정정~~ | **완료** (2026-07-31, `../results/2026-07-31_Qwen-Qwen2-5-1-5B-Instruct`) |
-| **P8** | **합성 데이터셋의 content-availability 교란 제거** | **최우선.** P7에서 랜덤 head도 부분적으로 억제 효과를 보여 이 교란이 실재함을 뒷받침. 하루 |
-| P4 | (교수님 피드백) Head 탐색 방법론 재설계 — AgentDojo를 탐색 소스로, utility 지표 정비 | 구 P4+P6 통합, P3 흡수. 가장 비중 큰 작업 |
-| P5 | (교수님 피드백) 키 그룹 2개 vs 데이터셋 모드 4개 문서 정비 | P7/P8이 서술을 바꾸므로 그 뒤에 |
-| P3 | control head 내 internal-only vs external-only 채널 분기 검증 | P4에 통합해 진행 |
+| P8 | 합성 데이터셋의 content-availability 교란 제거 | **보류 (2026-07-31 결정)**. head 탐색은 synthetic 그대로 써도 유효하다고 판단, 발표용 헤드라인은 AgentDojo 네이티브 채점(P4)에 맡기기로 함 |
+| **P4** | **(교수님 피드백) Head 탐색 방법론 재설계 — synthetic/InjecAgent/AgentDojo 3소스 비교, Track A(탐색)/Track B(평가) 하이브리드** | **최우선.** 구 P4+P6 통합. 가장 비중 큰 작업 |
+| P5 | (교수님 피드백) 키 그룹 2개 vs 데이터셋 모드 4개 문서 정비 | P4 결과로 서술이 또 바뀔 수 있어 그 뒤에 |
+| P3 | control head 내 internal-only vs external-only 채널 분기 검증 | **보류**. P4가 channel 축을 source 축으로 대체해 자동 흡수되지 않게 됨 |
 
 아래는 우선순위 순서대로 자세한 내용, 그 뒤에 보류 항목.
 자세한 대응 계획(특히 "키 그룹" 정의 재확인)은 `feedback-2026-07-29.md`,
@@ -194,7 +194,13 @@ top-40 sweep과 나란히 출력·`summary.txt`에 기록하도록 확장. 1.5B,
    k=10~14 안에 0.0000) 억제되므로 기존 헤드라인 수치는 안전함이 확인됨 — 코드는
    그대로 두고 두 sweep을 나란히 보고하는 쪽으로 정리.
 
-## P8. 합성 데이터셋의 content-availability 교란 제거 (최우선)
+## P8. 합성 데이터셋의 content-availability 교란 제거 (보류, 2026-07-31)
+
+**보류 결정**: P7에서 head 탐색이 랜덤 기준선 대비 뚜렷이 유효함이 확인되어("head 찾을 때는
+문제 없었다"), synthetic 데이터셋은 이 교란을 고치지 않은 상태 그대로 P4의 head 탐색
+소스 중 하나로만 계속 쓰기로 함. 대신 발표용 헤드라인 성능 수치는 P4의 AgentDojo 네이티브
+채점(Track B)에 맡긴다. 아래는 참고용으로 남겨둔 기존 배경/설계 — 나중에 synthetic을
+평가(evaluation)에도 다시 쓰게 되면 참고.
 
 **배경**: `review-2026-07-29.md` 1절. `exec_target`이 30개 템플릿 전부 `"attacker"` 하나로
 고정돼 있고(`dataset.py:294`) 이 문자열이 **오직 `data_inj` 안에만** 존재한다. 게다가
@@ -240,33 +246,111 @@ InjecAgent-only/교집합 세 조건이 거의 동일한 성능(jaccard=0.36)을
 단순 문서 구조)를 상속할 수 있다는 신호. 그렇다면 AgentDojo를 단순 재현 대상으로만 쓰기보다
 **head 탐색 자체의 소스로 삼는 실험을 먼저 설계**하는 게 순서상 맞음.
 
-**할 일** (자세한 내용: `feedback-2026-07-29.md` 1절):
-1. `adapters/agentdojo.py` 작성 — InjecAgent 어댑터를 템플릿으로, AgentDojo에서 internal
-   (자유 텍스트로 새는 경로)에 대응하는 태스크가 있는지 확인 후 없으면 조작적 정의 설계.
-   ⚠️ **InjecAgent는 구조상 internal/external 구분이 없음**(전부 "Action: tool" 단일 포맷) —
-   P2-d의 "InjecAgent 자체 head 탐색"은 교집합이 아니라 단일 그룹 top-K였다는 점을 문서에
-   바로잡을 것.
-2. Head 탐색 소스 4조건 비교: synthetic-only / InjecAgent-only / AgentDojo-only / 교집합·합집합
-   — cross-domain transfer matrix(3x3)로 "어느 소스가 가장 일반적인 head를 주는가" 정량화.
-   (`build_injecagent_pairs`/`split_pairs` 패턴을 AgentDojo에도 이식)
-3. Top-K sweep(K=5/10/20/40) + `edge_ablation.py` random-head baseline + jaccard 유의성 검정 —
-   위 4조건 전부에 동일 적용.
-4. Utility 지표를 `read_token_prob` 단일 확률에서 AgentDojo 자체 채점 또는 greedy decoding
-   exact-match로 보강 (`run_pipeline.py --agentdojo` 옵션 추가).
-   ⚠️ **InjecAgent의 현재 utility 수치는 쓰면 안 된다** — `run_pipeline.py:255`가 exec/read
-   양쪽에 같은 예시를 넘기고 두 타깃이 같은 위치에서 경쟁하는 토큰이라
-   (`adapters/injecagent.py:136-137`), "utility 상승"은 ASR 감소의 산술적 뒷면일 뿐
-   독립 정보가 0이다. AgentDojo의 네이티브 utility checker가 이 문제를 근본적으로 해결해준다 —
-   P4를 P7/P8 뒤에 두는 이유이자, AgentDojo로 가야 하는 진짜 이유.
-5. 결과를 `methodology.md`/`run-guide.md`에 "Head Selection Methodology" 섹션으로 통합, P3(채널 분기
-   검증)도 AgentDojo에서 internal/external 재정의 후 같은 틀로 재실행.
+**설계 확정 (2026-07-31 논의)**:
 
-신규 어댑터 작성 + 다조건 비교 실험이 필요해 비중이 큰 작업 — 별도 세션에서 단계별 진행 권장
-(0. 어댑터 → 1. 소스 비교 → 2. K/baseline → 3. utility → 4. 문서화 순).
+1. **synthetic 데이터셋은 폐기하지 않고 head 탐색(discovery)에는 계속 쓴다.** P7에서 랜덤
+   기준선 대비 뚜렷한 차이가 확인됐으므로("head 찾을 때는 문제 없었다") discovery 자체는
+   유효하다고 보고 세 번째 탐색 소스로 유지. 다만 **P8(content-availability 교란 제거)은
+   진행하지 않음** — synthetic은 지금 상태 그대로 discovery 전용으로만 쓰고, 발표용
+   헤드라인 성능 수치는 AgentDojo 네이티브 채점(아래 Track B) 쪽에 둔다. `methodology.md`
+   등에 synthetic을 인용할 때는 "discovery 전용, P8 미적용 상태"라는 caveat을 달 것.
+2. **Track A(탐색) / Track B(평가) 하이브리드로 AgentDojo를 붙인다.**
+   - **Track A (head 탐색 전용)**: `adapters/injecagent.py` 패턴을 그대로 재사용 —
+     AgentDojo injection task 중 공격 문구가 삽입된 tool 응답 턴 하나만 잘라 단일
+     프롬프트로 만들고(`"Thought:...\nAction:"` 유도), `compute_head_relevance`로 head
+     탐색. 멀티턴/환경 실행이 필요 없어 기존 인프라(`head_ranking.py`, P7에서 만든
+     `random_heads`/`expected_jaccard_by_chance`/top-K sweep)를 그대로 재사용 가능.
+   - **Track B (평가 전용, 신규 구현 필요)**: knockout 효과의 최종 수치는 AgentDojo의
+     실제 멀티턴 agent loop + 네이티브 `utility_function`/`security_function`(모델 출력이
+     아니라 tool 실행 후 환경 상태를 검사하는 결정론적 함수)으로 채점한다. `edge_knockout()`을
+     롤아웃 전체에 걸친 여러 `generate()` 호출 동안 유지해야 하므로(위치 인덱스가 턴마다
+     늘어나는 input_ids 기준으로 안정적이어야 함) 신규 구현이 필요. 이게 review-2026-07-29.md
+     2절이 지적한 "InjecAgent utility 지표가 ASR의 산술적 뒷면이라 독립 정보 없음" 문제의
+     근본 해결책이자 AgentDojo로 가는 진짜 이유.
+3. **head 탐색 소스는 3개, 비교 후 합집합/교집합 결정.**
+   - synthetic으로 찾은 head (`control_heads_both`, 기존 결과 재사용)
+   - InjecAgent로 찾은 head (P2-d 패턴, `build_injecagent_pairs`/`split_pairs` 재사용)
+   - AgentDojo(Track A)로 찾은 head (신규)
+   - 세 집합의 jaccard 겹침을 비교하고, 각 집합(+ 합집합 + 교집합)의 knockout 성능을
+     Track B로 평가해 최종적으로 어떤 조합을 쓸지 결정한다.
+4. **internal/external 채널 축은 AgentDojo에 이식하지 않는다.** InjecAgent와 마찬가지로
+   AgentDojo도 tool-calling 단일 포맷이라 "자유 텍스트로 새는 경로"가 구조적으로 없음(P2-d에서
+   이미 확인된 사실과 동일). 채널(internal/external) 축 대신 **소스(synthetic/InjecAgent/
+   AgentDojo) 축**을 교집합·비교의 기본 틀로 삼는다 — "어느 소스로 찾은 head가 다른 소스에도
+   잘 전이되는가"가 새로운 핵심 질문.
 
-## P3. control head 내 internal-only vs external-only 채널 분기 검증 (P4에 통합)
+**agentdojo 패키지 코드 조사 결과 (2026-07-31, `pip install agentdojo==0.1.35`)**: 예상보다
+Track B 공수가 작다.
 
-P4의 1-5 단계에서 AgentDojo 기반 internal/external 재정의 후 함께 진행. 아래는 기존 배경 기록.
+- `BaseUserTask.utility()`/`BaseInjectionTask.security()`는 정확히 예상대로 "모델 출력 +
+  실행 전/후 환경 상태(pydantic 객체) 비교"로 판정하는 결정론적 함수 — 토큰 확률이 아님.
+- `AgentPipeline`은 `config.llm`에 문자열(OpenAI 등) 대신 **커스텀 `BasePipelineElement`
+  객체를 직접 꽂을 수 있게** 설계돼 있음. 기본 제공 `LocalLLM`은 OpenAI 호환 API 서버(vLLM,
+  포트 8000)를 호출하는 방식이라 우리 `edge_knockout` 몽키패치와 안 맞지만(별도 프로세스라
+  attention 함수를 바꿔치기할 수 없음), **vLLM 서버 없이 우리 LLM 요소로 통째로 교체**하면
+  됨 — `agentdojo/agent_pipeline/llms/local_llm.py`를 템플릿으로 HTTP 대신 `model.generate()`
+  직접 호출 + `edge_knockout` 적용.
+- 멀티턴 루프는 `ToolsExecutionLoop`가 이미 구현("tool_call 없을 때까지 LLM↔tool 반복") —
+  우리는 LLM 요소만 만들어 끼우면 나머지 턴 관리는 agentdojo가 대신 함.
+- tool 실행은 `FunctionsRuntime.run_function`이 순수 파이썬으로 pydantic `TaskEnvironment`
+  객체를 조작하는 방식 — 네트워크/외부 서비스 불필요, 로컬에서 완전히 재현 가능.
+- 주입 방식도 우리와 개념적으로 동일: `environment.yaml`에 이름 붙은 placeholder(예:
+  `{injection_incoming_transaction}`)가 있고 공격 문구가 문자열 치환됨 —
+  `PromptBuilder`/`adapters/injecagent.py`의 placeholder 방식 그대로 D_inj 토큰 위치 추적 가능.
+- task suite 4종 확인: banking(16)/slack(21)/travel(20)/workspace(40 user task).
+
+즉 직접 새로 짜야 하는 건 (a) 우리 모델을 감싸는 커스텀 LLM 파이프라인 요소, (b) 롤아웃
+동안 D_inj 위치를 추적하는 로직 정도 — 멀티턴 루프·tool 실행·utility/security 채점은
+agentdojo가 이미 제공.
+
+**`adapters/agentdojo.py` 작성 결과 (2026-07-31)**: `adapters/injecagent.py` 패턴대로
+`build_agentdojo_example`/`build_agentdojo_clean_example`/`build_agentdojo_pairs` 구현,
+`adapters/injecagent.py`의 `split_pairs()`를 그대로 import해 재사용(중복 구현 없음).
+4개 suite(banking/slack/travel/workspace) 전체 949개 (user_task, injection_task) 조합 중
+**220개**가 필터를 통과해 pair로 만들어짐 (banking 61 / slack 47 / travel 8 / workspace 104).
+
+구현 중 발견/수정한 것:
+- `GroundTruthPipeline`(LLM 없이 `task.ground_truth()`를 그대로 실행)으로 "완벽한 에이전트"의
+  메시지 시퀀스를 얻은 뒤, `[assistant(tool_call), tool(응답), assistant(다음 tool_call)]`
+  3-메시지 패턴만 다룸 — 멀티턴 prefix가 필요한 case는 건너뜀(Track A는 단일 턴만 다룬다는
+  설계 그대로).
+- ⚠️ **일부 case는 read_target == exec_target** — 예: banking user_task_0 + injection_task_0은
+  둘 다 다음 행동이 `send_money`이고 차이가 tool 이름이 아니라 인자(수신 IBAN)뿐인 "인자
+  오염형" 공격. `feedback-2026-07-29.md` 1-1절이 예상했던 문제가 실제로 존재함을 확인 —
+  지금은 이런 case를 건너뛰고 tool **이름**이 달라지는 "tool 선택형" case만 씀(인자 오염형은
+  향후 별도 분석 대상으로 남김).
+- ⚠️ **문자열 그대로 매칭이 안 됨**: `environment.yaml`이 Python `.format()` 삽입 후
+  `yaml.safe_load`를 거치면서 주입 문구의 연속 개행(`\n\n\n<INFORMATION>\n\n`)이
+  `\n\n\n<INFORMATION>\n`으로 정규화됨(YAML 개행 접기 규칙) — attack_text 리터럴로 `in`
+  검사하면 전부 실패. `<INFORMATION>`/`</INFORMATION>` 태그를 앵커로 찾는 방식으로 수정.
+- ⚠️ **tool 이름 문자열이 달라도 첫 토큰이 같을 수 있음**(예: `get_balance`/`get_iban`이
+  둘 다 공통 접두사 토큰 공유) — tool 이름 비교가 아니라 토큰화된 `exec_target`/`read_target`
+  id 비교로 다시 필터링(수정 전 256쌍 중 36쌍이 이 문제였음, 수정 후 220쌍 전부 확인됨).
+- `ImportantInstructionsAttack._JB_STRING`(agentdojo가 실제 벤치마크에서 쓰는 표준 jailbreak
+  템플릿)을 클래스 속성만 가져와 재사용 — `BaseAttack` 인스턴스화는 `target_pipeline.name`이
+  agentdojo가 아는 모델 이름이어야 해서 우리 커스텀 모델과 안 맞아 피함.
+
+**할 일** (구체 순서):
+1. ~~`pip install agentdojo` 설치 + API 코드 조사~~ — 완료 (위 참고).
+2. ~~`adapters/agentdojo.py` 작성 (Track A)~~ — 완료 (위 참고).
+3. synthetic / InjecAgent / AgentDojo(Track A) 세 소스 각각 head 탐색 실행, jaccard 비교표
+   작성 (P2-d/P7 코드 재사용) — **다음 단계**.
+4. Track B 평가 하네스 구현: 커스텀 `BasePipelineElement` LLM 요소(`edge_knockout` 적용)
+   + D_inj 위치 추적 로직 + `TaskSuite.run_task_with_pipeline`으로 네이티브 utility/security
+   채점 연동.
+5. 세 소스 단독 vs 합집합 vs 교집합을 Track B로 평가해 최종 head 집합 결정.
+6. Top-K sweep + random-head baseline(P7 인프라 재사용)을 세 소스 전부에 동일 적용.
+7. 결과를 `methodology.md`/`run-guide.md`에 "Head Selection Methodology" 섹션으로 통합.
+
+별도 세션에서 단계별 진행 권장 (1. Track A 어댑터 → 2. 소스 비교 → 3. Track B 하네스 →
+4. 최종 조합 결정 → 5. K/baseline → 6. 문서화 순).
+
+## P3. control head 내 internal-only vs external-only 채널 분기 검증 (보류)
+
+**2026-07-31 갱신**: P4에서 AgentDojo에 internal/external 채널 축을 이식하지 않기로
+결정(channel 축 → source 축 전환)했으므로, 이 항목은 더 이상 P4에 자동으로 흡수되지
+않는다. internal/external 구분이 남아있는 건 synthetic 데이터셋뿐이라, 진행한다면
+synthetic 한정 분석으로 남을 것 — 우선순위는 낮음(보류). 아래는 기존 배경 기록.
 
 **배경**: 현재 `head_ranking.py`의 `summarize_overlap`은 `internal_heads ∩ external_heads`
 (=`control_heads_both`, "명령을 명령으로 받아들여 실행하는" 공통 회로)만 계산한다.
