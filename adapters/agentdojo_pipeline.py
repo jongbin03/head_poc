@@ -83,7 +83,13 @@ def _parse_tool_calls(completion: str) -> ChatAssistantMessage:
     for raw in matches:
         try:
             parsed = json.loads(raw)
-            tool_calls.append(FunctionCall(function=parsed["name"], args=parsed.get("arguments") or {}))
+            args = parsed.get("arguments") or {}
+            if not isinstance(args, dict):
+                # 모델이 가끔 "arguments"를 dict가 아니라 리스트/문자열로 잘못 생성함
+                # (실측 확인: travel suite에서 리스트로 나온 사례) — FunctionCall이 dict를
+                # 요구하므로 이런 tool_call은 파싱 실패로 취급하고 건너뛴다.
+                continue
+            tool_calls.append(FunctionCall(function=parsed["name"], args=args))
         except (json.JSONDecodeError, KeyError):
             continue
     return ChatAssistantMessage(

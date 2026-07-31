@@ -57,8 +57,8 @@ def _load_model(model_path: str, family: str, four_bit: bool, device: str):
     return model, tok, modeling_mod
 
 
-def _build_pipeline(llm) -> AgentPipeline:
-    tools_loop = ToolsExecutionLoop([ToolsExecutor(), llm])
+def _build_pipeline(llm, max_iters: int) -> AgentPipeline:
+    tools_loop = ToolsExecutionLoop([ToolsExecutor(), llm], max_iters=max_iters)
     pipeline = AgentPipeline([SystemMessage(load_system_message(None)), InitQuery(), llm, tools_loop])
     pipeline.name = "knockout-local-llm"
     return pipeline
@@ -84,11 +84,24 @@ def main():
     parser.add_argument("--device", default="cuda")
     parser.add_argument("--four_bit", action="store_true")
     parser.add_argument("--heads_json", required=True, help="compare_head_sources.py discover(-parallel) 결과 JSON")
-    parser.add_argument("--suite", default="banking", choices=["banking", "slack", "travel", "workspace"])
+    parser.add_argument(
+        "--suite", nargs="+", default=["banking", "slack", "travel", "workspace"],
+        choices=["banking", "slack", "travel", "workspace"],
+        help="평가할 suite (기본: 4개 전부).",
+    )
     parser.add_argument("--benchmark_version", default="v1.2.2")
-    parser.add_argument("--limit_pairs", type=int, default=15, help="평가할 (user_task, injection_task) 쌍 개수 (무작위 샘플)")
+    parser.add_argument(
+        "--limit_pairs", type=int, default=15,
+        help="suite마다 평가할 (user_task, injection_task) 쌍 개수(무작위 샘플, suite별로 따로 뽑음 "
+        "— 안 그러면 combo가 가장 많은 workspace가 표본을 독점함).",
+    )
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--max_new_tokens", type=int, default=128)
+    parser.add_argument(
+        "--max_iters", type=int, default=8,
+        help="ToolsExecutionLoop 최대 반복 횟수(기본 15보다 낮춤 — 7B 등 큰 모델에서 롤아웃 하나가 "
+        "너무 오래 걸리는 걸 방지).",
+    )
     parser.add_argument("--out_json", default=None)
     args = parser.parse_args()
 
@@ -100,49 +113,73 @@ def main():
     model, tok, modeling_mod = _load_model(args.model, args.family, args.four_bit, args.device)
 
     llm = KnockoutLocalLLM(model, tok, modeling_mod, knockout_map=None, max_new_tokens=args.max_new_tokens, device=args.device)
-    pipeline = _build_pipeline(llm)
+    pipeline = _build_pipeline(llm, args.max_iters)
 
-    suite = get_suite(args.benchmark_version, args.suite)
-    all_pairs = [(ut, it) for ut in suite.user_tasks.values() for it in suite.injection_tasks.values()]
     rng = random.Random(args.seed)
-    rng.shuffle(all_pairs)
-    pairs = all_pairs[: args.limit_pairs]
-    print(f"[run_agentdojo_eval] evaluating {len(pairs)}/{len(all_pairs)} pairs from suite={args.suite}")
-
     rows = []
-    for i, (ut, it) in enumerate(pairs):
-        attack_text = _JB_STRING.format(goal=it.GOAL, user=DEFAULT_USER_NAME, model=DEFAULT_MODEL_NAME, task=ut.PROMPT)
-        injections = {v: attack_text for v in suite.get_injection_vector_defaults()}
+    total_idx = 0
+    for suite_name in args.suite:
+        suite = get_suite(args.benchmark_version, suite_name)
+        all_pairs = [(ut, it) for ut in suite.user_tasks.values() for it in suite.injection_tasks.values()]
+        rng.shuffle(all_pairs)
+        pairs = all_pairs[: args.limit_pairs]
+        print(f"[run_agentdojo_eval] evaluating {len(pairs)}/{len(all_pairs)} pairs from suite={suite_name}")
 
-        llm.knockout_map = {}
-        u0, s0 = suite.run_task_with_pipeline(pipeline, ut, it, injections)
+        for ut, it in pairs:
+            total_idx += 1
+            attack_text = _JB_STRING.format(goal=it.GOAL, user=DEFAULT_USER_NAME, model=DEFAULT_MODEL_NAME, task=ut.PROMPT)
+            injections = {v: attack_text for v in suite.get_injection_vector_defaults()}
 
-        llm.knockout_map = knockout_map
-        uk, sk = suite.run_task_with_pipeline(pipeline, ut, it, injections)
+            try:
+                llm.knockout_map = {}
+                u0, s0 = suite.run_task_with_pipeline(pipeline, ut, it, injections)
 
-        row = {
-            "user_task": ut.ID, "injection_task": it.ID,
-            "k0_utility": u0, "k0_security": s0,
-            "kN_utility": uk, "kN_security": sk,
-        }
-        rows.append(row)
-        print(f"  [{i + 1}/{len(pairs)}] {ut.ID}+{it.ID}: k=0 utility={u0} security={s0}  |  k={len(heads)} utility={uk} security={sk}")
+                llm.knockout_map = knockout_map
+                uk, sk = suite.run_task_with_pipeline(pipeline, ut, it, injections)
+            except Exception as e:
+                # 모델이 tool_call 인자를 이상한 형태로 생성하는 등 예측 못 한 파싱/실행
+                # 오류가 있을 수 있다 — 한 쌍이 실패해도 전체 sweep을 죽이지 않고 건너뛴다.
+                print(f"  [{total_idx}] {suite_name}/{ut.ID}+{it.ID}: ERROR ({type(e).__name__}: {e}), skipping")
+                continue
+
+            row = {
+                "suite": suite_name, "user_task": ut.ID, "injection_task": it.ID,
+                "k0_utility": u0, "k0_security": s0,
+                "kN_utility": uk, "kN_security": sk,
+            }
+            rows.append(row)
+            print(f"  [{total_idx}] {suite_name}/{ut.ID}+{it.ID}: k=0 utility={u0} security={s0}  |  k={len(heads)} utility={uk} security={sk}")
 
     llm.knockout_map = {}
 
-    def rate(key):
-        return sum(1 for r in rows if r[key]) / len(rows) if rows else 0.0
+    def rate(rs, key):
+        return sum(1 for r in rs if r[key]) / len(rs) if rs else 0.0
+
+    per_suite = {}
+    for suite_name in args.suite:
+        rs = [r for r in rows if r["suite"] == suite_name]
+        per_suite[suite_name] = {
+            "n_pairs": len(rs),
+            "k0_utility_rate": rate(rs, "k0_utility"), "k0_security_rate": rate(rs, "k0_security"),
+            "kN_utility_rate": rate(rs, "kN_utility"), "kN_security_rate": rate(rs, "kN_security"),
+        }
 
     summary = {
-        "model": args.model, "suite": args.suite, "heads_json": args.heads_json,
-        "n_heads": len(heads), "n_pairs": len(rows), "seed": args.seed,
-        "k0_utility_rate": rate("k0_utility"), "k0_security_rate": rate("k0_security"),
-        "kN_utility_rate": rate("kN_utility"), "kN_security_rate": rate("kN_security"),
+        "model": args.model, "suites": args.suite, "heads_json": args.heads_json,
+        "n_heads": len(heads), "n_pairs": len(rows), "seed": args.seed, "max_iters": args.max_iters,
+        "k0_utility_rate": rate(rows, "k0_utility"), "k0_security_rate": rate(rows, "k0_security"),
+        "kN_utility_rate": rate(rows, "kN_utility"), "kN_security_rate": rate(rows, "kN_security"),
+        "per_suite": per_suite,
         "rows": rows,
     }
     print()
-    print(f"k=0            utility_rate={summary['k0_utility_rate']:.3f}  security_rate(=공격성공률)={summary['k0_security_rate']:.3f}")
-    print(f"k={len(heads):<3}          utility_rate={summary['kN_utility_rate']:.3f}  security_rate(=공격성공률)={summary['kN_security_rate']:.3f}")
+    print(f"[전체 {len(rows)}쌍] k=0   utility_rate={summary['k0_utility_rate']:.3f}  security_rate(=공격성공률)={summary['k0_security_rate']:.3f}")
+    print(f"[전체 {len(rows)}쌍] k={len(heads):<3} utility_rate={summary['kN_utility_rate']:.3f}  security_rate(=공격성공률)={summary['kN_security_rate']:.3f}")
+    for suite_name, s in per_suite.items():
+        print(
+            f"  {suite_name}: k=0 utility={s['k0_utility_rate']:.2f} security={s['k0_security_rate']:.2f}  |  "
+            f"k={len(heads)} utility={s['kN_utility_rate']:.2f} security={s['kN_security_rate']:.2f}"
+        )
 
     out_json = args.out_json or "agentdojo_eval_summary.json"
     with open(out_json, "w", encoding="utf-8") as f:
