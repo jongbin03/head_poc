@@ -220,6 +220,9 @@ __marimo__/
 # bkit
 .bkit/
 
+# MS Office 임시/잠금 파일 (문서를 열어둔 동안 생김)
+~$*
+
 # P2-c: InjecAgent 외부 벤치마크는 third-party clone이라 커밋하지 않음.
 # `git clone https://github.com/uiuc-kang-lab/InjecAgent.git external_injecagent`로 로컬 재생성.
 external_injecagent/
