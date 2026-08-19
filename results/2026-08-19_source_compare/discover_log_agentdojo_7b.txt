@@ -1,0 +1,259 @@
+  [agentdojo] 220 total pairs -> 150 used for head discovery (seed=42)
+[discover-parallel:agentdojo] 150 head_pairs total, batch_size=5
+[discover-parallel:agentdojo] batch [0:5]/150 -> new subprocess ...
+  [agentdojo] 220 total pairs -> 150 used for head discovery (seed=42)
+[discover-batch:agentdojo] loading Qwen/Qwen2.5-7B-Instruct for batch [0:5] ...
+W0819 12:05:34.630000 8720 .venv\Lib\site-packages\torch\utils\flop_counter.py:29] triton not found; flop counting will not work for triton kernels
+Sliding Window Attention is enabled but not implemented for `eager`; unexpected results may be encountered.
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:05<00:15,  5.08s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:09<00:09,  4.69s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:14<00:04,  4.73s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:18<00:00,  4.59s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:18<00:00,  4.66s/it]
+  [discover-batch:agentdojo] OOM at local idx 2 (global 2), skipping
+[discover-batch:agentdojo] batch [0:5] done: 4 ok, 1 oom -> C:\Users\jongb\AppData\Local\Temp\compare_head_sources_0us4xmvo\batch_0_5.pt
+[discover-parallel:agentdojo] batch [5:10]/150 -> new subprocess ...
+  [agentdojo] 220 total pairs -> 150 used for head discovery (seed=42)
+[discover-batch:agentdojo] loading Qwen/Qwen2.5-7B-Instruct for batch [5:10] ...
+W0819 12:07:08.824000 10092 .venv\Lib\site-packages\torch\utils\flop_counter.py:29] triton not found; flop counting will not work for triton kernels
+Sliding Window Attention is enabled but not implemented for `eager`; unexpected results may be encountered.
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:05<00:15,  5.07s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:09<00:09,  4.71s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:14<00:04,  4.74s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:16<00:00,  3.92s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:16<00:00,  4.24s/it]
+  [discover-batch:agentdojo] OOM at local idx 4 (global 9), skipping
+[discover-batch:agentdojo] batch [5:10] done: 4 ok, 1 oom -> C:\Users\jongb\AppData\Local\Temp\compare_head_sources_0us4xmvo\batch_5_10.pt
+[discover-parallel:agentdojo] batch [10:15]/150 -> new subprocess ...
+  [agentdojo] 220 total pairs -> 150 used for head discovery (seed=42)
+[discover-batch:agentdojo] loading Qwen/Qwen2.5-7B-Instruct for batch [10:15] ...
+W0819 12:08:40.054000 12076 .venv\Lib\site-packages\torch\utils\flop_counter.py:29] triton not found; flop counting will not work for triton kernels
+Sliding Window Attention is enabled but not implemented for `eager`; unexpected results may be encountered.
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:05<00:15,  5.10s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:09<00:09,  4.64s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:14<00:04,  4.70s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:17<00:00,  4.09s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:17<00:00,  4.33s/it]
+  [discover-batch:agentdojo] OOM at local idx 1 (global 11), skipping
+[discover-batch:agentdojo] batch [10:15] done: 4 ok, 1 oom -> C:\Users\jongb\AppData\Local\Temp\compare_head_sources_0us4xmvo\batch_10_15.pt
+[discover-parallel:agentdojo] batch [15:20]/150 -> new subprocess ...
+  [agentdojo] 220 total pairs -> 150 used for head discovery (seed=42)
+[discover-batch:agentdojo] loading Qwen/Qwen2.5-7B-Instruct for batch [15:20] ...
+W0819 12:10:27.821000 6712 .venv\Lib\site-packages\torch\utils\flop_counter.py:29] triton not found; flop counting will not work for triton kernels
+Sliding Window Attention is enabled but not implemented for `eager`; unexpected results may be encountered.
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:05<00:15,  5.13s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:09<00:09,  4.78s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:14<00:04,  4.77s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:17<00:00,  3.93s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:17<00:00,  4.27s/it]
+  [discover-batch:agentdojo] OOM at local idx 3 (global 18), skipping
+[discover-batch:agentdojo] batch [15:20] done: 4 ok, 1 oom -> C:\Users\jongb\AppData\Local\Temp\compare_head_sources_0us4xmvo\batch_15_20.pt
+[discover-parallel:agentdojo] batch [20:25]/150 -> new subprocess ...
+  [agentdojo] 220 total pairs -> 150 used for head discovery (seed=42)
+[discover-batch:agentdojo] loading Qwen/Qwen2.5-7B-Instruct for batch [20:25] ...
+W0819 12:12:16.931000 28160 .venv\Lib\site-packages\torch\utils\flop_counter.py:29] triton not found; flop counting will not work for triton kernels
+Sliding Window Attention is enabled but not implemented for `eager`; unexpected results may be encountered.
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:05<00:15,  5.17s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:09<00:09,  4.79s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:14<00:04,  4.83s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:17<00:00,  4.05s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:17<00:00,  4.36s/it]
+  [discover-batch:agentdojo] OOM at local idx 2 (global 22), skipping
+  [discover-batch:agentdojo] OOM at local idx 4 (global 24), skipping
+[discover-batch:agentdojo] batch [20:25] done: 3 ok, 2 oom -> C:\Users\jongb\AppData\Local\Temp\compare_head_sources_0us4xmvo\batch_20_25.pt
+[discover-parallel:agentdojo] batch [25:30]/150 -> new subprocess ...
+  [agentdojo] 220 total pairs -> 150 used for head discovery (seed=42)
+[discover-batch:agentdojo] loading Qwen/Qwen2.5-7B-Instruct for batch [25:30] ...
+W0819 12:13:59.510000 6124 .venv\Lib\site-packages\torch\utils\flop_counter.py:29] triton not found; flop counting will not work for triton kernels
+Sliding Window Attention is enabled but not implemented for `eager`; unexpected results may be encountered.
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:05<00:15,  5.02s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:09<00:09,  4.69s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:14<00:04,  4.76s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:17<00:00,  4.09s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:17<00:00,  4.35s/it]
+  [discover-batch:agentdojo] OOM at local idx 4 (global 29), skipping
+[discover-batch:agentdojo] batch [25:30] done: 4 ok, 1 oom -> C:\Users\jongb\AppData\Local\Temp\compare_head_sources_0us4xmvo\batch_25_30.pt
+[discover-parallel:agentdojo] batch [30:35]/150 -> new subprocess ...
+  [agentdojo] 220 total pairs -> 150 used for head discovery (seed=42)
+[discover-batch:agentdojo] loading Qwen/Qwen2.5-7B-Instruct for batch [30:35] ...
+W0819 12:15:34.579000 20788 .venv\Lib\site-packages\torch\utils\flop_counter.py:29] triton not found; flop counting will not work for triton kernels
+Sliding Window Attention is enabled but not implemented for `eager`; unexpected results may be encountered.
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:04<00:14,  4.95s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:09<00:09,  4.72s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:14<00:04,  4.73s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:17<00:00,  4.05s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:17<00:00,  4.32s/it]
+[discover-batch:agentdojo] batch [30:35] done: 5 ok, 0 oom -> C:\Users\jongb\AppData\Local\Temp\compare_head_sources_0us4xmvo\batch_30_35.pt
+[discover-parallel:agentdojo] batch [35:40]/150 -> new subprocess ...
+  [agentdojo] 220 total pairs -> 150 used for head discovery (seed=42)
+[discover-batch:agentdojo] loading Qwen/Qwen2.5-7B-Instruct for batch [35:40] ...
+W0819 12:17:00.212000 8184 .venv\Lib\site-packages\torch\utils\flop_counter.py:29] triton not found; flop counting will not work for triton kernels
+Sliding Window Attention is enabled but not implemented for `eager`; unexpected results may be encountered.
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:05<00:15,  5.21s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:09<00:09,  4.86s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:12<00:03,  3.92s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:14<00:00,  3.05s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:14<00:00,  3.58s/it]
+  [discover-batch:agentdojo] OOM at local idx 3 (global 38), skipping
+[discover-batch:agentdojo] batch [35:40] done: 4 ok, 1 oom -> C:\Users\jongb\AppData\Local\Temp\compare_head_sources_0us4xmvo\batch_35_40.pt
+[discover-parallel:agentdojo] batch [40:45]/150 -> new subprocess ...
+  [agentdojo] 220 total pairs -> 150 used for head discovery (seed=42)
+[discover-batch:agentdojo] loading Qwen/Qwen2.5-7B-Instruct for batch [40:45] ...
+W0819 12:18:35.077000 9248 .venv\Lib\site-packages\torch\utils\flop_counter.py:29] triton not found; flop counting will not work for triton kernels
+Sliding Window Attention is enabled but not implemented for `eager`; unexpected results may be encountered.
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:05<00:15,  5.08s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:09<00:09,  4.76s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:14<00:04,  4.73s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:16<00:00,  3.84s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:16<00:00,  4.20s/it]
+  [discover-batch:agentdojo] OOM at local idx 1 (global 41), skipping
+  [discover-batch:agentdojo] OOM at local idx 4 (global 44), skipping
+[discover-batch:agentdojo] batch [40:45] done: 3 ok, 2 oom -> C:\Users\jongb\AppData\Local\Temp\compare_head_sources_0us4xmvo\batch_40_45.pt
+[discover-parallel:agentdojo] batch [45:50]/150 -> new subprocess ...
+  [agentdojo] 220 total pairs -> 150 used for head discovery (seed=42)
+[discover-batch:agentdojo] loading Qwen/Qwen2.5-7B-Instruct for batch [45:50] ...
+W0819 12:20:13.983000 21936 .venv\Lib\site-packages\torch\utils\flop_counter.py:29] triton not found; flop counting will not work for triton kernels
+Sliding Window Attention is enabled but not implemented for `eager`; unexpected results may be encountered.
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:04<00:14,  4.97s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:09<00:09,  4.61s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:13<00:04,  4.63s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:17<00:00,  4.05s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:17<00:00,  4.29s/it]
+  [discover-batch:agentdojo] OOM at local idx 2 (global 47), skipping
+[discover-batch:agentdojo] batch [45:50] done: 4 ok, 1 oom -> C:\Users\jongb\AppData\Local\Temp\compare_head_sources_0us4xmvo\batch_45_50.pt
+[discover-parallel:agentdojo] batch [50:55]/150 -> new subprocess ...
+  [agentdojo] 220 total pairs -> 150 used for head discovery (seed=42)
+[discover-batch:agentdojo] loading Qwen/Qwen2.5-7B-Instruct for batch [50:55] ...
+W0819 12:21:33.001000 2540 .venv\Lib\site-packages\torch\utils\flop_counter.py:29] triton not found; flop counting will not work for triton kernels
+Sliding Window Attention is enabled but not implemented for `eager`; unexpected results may be encountered.
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:04<00:14,  4.93s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:09<00:09,  4.61s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:14<00:04,  4.69s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:17<00:00,  4.02s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:17<00:00,  4.28s/it]
+  [discover-batch:agentdojo] OOM at local idx 4 (global 54), skipping
+[discover-batch:agentdojo] batch [50:55] done: 4 ok, 1 oom -> C:\Users\jongb\AppData\Local\Temp\compare_head_sources_0us4xmvo\batch_50_55.pt
+[discover-parallel:agentdojo] batch [55:60]/150 -> new subprocess ...
+  [agentdojo] 220 total pairs -> 150 used for head discovery (seed=42)
+[discover-batch:agentdojo] loading Qwen/Qwen2.5-7B-Instruct for batch [55:60] ...
+W0819 12:23:15.368000 4008 .venv\Lib\site-packages\torch\utils\flop_counter.py:29] triton not found; flop counting will not work for triton kernels
+Sliding Window Attention is enabled but not implemented for `eager`; unexpected results may be encountered.
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:04<00:14,  4.99s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:09<00:09,  4.70s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:14<00:04,  4.68s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:17<00:00,  4.07s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:17<00:00,  4.32s/it]
+  [discover-batch:agentdojo] OOM at local idx 1 (global 56), skipping
+  [discover-batch:agentdojo] OOM at local idx 2 (global 57), skipping
+[discover-batch:agentdojo] batch [55:60] done: 3 ok, 2 oom -> C:\Users\jongb\AppData\Local\Temp\compare_head_sources_0us4xmvo\batch_55_60.pt
+[discover-parallel:agentdojo] batch [60:65]/150 -> new subprocess ...
+  [agentdojo] 220 total pairs -> 150 used for head discovery (seed=42)
+[discover-batch:agentdojo] loading Qwen/Qwen2.5-7B-Instruct for batch [60:65] ...
+W0819 12:25:22.818000 2568 .venv\Lib\site-packages\torch\utils\flop_counter.py:29] triton not found; flop counting will not work for triton kernels
+Sliding Window Attention is enabled but not implemented for `eager`; unexpected results may be encountered.
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:04<00:14,  4.97s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:09<00:09,  4.63s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:14<00:04,  4.68s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:17<00:00,  4.06s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:17<00:00,  4.30s/it]
+  [discover-batch:agentdojo] OOM at local idx 3 (global 63), skipping
+[discover-batch:agentdojo] batch [60:65] done: 4 ok, 1 oom -> C:\Users\jongb\AppData\Local\Temp\compare_head_sources_0us4xmvo\batch_60_65.pt
+[discover-parallel:agentdojo] batch [65:70]/150 -> new subprocess ...
+  [agentdojo] 220 total pairs -> 150 used for head discovery (seed=42)
+[discover-batch:agentdojo] loading Qwen/Qwen2.5-7B-Instruct for batch [65:70] ...
+W0819 12:26:44.721000 32672 .venv\Lib\site-packages\torch\utils\flop_counter.py:29] triton not found; flop counting will not work for triton kernels
+Sliding Window Attention is enabled but not implemented for `eager`; unexpected results may be encountered.
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:05<00:15,  5.04s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:09<00:09,  4.71s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:14<00:04,  4.77s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:16<00:00,  3.88s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:16<00:00,  4.22s/it]
+  [discover-batch:agentdojo] OOM at local idx 2 (global 67), skipping
+  [discover-batch:agentdojo] OOM at local idx 3 (global 68), skipping
+[discover-batch:agentdojo] batch [65:70] done: 3 ok, 2 oom -> C:\Users\jongb\AppData\Local\Temp\compare_head_sources_0us4xmvo\batch_65_70.pt
+[discover-parallel:agentdojo] batch [70:75]/150 -> new subprocess ...
+  [agentdojo] 220 total pairs -> 150 used for head discovery (seed=42)
+[discover-batch:agentdojo] loading Qwen/Qwen2.5-7B-Instruct for batch [70:75] ...
+W0819 12:28:35.622000 30500 .venv\Lib\site-packages\torch\utils\flop_counter.py:29] triton not found; flop counting will not work for triton kernels
+Sliding Window Attention is enabled but not implemented for `eager`; unexpected results may be encountered.
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:04<00:14,  4.98s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:09<00:09,  4.68s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:14<00:04,  4.76s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:17<00:00,  4.15s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:17<00:00,  4.38s/it]
+  [discover-batch:agentdojo] OOM at local idx 2 (global 72), skipping
+  [discover-batch:agentdojo] OOM at local idx 3 (global 73), skipping
+[discover-batch:agentdojo] batch [70:75] done: 3 ok, 2 oom -> C:\Users\jongb\AppData\Local\Temp\compare_head_sources_0us4xmvo\batch_70_75.pt
+[discover-parallel:agentdojo] batch [75:80]/150 -> new subprocess ...
+  [agentdojo] 220 total pairs -> 150 used for head discovery (seed=42)
+[discover-batch:agentdojo] loading Qwen/Qwen2.5-7B-Instruct for batch [75:80] ...
+W0819 12:30:22.813000 11932 .venv\Lib\site-packages\torch\utils\flop_counter.py:29] triton not found; flop counting will not work for triton kernels
+Sliding Window Attention is enabled but not implemented for `eager`; unexpected results may be encountered.
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:04<00:14,  4.96s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:09<00:09,  4.63s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:14<00:04,  4.69s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:17<00:00,  4.07s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:17<00:00,  4.31s/it]
+  [discover-batch:agentdojo] OOM at local idx 1 (global 76), skipping
+  [discover-batch:agentdojo] OOM at local idx 3 (global 78), skipping
+  [discover-batch:agentdojo] OOM at local idx 4 (global 79), skipping
+[discover-batch:agentdojo] batch [75:80] done: 2 ok, 3 oom -> C:\Users\jongb\AppData\Local\Temp\compare_head_sources_0us4xmvo\batch_75_80.pt
+[discover-parallel:agentdojo] batch [80:85]/150 -> new subprocess ...
+  [agentdojo] 220 total pairs -> 150 used for head discovery (seed=42)
+[discover-batch:agentdojo] loading Qwen/Qwen2.5-7B-Instruct for batch [80:85] ...
+W0819 12:31:59.619000 25016 .venv\Lib\site-packages\torch\utils\flop_counter.py:29] triton not found; flop counting will not work for triton kernels
+Sliding Window Attention is enabled but not implemented for `eager`; unexpected results may be encountered.
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:04<00:14,  4.91s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:09<00:09,  4.71s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:14<00:04,  4.70s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:17<00:00,  4.12s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:17<00:00,  4.35s/it]
+  [discover-batch:agentdojo] OOM at local idx 2 (global 82), skipping
+[discover-batch:agentdojo] batch [80:85] done: 4 ok, 1 oom -> C:\Users\jongb\AppData\Local\Temp\compare_head_sources_0us4xmvo\batch_80_85.pt
+[discover-parallel:agentdojo] batch [85:90]/150 -> new subprocess ...
+  [agentdojo] 220 total pairs -> 150 used for head discovery (seed=42)
+[discover-batch:agentdojo] loading Qwen/Qwen2.5-7B-Instruct for batch [85:90] ...
+W0819 12:33:40.027000 13472 .venv\Lib\site-packages\torch\utils\flop_counter.py:29] triton not found; flop counting will not work for triton kernels
+Sliding Window Attention is enabled but not implemented for `eager`; unexpected results may be encountered.
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:04<00:14,  4.87s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:09<00:09,  4.69s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:14<00:04,  4.71s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:16<00:00,  3.78s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:16<00:00,  4.13s/it]
+  [discover-batch:agentdojo] OOM at local idx 1 (global 86), skipping
+  [discover-batch:agentdojo] OOM at local idx 4 (global 89), skipping
+[discover-batch:agentdojo] batch [85:90] done: 3 ok, 2 oom -> C:\Users\jongb\AppData\Local\Temp\compare_head_sources_0us4xmvo\batch_85_90.pt
+[discover-parallel:agentdojo] batch [90:95]/150 -> new subprocess ...
+  [agentdojo] 220 total pairs -> 150 used for head discovery (seed=42)
+[discover-batch:agentdojo] loading Qwen/Qwen2.5-7B-Instruct for batch [90:95] ...
+W0819 12:35:32.279000 19324 .venv\Lib\site-packages\torch\utils\flop_counter.py:29] triton not found; flop counting will not work for triton kernels
+Sliding Window Attention is enabled but not implemented for `eager`; unexpected results may be encountered.
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:05<00:15,  5.23s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:09<00:09,  4.75s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:14<00:04,  4.70s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:16<00:00,  3.78s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:16<00:00,  4.16s/it]
+  [discover-batch:agentdojo] OOM at local idx 1 (global 91), skipping
+  [discover-batch:agentdojo] OOM at local idx 4 (global 94), skipping
+[discover-batch:agentdojo] batch [90:95] done: 3 ok, 2 oom -> C:\Users\jongb\AppData\Local\Temp\compare_head_sources_0us4xmvo\batch_90_95.pt
+[discover-parallel:agentdojo] batch [95:100]/150 -> new subprocess ...
+  [agentdojo] 220 total pairs -> 150 used for head discovery (seed=42)
+[discover-batch:agentdojo] loading Qwen/Qwen2.5-7B-Instruct for batch [95:100] ...
+W0819 12:37:10.438000 9460 .venv\Lib\site-packages\torch\utils\flop_counter.py:29] triton not found; flop counting will not work for triton kernels
+Sliding Window Attention is enabled but not implemented for `eager`; unexpected results may be encountered.
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:05<00:15,  5.07s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:09<00:09,  4.74s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:14<00:04,  4.69s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:16<00:00,  3.94s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:16<00:00,  4.25s/it]
+  [discover-batch:agentdojo] OOM at local idx 4 (global 99), skipping
+[discover-batch:agentdojo] batch [95:100] done: 4 ok, 1 oom -> C:\Users\jongb\AppData\Local\Temp\compare_head_sources_0us4xmvo\batch_95_100.pt
+[discover-parallel:agentdojo] batch [100:105]/150 -> new subprocess ...
+  [agentdojo] 220 total pairs -> 150 used for head discovery (seed=42)
+[discover-batch:agentdojo] loading Qwen/Qwen2.5-7B-Instruct for batch [100:105] ...
+W0819 12:38:45.567000 6684 .venv\Lib\site-packages\torch\utils\flop_counter.py:29] triton not found; flop counting will not work for triton kernels
+Sliding Window Attention is enabled but not implemented for `eager`; unexpected results may be encountered.
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:05<00:15,  5.09s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:09<00:09,  4.72s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:14<00:04,  4.78s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:16<00:00,  3.83s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:16<00:00,  4.19s/it]
+  [discover-batch:agentdojo] OOM at local idx 0 (global 100), skipping
+  [discover-batch:agentdojo] OOM at local idx 3 (global 103), skipping
+  [discover-batch:agentdojo] OOM at local idx 4 (global 104), skipping
+[discover-batch:agentdojo] batch [100:105] done: 2 ok, 3 oom -> C:\Users\jongb\AppData\Local\Temp\compare_head_sources_0us4xmvo\batch_100_105.pt
+[discover-parallel:agentdojo] batch [105:110]/150 -> new subprocess ...
+  [agentdojo] 220 total pairs -> 150 used for head discovery (seed=42)
+[discover-batch:agentdojo] loading Qwen/Qwen2.5-7B-Instruct for batch [105:110] ...
+W0819 12:40:44.708000 30784 .venv\Lib\site-packages\torch\utils\flop_counter.py:29] triton not found; flop counting will not work for triton kernels
+Sliding Window Attention is enabled but not implemented for `eager`; unexpected results may be encountered.
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:05<00:15,  5.13s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:09<00:09,  4.77s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:14<00:04,  4.76s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:17<00:00,  3.92s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:17<00:00,  4.26s/it]
+  [discover-batch:agentdojo] OOM at local idx 1 (global 106), skipping
+  [discover-batch:agentdojo] OOM at local idx 2 (global 107), skipping
+  [discover-batch:agentdojo] OOM at local idx 4 (global 109), skipping
+[discover-batch:agentdojo] batch [105:110] done: 2 ok, 3 oom -> C:\Users\jongb\AppData\Local\Temp\compare_head_sources_0us4xmvo\batch_105_110.pt
+[discover-parallel:agentdojo] batch [110:115]/150 -> new subprocess ...
+  [agentdojo] 220 total pairs -> 150 used for head discovery (seed=42)
+[discover-batch:agentdojo] loading Qwen/Qwen2.5-7B-Instruct for batch [110:115] ...
+W0819 12:42:58.134000 9460 .venv\Lib\site-packages\torch\utils\flop_counter.py:29] triton not found; flop counting will not work for triton kernels
+Sliding Window Attention is enabled but not implemented for `eager`; unexpected results may be encountered.
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:05<00:15,  5.04s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:09<00:09,  4.69s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:14<00:04,  4.69s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:16<00:00,  3.83s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:16<00:00,  4.17s/it]
+  [discover-batch:agentdojo] OOM at local idx 2 (global 112), skipping
+[discover-batch:agentdojo] batch [110:115] done: 4 ok, 1 oom -> C:\Users\jongb\AppData\Local\Temp\compare_head_sources_0us4xmvo\batch_110_115.pt
+[discover-parallel:agentdojo] batch [115:120]/150 -> new subprocess ...
+  [agentdojo] 220 total pairs -> 150 used for head discovery (seed=42)
+[discover-batch:agentdojo] loading Qwen/Qwen2.5-7B-Instruct for batch [115:120] ...
+W0819 12:44:42.178000 32044 .venv\Lib\site-packages\torch\utils\flop_counter.py:29] triton not found; flop counting will not work for triton kernels
+Sliding Window Attention is enabled but not implemented for `eager`; unexpected results may be encountered.
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:05<00:15,  5.06s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:09<00:09,  4.74s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:14<00:04,  4.72s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:16<00:00,  3.90s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:16<00:00,  4.23s/it]
+  [discover-batch:agentdojo] OOM at local idx 2 (global 117), skipping
+  [discover-batch:agentdojo] OOM at local idx 3 (global 118), skipping
+[discover-batch:agentdojo] batch [115:120] done: 3 ok, 2 oom -> C:\Users\jongb\AppData\Local\Temp\compare_head_sources_0us4xmvo\batch_115_120.pt
+[discover-parallel:agentdojo] batch [120:125]/150 -> new subprocess ...
+  [agentdojo] 220 total pairs -> 150 used for head discovery (seed=42)
+[discover-batch:agentdojo] loading Qwen/Qwen2.5-7B-Instruct for batch [120:125] ...
+W0819 12:46:19.814000 24824 .venv\Lib\site-packages\torch\utils\flop_counter.py:29] triton not found; flop counting will not work for triton kernels
+Sliding Window Attention is enabled but not implemented for `eager`; unexpected results may be encountered.
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:05<00:15,  5.07s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:09<00:09,  4.71s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:14<00:04,  4.75s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:17<00:00,  4.10s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:17<00:00,  4.35s/it]
+  [discover-batch:agentdojo] OOM at local idx 0 (global 120), skipping
+[discover-batch:agentdojo] batch [120:125] done: 4 ok, 1 oom -> C:\Users\jongb\AppData\Local\Temp\compare_head_sources_0us4xmvo\batch_120_125.pt
+[discover-parallel:agentdojo] batch [125:130]/150 -> new subprocess ...
+  [agentdojo] 220 total pairs -> 150 used for head discovery (seed=42)
+[discover-batch:agentdojo] loading Qwen/Qwen2.5-7B-Instruct for batch [125:130] ...
+W0819 12:47:59.506000 3936 .venv\Lib\site-packages\torch\utils\flop_counter.py:29] triton not found; flop counting will not work for triton kernels
+Sliding Window Attention is enabled but not implemented for `eager`; unexpected results may be encountered.
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:05<00:15,  5.06s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:09<00:09,  4.65s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:14<00:04,  4.63s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:16<00:00,  3.64s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:16<00:00,  4.04s/it]
+  [discover-batch:agentdojo] OOM at local idx 2 (global 127), skipping
+  [discover-batch:agentdojo] OOM at local idx 3 (global 128), skipping
+[discover-batch:agentdojo] batch [125:130] done: 3 ok, 2 oom -> C:\Users\jongb\AppData\Local\Temp\compare_head_sources_0us4xmvo\batch_125_130.pt
+[discover-parallel:agentdojo] batch [130:135]/150 -> new subprocess ...
+  [agentdojo] 220 total pairs -> 150 used for head discovery (seed=42)
+[discover-batch:agentdojo] loading Qwen/Qwen2.5-7B-Instruct for batch [130:135] ...
+W0819 12:49:38.731000 14552 .venv\Lib\site-packages\torch\utils\flop_counter.py:29] triton not found; flop counting will not work for triton kernels
+Sliding Window Attention is enabled but not implemented for `eager`; unexpected results may be encountered.
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:05<00:15,  5.09s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:09<00:09,  4.76s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:14<00:04,  4.72s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:17<00:00,  3.97s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:17<00:00,  4.28s/it]
+  [discover-batch:agentdojo] OOM at local idx 1 (global 131), skipping
+  [discover-batch:agentdojo] OOM at local idx 3 (global 133), skipping
+[discover-batch:agentdojo] batch [130:135] done: 3 ok, 2 oom -> C:\Users\jongb\AppData\Local\Temp\compare_head_sources_0us4xmvo\batch_130_135.pt
+[discover-parallel:agentdojo] batch [135:140]/150 -> new subprocess ...
+  [agentdojo] 220 total pairs -> 150 used for head discovery (seed=42)
+[discover-batch:agentdojo] loading Qwen/Qwen2.5-7B-Instruct for batch [135:140] ...
+W0819 12:51:09.145000 15564 .venv\Lib\site-packages\torch\utils\flop_counter.py:29] triton not found; flop counting will not work for triton kernels
+Sliding Window Attention is enabled but not implemented for `eager`; unexpected results may be encountered.
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:05<00:15,  5.05s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:09<00:09,  4.67s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:12<00:04,  4.10s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:14<00:00,  3.05s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:14<00:00,  3.58s/it]
+  [discover-batch:agentdojo] OOM at local idx 1 (global 136), skipping
+[discover-batch:agentdojo] batch [135:140] done: 4 ok, 1 oom -> C:\Users\jongb\AppData\Local\Temp\compare_head_sources_0us4xmvo\batch_135_140.pt
+[discover-parallel:agentdojo] batch [140:145]/150 -> new subprocess ...
+  [agentdojo] 220 total pairs -> 150 used for head discovery (seed=42)
+[discover-batch:agentdojo] loading Qwen/Qwen2.5-7B-Instruct for batch [140:145] ...
+W0819 12:52:52.557000 14980 .venv\Lib\site-packages\torch\utils\flop_counter.py:29] triton not found; flop counting will not work for triton kernels
+Sliding Window Attention is enabled but not implemented for `eager`; unexpected results may be encountered.
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:05<00:15,  5.13s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:09<00:09,  4.76s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:14<00:04,  4.70s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:17<00:00,  3.93s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:17<00:00,  4.25s/it]
+[discover-batch:agentdojo] batch [140:145] done: 5 ok, 0 oom -> C:\Users\jongb\AppData\Local\Temp\compare_head_sources_0us4xmvo\batch_140_145.pt
+[discover-parallel:agentdojo] batch [145:150]/150 -> new subprocess ...
+  [agentdojo] 220 total pairs -> 150 used for head discovery (seed=42)
+[discover-batch:agentdojo] loading Qwen/Qwen2.5-7B-Instruct for batch [145:150] ...
+W0819 12:53:56.591000 6600 .venv\Lib\site-packages\torch\utils\flop_counter.py:29] triton not found; flop counting will not work for triton kernels
+Sliding Window Attention is enabled but not implemented for `eager`; unexpected results may be encountered.
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:01<00:05,  1.85s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:03<00:03,  1.58s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:04<00:01,  1.50s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:06<00:00,  1.45s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:06<00:00,  1.51s/it]
+  [discover-batch:agentdojo] OOM at local idx 2 (global 147), skipping
+  [discover-batch:agentdojo] OOM at local idx 3 (global 148), skipping
+[discover-batch:agentdojo] batch [145:150] done: 3 ok, 2 oom -> C:\Users\jongb\AppData\Local\Temp\compare_head_sources_0us4xmvo\batch_145_150.pt
+[discover-parallel:agentdojo] 20 heads (from 105/150 examples, 45 oom) -> saved to results/2026-08-19_source_compare/heads_agentdojo_7b.json
+  heads = [(19, 23), (18, 24), (21, 24), (20, 27), (0, 10), (15, 23), (19, 17), (19, 24), (17, 23), (18, 15), (0, 3), (18, 21), (0, 15), (18, 16), (18, 27), (19, 22), (23, 15), (16, 16), (20, 23), (15, 27)]

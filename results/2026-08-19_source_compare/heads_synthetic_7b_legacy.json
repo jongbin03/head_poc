@@ -1,0 +1,12 @@
+{
+  "source": "synthetic_7b_legacy",
+  "heads": [
+    [0, 3], [0, 10], [0, 15], [0, 21], [19, 15], [19, 19], [22, 3], [22, 24],
+    [23, 10], [23, 11], [24, 21], [25, 8], [25, 12], [26, 4], [27, 21]
+  ],
+  "num_layers": 28,
+  "num_heads_per_layer": 28,
+  "n_examples_used": 30,
+  "model": "Qwen/Qwen2.5-7B-Instruct",
+  "note": "2026-07-28 P0/P1 run_pipeline.py(구 방법론)의 control_heads_both를 compare_head_sources.py 스키마로 옮김 (results/2026-07-28_Qwen-Qwen2-5-7B-Instruct_4bit/summary.txt)"
+}

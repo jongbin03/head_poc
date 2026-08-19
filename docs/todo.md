@@ -526,16 +526,37 @@ baseline 공격 성공률(0.020)은 이전 48쌍(0.021)과 거의 동일 — "Ag
 노이즈라는 뜻. 5.1절("통계적 유의성 부족")이 실제 데이터로 다시 확인된 사례 — 표본을 훨씬
 키우기 전까지는 이 결과들(이번 51쌍 포함) 중 어느 쪽도 신뢰 구간을 논할 수 없음.
 
-**tool_call 파싱 진단 로깅 추가 (2026-08-19, 미실행)**: `adapters/agentdojo_pipeline.py`의
+**tool_call 파싱 진단 로깅 추가 + 실행 결과 (2026-08-19)**: `adapters/agentdojo_pipeline.py`의
 `KnockoutLocalLLM`에 `parse_stats` 카운터 추가(`no_tag`/`truncated`/`json_errors`/
 `non_dict_args`/`ok`), `run_agentdojo_eval.py` summary에 포함되도록 연결. 배경: utility가
 7B 19.6%로 낮은 게 "모델 능력 한계"가 아니라 `_TOOL_CALL_RE`가 닫는 태그(`</tool_call>`)까지
 요구하는데 `max_new_tokens=128` 기본값 안에 tool call JSON이 못 끝나서(특히 인자가 긴
 workspace) 조용히 "tool call 없음"으로 처리되는 **하네스 버그일 가능성**을 배제하기 위함.
-⚠️ 위 51쌍 실행은 이 로깅을 추가하기 *전에* 이미 백그라운드로 떠 있던 프로세스라 코드 변경이
-반영 안 됐음(Python 프로세스가 옛 모듈을 메모리에 이미 로드한 상태) — `parse_stats`가
-summary json에 없음. **다음 세션에서 같은 조건으로 재실행해서 `truncated` 비율부터 확인할 것.**
-비율이 유의미하면 `max_new_tokens`를 256~384로 올려 재실행해 utility가 오르는지 확인.
+
+같은 조건(7B, important_instructions, 13쌍/suite, seed=42 — 위 51쌍과 동일, 재현성 확인됨)으로
+재실행: `results/2026-08-19_source_compare/agentdojo_eval_synthetic_7b_expand13_parsecheck.json`.
+
+| 항목 | 개수 | 비율 (n_calls=396) |
+|---|---|---|
+| ok (정상 파싱) | 308 | 77.8% |
+| no_tag (tool_call 자체 없음) | 54 | 13.6% |
+| truncated (닫는 태그 없음) | 22 | 5.6% |
+| json_errors | 12 | 3.0% |
+| non_dict_args | 2 | 0.5% |
+
+**가설 부분 기각**: `truncated_examples`를 열어보니 예상("JSON이 길어서 128토큰 안에 못 끝남")과
+다른 패턴 — IBAN/계좌번호 같은 숫자 인자를 생성하다 **반복 루프(digit repetition)에 빠져서**
+128토큰을 다 써버리는 경우였다(예: `"recipient": "DE1101011111111111111111111111...`). 즉
+truncation의 원인이 "토큰 부족"이 아니라 "greedy decoding(`do_sample=False`, repetition
+penalty 없음)이 숫자 필드에서 퇴화하는 현상"이라, `max_new_tokens`를 늘리는 처방은 안 먹힐
+가능성이 높음 — `repetition_penalty`/`no_repeat_ngram_size`가 더 맞는 처방으로 보이나 아직
+검증 안 됨(다음 후보, 우선순위는 낮춤).
+
+**결론**: 파싱 실패 총합(90/396 ≈ 22.7%)이 멀티턴 누적으로 utility 19.6%에 어느 정도 기여하는
+건 맞지만, 그것만으로 전부 설명되진 않음(78%대 턴별 성공률이 그대로 곱해지면 19.6%보다 높은
+수치가 나와야 함) — "순수 하네스 버그"보다 "하네스 마찰 + 실제 모델 능력/정확도 한계"가 섞인
+쪽으로 결론. **표본 확대(P4 할일 5번) 우선순위는 그대로 유지**, `repetition_penalty` 추가는
+급하지 않은 부차적 개선 항목으로 재분류.
 
 **할 일** (구체 순서):
 1. ~~`pip install agentdojo` 설치 + API 코드 조사~~ — 완료 (위 참고).
@@ -552,15 +573,48 @@ summary json에 없음. **다음 세션에서 같은 조건으로 재실행해�
    `compare_head_sources.py`로 마저 탐색. 2026-08-19 51쌍 재실행에서 knockout 효과(0.021→0.000)가
    재현 안 되고(0.020→0.020, 케이스만 뒤바뀜) 새 utility 비용 사례도 나와 표본 확대의
    시급성이 더 커짐(위 참고).
-5-1. **(다음 세션 최우선)** `parse_stats` 진단을 실제로 돌려서 utility 19~27%가 tool_call
-   truncation(`max_new_tokens=128` 안에 못 끝남) 때문인지부터 배제 — 하네스 버그면 표본을
-   늘리기 전에 먼저 고쳐야 함(위 "tool_call 파싱 진단" 절 참고).
+5-1. ~~`parse_stats` 진단 실행~~ — 완료 (2026-08-19, 위 참고). truncation은 있지만
+   원인이 예상과 다름(반복 루프, 토큰 부족 아님) — 하네스 버그로 utility 저하가 전부
+   설명되진 않는다는 쪽으로 정리됨. 급한 후속 조치는 아님.
+5-2. ~~7B 네이티브 AgentDojo head 탐색~~ — 완료 (2026-08-19). 지금까지 7B/14B Track B
+   평가는 전부 **1.5B에서 찾은 head**(synthetic 14개)를 재사용했을 뿐, 7B 자체에서 head를
+   새로 찾은 적이 없었던 것을 메움.
+
+   `compare_head_sources.py discover-parallel --source agentdojo --model
+   Qwen/Qwen2.5-7B-Instruct --four_bit --batch_size 5` (150개 중 105개(70%) 성공, 45개
+   OOM — 1.5B의 79%보다 낮음, 예상대로). 결과: `results/2026-08-19_source_compare/heads_agentdojo_7b.json`.
+
+   **20개 head**: `(19,23) (18,24) (21,24) (20,27) (0,10) (15,23) (19,17) (19,24) (17,23)
+   (18,15) (0,3) (18,21) (0,15) (18,16) (18,27) (19,22) (23,15) (16,16) (20,23) (15,27)`
+
+   **layer 0은 20개 중 2개뿐** — 1.5B(14개 중 6개)·14B(13개 중 4개)에서 본 "layer 0 지배"가
+   7B에서는 뚜렷이 약해지고, 대신 **layer 15~23 구간에 새 클러스터**(특히 layer 18이 5회,
+   19가 4회 등장). 스케일 3개 지점을 다 확보하니 "layer 0 지배가 스케일이 커질수록 옅어진다"는
+   패턴처럼 보임 — 5.3절("layer 0 지배: 정보 대역폭 차단 vs 명령 인식 회로")에 직접 관련된
+   신규 신호.
+
+   **7B 내부 소스 비교(synthetic vs AgentDojo)**: 1.5B의 AgentDojo head(28x12)와는 모델
+   아키텍처가 달라(7B는 28x28) `compare_head_sources.py compare`가 직접 비교를 거부함(의도된
+   가드). 대신 2026-07-28 P0/P1(구 `run_pipeline.py`)에서 이미 찾아둔 7B synthetic
+   `control_heads_both` 15개(`results/2026-07-28_Qwen-Qwen2-5-7B-Instruct_4bit/summary.txt`)를
+   현재 스키마로 옮겨(`results/2026-08-19_source_compare/heads_synthetic_7b_legacy.json`)
+   같은 7B 안에서 소스만 다르게 비교:
+
+   | 비교 | jaccard | 우연 대비 |
+   |---|---|---|
+   | 7B agentdojo(20개) vs 7B synthetic_legacy(15개) | 0.094 | 8.5배 |
+
+   교집합 3개 `(0,3) (0,10) (0,15)` — **전부 layer 0**. AgentDojo 단독으로는 20개 중 2개뿐이던
+   layer 0이, 두 소스의 교집합에서는 다시 지배적으로 나타남 — "layer 0 지배"가 사라진 게
+   아니라 **소스 간 공통분모로 수렴하는 형태로는 여전히 남아있다**는 뜻. (1.5B/14B의 3소스
+   비교와 직접 jaccard 비교는 아키텍처가 달라 불가능 — 위 표는 7B 내부 2-소스 비교로 한정.)
+   결과: `results/2026-08-19_source_compare/compare_agentdojo_7b_vs_synthetic_7b.json`.
 6. Top-K sweep + random-head baseline(P7 인프라 재사용, `discover-parallel` 패턴으로 필요시
    확장)을 세 소스 전부에 동일 적용.
 7. 결과를 `methodology.md`/`run-guide.md`에 "Head Selection Methodology" 섹션으로 통합.
 
 별도 세션에서 단계별 진행 권장 (1. Track A 어댑터 → 2. 소스 비교 → 3. Track B 하네스 →
-4. 최종 조합 결정 → 5. K/baseline → 6. 문서화 순). **다음 세션은 5-1(파싱 진단)부터.**
+4. 최종 조합 결정 → 5. K/baseline → 6. 문서화 순).
 
 ## P3. control head 내 internal-only vs external-only 채널 분기 검증 (보류)
 
