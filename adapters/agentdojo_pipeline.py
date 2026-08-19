@@ -34,6 +34,8 @@ _ANCHOR_START = "<INFORMATION>"
 _ANCHOR_END = "</INFORMATION>"
 
 _TOOL_CALL_RE = re.compile(r"<tool_call>\s*(\{.*?\})\s*</tool_call>", re.DOTALL)
+_TOOL_CALL_OPEN = "<tool_call>"
+_TOOL_CALL_CLOSE = "</tool_call>"
 
 
 def _tools_to_openai_format(tools) -> List[dict]:
@@ -77,7 +79,7 @@ def _messages_to_qwen_format(messages: Sequence[ChatMessage]) -> List[dict]:
     return out
 
 
-def _parse_tool_calls(completion: str) -> ChatAssistantMessage:
+def _parse_tool_calls(completion: str, stats: Optional[dict] = None) -> ChatAssistantMessage:
     matches = _TOOL_CALL_RE.findall(completion)
     tool_calls = []
     for raw in matches:
@@ -88,10 +90,29 @@ def _parse_tool_calls(completion: str) -> ChatAssistantMessage:
                 # 모델이 가끔 "arguments"를 dict가 아니라 리스트/문자열로 잘못 생성함
                 # (실측 확인: travel suite에서 리스트로 나온 사례) — FunctionCall이 dict를
                 # 요구하므로 이런 tool_call은 파싱 실패로 취급하고 건너뛴다.
+                if stats is not None:
+                    stats["non_dict_args"] += 1
                 continue
             tool_calls.append(FunctionCall(function=parsed["name"], args=args))
         except (json.JSONDecodeError, KeyError):
+            if stats is not None:
+                stats["json_errors"] += 1
             continue
+
+    if stats is not None:
+        stats["n_calls"] += 1
+        has_open = _TOOL_CALL_OPEN in completion
+        has_close = _TOOL_CALL_CLOSE in completion
+        if not has_open:
+            stats["no_tag"] += 1
+        elif not has_close:
+            # 여는 태그는 있는데 닫는 태그가 없음 -> max_new_tokens 안에 완성 전에 잘렸을 가능성
+            stats["truncated"] += 1
+            if len(stats["truncated_examples"]) < 5:
+                stats["truncated_examples"].append(completion[-300:])
+        if tool_calls:
+            stats["ok"] += 1
+
     return ChatAssistantMessage(
         role="assistant",
         content=[text_content_block_from_string(completion.strip())],
@@ -121,6 +142,10 @@ class KnockoutLocalLLM(BasePipelineElement):
         self.max_new_tokens = max_new_tokens
         self.device = device
         self.name = "knockout-local-llm"
+        self.parse_stats = {
+            "n_calls": 0, "ok": 0, "no_tag": 0, "truncated": 0,
+            "json_errors": 0, "non_dict_args": 0, "truncated_examples": [],
+        }
 
     def _render_prompt(self, messages: Sequence[ChatMessage], tools) -> str:
         qwen_messages = _messages_to_qwen_format(messages)
@@ -174,5 +199,5 @@ class KnockoutLocalLLM(BasePipelineElement):
                 out_ids = self.model.generate(**gen_kwargs)
 
         completion = self.tok.decode(out_ids[0, input_ids.shape[-1]:], skip_special_tokens=True)
-        output = _parse_tool_calls(completion)
+        output = _parse_tool_calls(completion, stats=self.parse_stats)
         return query, runtime, env, [*messages, output], extra_args

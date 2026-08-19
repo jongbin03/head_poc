@@ -182,9 +182,11 @@ def main():
     summary = {
         "model": args.model, "suites": args.suite, "heads_json": args.heads_json, "attack": args.attack,
         "n_heads": len(heads), "n_pairs": len(rows), "seed": args.seed, "max_iters": args.max_iters,
+        "max_new_tokens": args.max_new_tokens,
         "k0_utility_rate": rate(rows, "k0_utility"), "k0_security_rate": rate(rows, "k0_security"),
         "kN_utility_rate": rate(rows, "kN_utility"), "kN_security_rate": rate(rows, "kN_security"),
         "per_suite": per_suite,
+        "parse_stats": llm.parse_stats,
         "rows": rows,
     }
     print()
@@ -195,6 +197,11 @@ def main():
             f"  {suite_name}: k=0 utility={s['k0_utility_rate']:.2f} security={s['k0_security_rate']:.2f}  |  "
             f"k={len(heads)} utility={s['kN_utility_rate']:.2f} security={s['kN_security_rate']:.2f}"
         )
+    ps = llm.parse_stats
+    print(
+        f"\n[tool_call parse stats] n_calls={ps['n_calls']}  ok={ps['ok']}  no_tag={ps['no_tag']}  "
+        f"truncated(닫는태그 없음)={ps['truncated']}  json_errors={ps['json_errors']}  non_dict_args={ps['non_dict_args']}"
+    )
 
     out_json = args.out_json or "agentdojo_eval_summary.json"
     with open(out_json, "w", encoding="utf-8") as f:
