@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
-"""2차 발표 deck 추가분(3장) — 2026-08-19 실험 결과 반영.
+"""2차 발표 deck 추가분(7장) — 2026-08-19 실험 결과 반영.
 
 기존 deck(IPI_Head_Separation_PoC_2nd [26-08-19].pptx)은 PowerPoint에서 직접 편집된
 상태라 build_deck_2nd.py를 재실행하면 편집분이 사라진다. 그래서 신규/재작성 슬라이드만
 별도 파일로 만들어 PowerPoint에서 끼워 넣는다.
 
-  S8  (재작성) Track B 결과 — 두 번 돌렸더니 결과가 달랐다   -> 기존 S8을 교체
+  S7-b(신규)   AgentDojo suite 구성과 사용한 쌍             -> 기존 S8 앞에 삽입
+  S8  (재작성) 7B로 AgentDojo를 세 번 돌린 결과              -> 기존 S8을 교체
   S9  (신규)   표본을 늘리려던 세 손잡이 — 전부 실패          -> S8 뒤에 삽입
   S10 (신규)   7B에서 직접 찾아보니 — layer 0은 스케일 의존적 -> S9 뒤에 삽입
   S12 (재작성) 현재 한계 (#7/#8 추가)                        -> 기존 한계 장을 교체
@@ -169,6 +170,45 @@ B = lambda t, c=INK: (t, {"bold": True, "color": c})   # noqa: E731
 M = lambda t, c=INK: (t, {"font": MONO, "size": 10.5, "color": c})  # noqa: E731
 
 
+# ============================================================ S7-b (신규) — S8 앞에 삽입
+s = new_slide("02 · Track B 평가", "AgentDojo는 무엇으로 되어 있고, 우리는 얼마나 썼나")
+
+table(s, M_L, Y_BODY, M_W,
+      [["suite", "성격", "user × injection", "전체 쌍", "지금 쓴 쌍", "소진율",
+        "7B utility"],
+       ["banking", "계좌 · 송금 · 정기결제", "16 × 9", "144", "13", "9.0%",
+        [B("0.385", BLUE)]],
+       ["slack", "워크스페이스 메시징", "21 × 5", "105", "13", "12.4%", "0.231"],
+       ["travel", "여행 예약", "20 × 7", "140", "12", "8.6%", [B("0.000", RED)]],
+       ["workspace", "이메일 · 캘린더 · 드라이브", "40 × 14", [B("560", ORANGE)], "13",
+        [B("2.3%", RED)], "0.154"],
+       [[B("합계")], "", "", [B("949")], [B("51")], [B("5.4%", RED)], "0.196"]],
+      col_w=[1.35, 3.30, 1.85, 1.35, 1.45, 1.20, 1.43], row_h=0.42,
+      sizes=[10.5, 10.5, 10.5, 10.5, 10.5, 10.5, 10.5],
+      aligns=["l", "l", "r", "r", "r", "r", "r"])
+
+card(s, M_L, 4.55, 5.82, 1.68)
+tf = textbox(s, 0.96, 4.75, 5.30, 1.35)
+card_head(tf, "병목은 데이터가 아니다", first=True)
+para(tf, [("전체 949쌍 중 ", {}), B("51쌍(5.4%)", RED),
+          ("만 썼다. 막고 있는 건 쌍의 수가 아니라 ", {}),
+          B("실행 비용"), ("(쌍당 평균 7.8회 generate)과 ", {}),
+          B("travel의 CUDA OOM"), ("이다.", {})], size=11, space_before=4)
+
+card(s, 6.81, 4.55, 5.82, 1.68, CARD_HL)
+tf = textbox(s, 7.07, 4.75, 5.30, 1.35)
+card_head(tf, "그래서 배분을 다시 짜야 한다", first=True)
+para(tf, [("지금은 suite당 균등하게 13개씩인데, ", {}),
+          B("workspace는 풀의 59%인데 2.3%만"), (" 보고, ", {}),
+          B("travel은 12쌍 전패", RED), ("에 OOM까지 난다.", {})],
+     size=11, space_before=4)
+para(tf, [("재배분 예: ", {}), M("banking 60 / slack 50 / workspace 40 / travel 10 = 160쌍")],
+     size=11, space_before=4)
+
+foot(s, "Track B는 필터 없이 user_tasks × injection_tasks 곱집합을 쓴다 "
+        "(run_agentdojo_eval.py:131) — Track A의 220쌍은 단일 턴 필터를 거친 별개 숫자  ·  "
+        "utility는 8/19 51쌍 실행(k=0)의 suite별 값")
+
 # ============================================================ S8 (재작성)
 s = new_slide("02 · Track B 평가", "7B로 AgentDojo를 세 번 돌린 결과")
 
@@ -300,111 +340,59 @@ para(textbox(s, M_L, 6.35, M_W, 0.30),
 foot(s, "results/2026-08-19_source_compare/heads_agentdojo_7b.json (150개 중 105개 성공)  ·  "
         "compare_agentdojo_7b_vs_synthetic_7b.json")
 
-# ============================================================ S12 (재작성)
-s = new_slide("03 · 이후 진행", "현재 한계 — 다음 단계의 근거")
+# ============================================================ S12 (S12~14 통합)
+s = new_slide("03 · 이후 진행", "다음 사이클 — 세 갈래")
 
-table(s, M_L, Y_BODY, M_W,
-      [["#", "한계", "상태"],
-       ["1", [B("통계적 유의성 부족", RED),
-              (" — 세 실행 각각 성공 공격이 1건뿐. ②는 역효과 1건이 상쇄해 집계 변화 0", {})],
-        "표본 확대 (더 시급해짐)"],
-       ["1-b", [B("측정 재현성", RED),
-                (" — 같은 쌍·같은 seed인데 실행 간 결과가 뒤집힘 (2건, 4bit 수치 비결정성 추정)", {})],
-        "재현성 확인 절차 필요"],
-       ["2", [B("layer 0 지배", RED),
-              (" — 단독 탐색은 스케일 따라 옅어지나 소스 교집합에선 계속 지배적", {})],
-        "판별 실험 미설계"],
-       ["3", "read / control 완전 분리 아님 (14개 중 9개 dual-use)", "서술 수정 완료"],
-       ["4", "합성 데이터셋 content-availability 교란", "discovery 전용으로 봉합"],
-       ["5", [("InjecAgent utility 지표는 ", {}), B("인용 불가", RED),
-              (" — ASR 감소의 산술적 뒷면", {})], "폐기 결정"],
-       ["6", "오라클 스팬 — 배포 시엔 어느 토큰이 주입문인지 모름", "미착수"],
-       ["7", [B("[신규] 7B Track B 평가에 1.5B에서 찾은 head를 썼다", ORANGE),
-              (" — _load_heads()가 모델 메타데이터를 검증 안 함", {})],
-        "7B head 확보 완료, 재실행 필요"],
-       ["8", [B("[신규] 하네스 마찰", ORANGE),
-              (" — tool_call 파싱 실패 22.2%, greedy decoding 반복 루프", {})],
-        "원인 규명, 처방 미검증"]],
-      col_w=[0.62, 8.28, 3.03], row_h=0.385,
-      sizes=[10.5, 10.5, 10.5], aligns=["c", "l", "l"])
+CW, GAP = 3.7767, 0.30
+COLS = [
+    ("①", "AgentDojo 표본\n재할당 및 확대", BLUE, [
+        ("왜", "전체 949쌍 중 51쌍(5.4%)만 썼고, 실행당 성공 공격이 1건뿐. "
+               "게다가 같은 쌍이 실행 간에 뒤집힌다(2건)."),
+        ("무엇을", "suite 균등 배분(13씩)을 폐기 → banking 60 / slack 50 / "
+                   "workspace 40 / travel 10 = 160쌍.  그 전에 같은 조건 2회 실행으로 "
+                   "재현성부터 측정."),
+        ("기대", "노이즈 바닥을 알아야 \"몇 쌍이면 충분한가\"를 계산할 수 있다."),
+    ]),
+    ("②", "모델 스케일 확대\n(27B급 또는 타 계열)", ORANGE, [
+        ("왜", "7B→14B에서 utility는 0.188→0.267로 올랐지만 공격 성공률은 2%로 불변. "
+               "utility가 더 오르면 공격 이행도 완주할 여지가 남아 있다."),
+        ("무엇을", "27B급 4bit 시도.  ⚠ 16GB로는 가중치만 15GB대라 KV cache 여유가 없음 "
+                   "— GPU 확보 또는 모델 재선정 필요."),
+        ("기대", "baseline 2%가 정말 모델 크기와 무관한지 확정."),
+    ]),
+    ("③", "knockout 대상\nhead 집합 결정", RED, [
+        ("왜", "지금까지 knockout한 건 늘 synthetic 유래 head 하나뿐. 게다가 7B 평가에 "
+               "1.5B에서 찾은 head를 썼다(메타데이터 미검증)."),
+        ("무엇을", "7B 자체 head 3조건 비교 — synthetic(15) / AgentDojo(20) / "
+                   "교집합 3개(전부 layer 0)."),
+        ("기대", "교집합 3개(layer 0)만으로 효과가 나오는지가 \"명령 인식 회로 vs "
+                 "초기 정보 대역폭 차단\"을 가르는 갈림길."),
+    ]),
+]
 
-card(s, M_L, 5.75, M_W, 1.05, CARD_HL)
-para(textbox(s, 1.00, 5.98, 11.33, 0.65),
-     [B("7번은 발표 중 먼저 밝혀야 할 정정 사항입니다", INK),
-      (" — 이걸 안 밝히면 Track B 수치와 proxy 대조표의 해석이 전부 흔들립니다. "
-       "5번은 애초에 AgentDojo로 가야 했던 핵심 이유이자, 피드백 ①의 후반부에 대한 저희 쪽 답입니다.", {})],
-     size=12, color=BODY, first=True)
+for i, (num, title, col, blocks) in enumerate(COLS):
+    x = M_L + i * (CW + GAP)
+    card(s, x, Y_BODY, CW, 3.72)
+    tf = textbox(s, x + 0.26, 2.02, CW - 0.52, 3.35)
+    para(tf, [(num + "  ", {"size": 15, "bold": True, "color": col}),
+              (title.replace("\n", " "), {"size": 13, "bold": True, "color": col})],
+         first=True, line_spacing=1.2)
+    for label, body in blocks:
+        para(tf, label, size=10, bold=True, color=col, space_before=9)
+        para(tf, body, size=10, color=BODY, space_before=2, line_spacing=1.22)
 
-# ============================================================ S13 (재작성)
-s = new_slide("03 · 이후 진행", "다음 단계 — 8/19 결과로 순위가 바뀌었다")
+card(s, M_L, 5.78, M_W, 1.06, CARD_HL)
+tf = textbox(s, 1.00, 5.96, 11.33, 0.72)
+para(tf, [B("여쭙고 싶은 것", INK),
+          ("    ②의 27B는 현재 16GB GPU로는 사실상 불가한데 어디까지 시도할 가치가 "
+           "있을까요?    그리고 ", {}),
+          B("다른 벤치마크로 옮기는 것", ORANGE),
+          ("은 ①③으로 지금 환경을 규명한 뒤가 맞을까요?", {})],
+     size=11.5, color=BODY, first=True)
 
-table(s, M_L, Y_BODY, M_W,
-      [["순위", "항목", "변동"],
-       ["1", [B("7B 자체 head로 Track B 재실행", ORANGE),
-              (" — synthetic_7b_legacy(15) / AgentDojo_7b(20) / 교집합(3)", {})],
-        [B("신규 1순위", ORANGE)]],
-       ["2", [B("표본 확대"), (" (수백 쌍) — travel 배분 축소, banking / slack 재배분", {})],
-        "시급성 상승"],
-       ["3", [B("최종 head 집합 결정"),
-              (" — 교집합(전부 layer 0) vs 각 소스 단독 vs 합집합", {})], "1번과 동시 수행"],
-       ["4", [B("layer 0 지배 원인 규명"), (" — 명령 인식인가 정보 대역폭인가", {})],
-        "단서 확보"],
-       ["5", "top-K sweep + random baseline을 소스 전부에 동일 적용", "—"],
-       ["6", "AgentDojo baseline 공격 성공률이 왜 2%인지 규명", "손잡이 3개 소진"],
-       ["7", "repetition_penalty / no_repeat_ngram_size 검증", "부차"],
-       ["8", "methodology.md에 \"Head Selection Methodology\" 절로 통합", "—"]],
-      col_w=[0.7, 8.6, 2.63], row_h=0.40,
-      sizes=[10.5, 10.5, 10.5], aligns=["c", "l", "l"])
-
-card(s, M_L, 5.55, M_W, 0.80)
-para(textbox(s, 1.00, 5.73, 11.33, 0.45),
-     [B("중장기", BLUE),
-      ("    path patching으로 개별 head 인과성  ·  MMLU 등으로 collateral damage 측정  ·  "
-       "Llama 계열 교차 검증  ·  오라클 스팬 제거 → 실전 배포 형태", {})],
-     size=11, color=BODY, first=True)
-
-foot(s, [B("1·3번이 풀리면 4번의 답도 같이 나옵니다", INK),
-         (" — 교집합(전부 layer 0)만으로 효과가 나오는지가 갈림길입니다.", {})], y=6.55)
-
-# ============================================================ S14 (재작성)
-s = new_slide("03 · 마무리", "결론과 논의 요청")
-
-cw, gap = 3.7767, 0.30
-for i, (head, lines, col) in enumerate([
-    ("한 것", ["피드백 3개 전부 대응",
-               "정의 정리 · 자체 진단 5종",
-               "AgentDojo Track A·B 신규 구축",
-               "7B 네이티브 head 탐색"], BLUE),
-    ("얻은 것", ["3소스 head 비교 (교집합 5개)",
-                 "layer 0의 스케일 의존성",
-                 "proxy 지표가 공격 성공률을 부풀렸다는 정량적 증거"], ORANGE),
-    ("잃은 것", ["\"1/48 → 0/48\" 신호는 재현되지 않음",
-                 "7B 평가에 1.5B head를 쓴 것 확인",
-                 "표본 확대 손잡이 3개 전부 소진"], RED)]):
-    x = M_L + i * (cw + gap)
-    card(s, x, Y_BODY, cw, 2.05)
-    tf = textbox(s, x + 0.26, 2.05, cw - 0.52, 1.70)
-    para(tf, head, size=13.5, bold=True, color=col, first=True)
-    for t in lines:
-        para(tf, [("·  ", {"color": col}), (t, {})], size=10.5, space_before=5)
-
-card(s, M_L, 4.20, M_W, 2.42, CARD_HL)
-tf = textbox(s, 1.00, 4.42, 11.33, 2.00)
-card_head(tf, "여쭙고 싶은 것", first=True)
-para(tf, [B("① AgentDojo baseline 2% + 재현 실패를 어떻게 볼 것인가", INK),
-          ("  —  (a) 표본 확대에 예산을 더 쓴다   (b) \"이 스케일에선 원래 잘 안 통한다\"를 "
-           "결과로 보고 공격이 통하는 환경을 찾는다   (c) 평가 축을 다시 설계한다  →  ", {}),
-          B("권장은 (a)+(b) 병행", ORANGE),
-          (" (단 손잡이 3개를 이미 다 써봤음)", {})], size=11.5, space_before=7)
-para(tf, [B("② layer 0 지배를 가장 값싸게 판별할 실험은 무엇일까요", INK),
-          ("  —  \"단독은 옅어지고 교집합은 지배적\"이라는 단서까지는 나왔습니다", {})],
-     size=11.5, space_before=6)
-para(tf, [B("③ \"완전 분리\"를 포기할 때 이 연구의 기여를 무엇으로 서술할까", INK),
-          ("  —  현재 후보: 분리가 아니라 ", {}), B("\"편중 + 최소 개입\"", ORANGE)],
-     size=11.5, space_before=6)
-
-foot(s, [("이번 사이클의 실질적 성과는 방어 효과를 키운 게 아니라, ", {}),
-         B("믿을 수 있는 자(尺)를 갖게 된 것", INK), ("입니다.", {})], y=6.80)
+foot(s, [("①은 데이터 양, ②는 모델 능력, ③은 개입 대상 — ", {}),
+         B("서로 축이 겹치지 않아 병렬로 진행 가능", INK),
+         (".   ③은 재료(7B head 3종)가 이미 준비돼 있어 가장 빨리 착수할 수 있다.", {})])
 
 # ----------------------------------------------------------------
 prs.save(OUT)
