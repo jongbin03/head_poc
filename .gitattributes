@@ -1,0 +1,19 @@
+# 줄바꿈 정책.
+#
+# 로컬은 Windows(5070Ti), 실험 서버는 Linux(Titan RTX)라 두 환경을 오간다.
+# 특히 env.sh는 서버에서 `source` 하는 파일이라 CRLF가 섞이면
+# `$'\r': command not found` 로 죽는다 — 저장소에도 체크아웃에도 LF를 강제한다.
+*.sh text eol=lf
+
+# 나머지는 저장소에 LF로 저장하고 체크아웃 시 플랫폼에 맡긴다.
+*.py text
+*.md text
+*.txt text
+*.json text
+
+# 바이너리 — 줄바꿈 변환 금지
+*.pptx binary
+*.png binary
+*.pdf binary
+*.pt binary
+*.ipynb text
