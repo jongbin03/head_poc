@@ -31,7 +31,18 @@ feedback-2026-07-29.md 참고), exec_target(공격자가 원하는 행동) 하�
 `subprocess`로 반복 호출한 뒤 부분합을 모아 최종 head를 뽑는다:
 
     python compare_head_sources.py discover-parallel --source agentdojo --model ... \\
-        --head_n 150 --max_seq_len 2000 --batch_size 15 --out_json heads_agentdojo.json
+        --head_n 150 --max_seq_len 2000 --batch_size 5 --out_json heads_agentdojo.json
+
+⚠️ **`--batch_size`가 수율을 직접 좌우한다.** 누수는 프로세스 안에서 호출마다 쌓이고
+배치 경계(=새 프로세스)에서만 리셋되므로, 배치가 크면 리셋 전에 더 많이 쌓여 OOM이 는다.
+실측 비교 (Qwen2.5-7B 4bit, head_n=150, max_seq_len=2000, bf16):
+
+    2026-08-19  5070Ti 16GB  batch_size=5   ->  105/150 (45 oom)
+    2026-08-21  TitanRTX24GB batch_size=15  ->   74/150 (76 oom)   ← VRAM이 커도 배치가 크면 악화
+
+즉 VRAM보다 batch_size가 더 크게 작용한다. 늘리지 말 것.
+(위 "150번 시도 중 18번만 성공"은 `discover`(단일 프로세스) 수치이지 discover-parallel이
+아니다 — 두 숫자를 혼동하지 말 것.)
 """
 import argparse
 import gc
@@ -533,9 +544,12 @@ def main():
     p_parallel.add_argument("--source", required=True, choices=["injecagent", "agentdojo"])
     _add_common_discover_args(p_parallel)
     p_parallel.add_argument(
-        "--batch_size", type=int, default=15,
+        "--batch_size", type=int, default=5,
         help="배치당 예시 개수 — 배치마다 새 프로세스(새 CUDA 컨텍스트)를 띄워 메모리 누적을 "
-        "배치 경계에서 강제로 리셋한다.",
+        "배치 경계에서 강제로 리셋한다. ⚠️ 이 값이 수율을 직접 좌우한다. 크게 잡으면 리셋 "
+        "전에 누수가 더 쌓여 OOM이 늘고, VRAM을 늘려도 상쇄되지 않는다 — 실측: "
+        "16GB/batch=5는 105/150 성공, 24GB/batch=15는 74/150에 그쳤다. 기본값 5를 올리지 말 것 "
+        "(모델을 키울 때는 오히려 더 낮출 것). 대신 프로세스 기동 비용이 늘어 느려진다.",
     )
     p_parallel.set_defaults(func=cmd_discover_parallel)
 
