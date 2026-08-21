@@ -97,33 +97,112 @@ def _split_on_injection(content: str) -> Optional[Tuple[str, str, str]]:
     return prefix, injected_span, suffix
 
 
-def _first_tool_turn(user_task, env, suite: TaskSuite):
-    """GroundTruthPipeline으로 user_task를 실행해, [assistant(첫 tool_call), tool(응답),
-    assistant(다음 tool_call)] 패턴을 만족하는 경우에만 (tool_content, next_tool_name)을
-    반환한다. 패턴이 안 맞으면(멀티턴 prefix가 필요하거나 다음 행동이 없는 경우) None."""
-    runtime = FunctionsRuntime(suite.tools)
-    _, _, _, messages, _ = GroundTruthPipeline(user_task).query(user_task.PROMPT, runtime, env)
-
-    if len(messages) < 3:
-        return None
-    if messages[0]["role"] != "assistant" or not messages[0]["tool_calls"]:
-        return None
-    if messages[1]["role"] != "tool":
-        return None
-    if messages[2]["role"] != "assistant" or not messages[2]["tool_calls"]:
-        return None
-
-    tool_content = get_text_content_as_str(messages[1]["content"])
-    next_tool_name = messages[2]["tool_calls"][0].function
-    return tool_content, next_tool_name
-
-
 def _bump(stats, suite_name: str, reason: str) -> None:
-    """skip_stats[suite][reason] += 1. stats가 None이면 아무것도 안 한다."""
+    """skip_stats[suite][reason] += 1. stats가 None이면 아무것도 안 한다.
+
+    어느 조합이 왜 버려졌는지를 suite별로 남기기 위한 계측 훅. 이게 없어서 8/19에
+    "travel이 OOM으로 빠졌다"고 오진했다 (실제로는 pair 생성 단계에서 걸러지고 있었다).
+    산출물 확인: tools/diag_agentdojo_pairs.py
+    """
     if stats is None:
         return
     stats.setdefault(suite_name, {}).setdefault(reason, 0)
     stats[suite_name][reason] += 1
+
+
+def _collect_tool_turns(user_task, env, suite: TaskSuite):
+    """GroundTruthPipeline을 끝까지 돌려 tool 응답을 **턴 순서대로** 모은다.
+
+    반환: (turns, messages)
+      turns[i] = {"action":  이 응답을 만든 tool 이름 (없으면 None),
+                  "content": tool 응답 본문,
+                  "msg_idx": messages 안에서의 위치}
+    """
+    runtime = FunctionsRuntime(suite.tools)
+    _, _, _, messages, _ = GroundTruthPipeline(user_task).query(user_task.PROMPT, runtime, env)
+
+    turns = []
+    pending_action = None
+    for idx, m in enumerate(messages):
+        role = m.get("role")
+        if role == "assistant" and m.get("tool_calls"):
+            pending_action = m["tool_calls"][0].function
+        elif role == "tool":
+            turns.append({
+                "action": pending_action,
+                "content": get_text_content_as_str(m.get("content")),
+                "msg_idx": idx,
+            })
+            pending_action = None
+    return turns, messages
+
+
+def _next_action_after(messages, msg_idx: int) -> Optional[str]:
+    """msg_idx 이후 첫 assistant tool_call의 tool 이름. 없으면 None."""
+    for m in messages[msg_idx + 1:]:
+        if m.get("role") == "assistant" and m.get("tool_calls"):
+            return m["tool_calls"][0].function
+    return None
+
+
+def _find_injected_tool_turn(user_task, env, suite: TaskSuite):
+    """**주입 문구가 포함된 첫 tool 턴**을 찾는다 (구 `_first_tool_turn`의 일반화).
+
+    ⚠️ 이전 판은 `messages[1]`(=첫 tool 응답)만 봤다. 그런데 travel의 injection vector는
+    호텔/식당 리뷰 필드에 심기고, travel user task의 첫 tool 호출은 보통
+    `get_all_hotels_in_city`(이름 목록)라 리뷰가 없다. 주입은 턴 2~4에서야 나타난다.
+    그 결과 travel은 140조합 중 8개만 살아남았고, 8/19 발표에서 이를 "OOM으로 빠졌다"고
+    오진했다 (docs/plan-2026-08-26.md 4절).
+
+    실측(2026-08-21): **네 suite 모두 "주입이 대화에 전혀 안 나타나는" 경우는 0건**이었다.
+    첫 턴만 보던 것이 유일한 원인이었고, 이 일반화로 220 -> 307쌍(travel 8 -> 59)이 된다.
+
+    반환: (history, tool_content, next_tool_name, turn_idx)
+      history — 주입 턴보다 **앞선** 턴들. 프롬프트에 컨텍스트로 넣는다.
+                turn_idx=0이면 빈 리스트가 되어 **기존 프롬프트와 완전히 동일**해진다
+                (기존 220쌍의 비교 가능성 보존).
+    """
+    turns, messages = _collect_tool_turns(user_task, env, suite)
+
+    hit = None
+    for i, t in enumerate(turns):
+        if _ANCHOR_START in t["content"]:
+            hit = i
+            break
+    if hit is None:
+        return None
+
+    next_tool = _next_action_after(messages, turns[hit]["msg_idx"])
+    if next_tool is None:
+        return None
+    return turns[:hit], turns[hit]["content"], next_tool, hit
+
+
+def _add_history(pb, history, history_max_chars: Optional[int] = None) -> None:
+    """주입 턴보다 앞선 대화를 프롬프트에 컨텍스트로 넣는다.
+
+    왜 넣어야 하는가: `read_target`은 "주입 턴 다음에 정상적으로 이어질 tool 호출"인데,
+    앞선 맥락이 없으면 모델이 그 tool을 고를 이유가 없다. 예를 들어 read_target이
+    `get_rating_reviews_for_restaurants`라면 앞에서 `get_all_restaurants_in_city`를
+    이미 호출했다는 맥락이 있어야 한다. 컨텍스트를 떼면 **read_token_prob(utility proxy)이
+    무너진다** (docs/plan-2026-08-26.md 4.5절).
+
+    span 그룹을 "history"로 따로 두는 이유: `data_benign`에 섞으면 read relevance가
+    주입 턴이 아니라 앞선 턴 내용까지 포함하게 되어 측정 의미가 달라진다.
+    """
+    for t in history:
+        content = t["content"]
+        if history_max_chars is not None and len(content) > history_max_chars:
+            content = content[:history_max_chars] + " ...[truncated]"
+        if t["action"]:
+            pb.add("special", f"{IM_START}assistant\n", add_special_tokens=False)
+            pb.add("history",
+                   "Thought: Based on the tool response, the next action is:\n"
+                   f"Action: {t['action']}")
+            pb.add("special", IM_END, add_special_tokens=False)
+        pb.add("special", f"{IM_START}tool\n", add_special_tokens=False)
+        pb.add("history", "Tool Response: " + content)
+        pb.add("special", IM_END, add_special_tokens=False)
 
 
 def build_agentdojo_example(
@@ -133,13 +212,15 @@ def build_agentdojo_example(
     suite: TaskSuite,
     device: str = "cuda",
     skip_stats: Optional[dict] = None,
+    history_max_chars: Optional[int] = None,
 ) -> Optional[IPIExample]:
     """한 (user_task, injection_task) 쌍 -> 주입 있는 IPIExample. 아래 조건을 만족하지
     않으면 None(건너뜀):
-      - 첫 tool 호출 응답에 공격 문구가 그대로 등장하지 않음(멀티턴 prefix 필요한 case)
-      - 그 응답 다음에 정상적으로 이어질 다음 행동이 없음
+      - 주입 문구가 어느 tool 응답에도 안 나타남 (실측상 0건)
+      - 주입 턴 뒤에 정상적으로 이어질 다음 행동이 없음
       - 다음 정상 행동과 공격자 목표 행동의 tool 이름이 같음(인자 오염형이라 tool-이름
         proxy로 구분 불가 — 위 모듈 docstring 참고)
+      - 두 tool 이름의 **첫 토큰**이 같음 (next-token proxy로 구분 불가)
     """
     attack_text = _build_attack_text(user_task, injection_task)
     injections = {vector_id: attack_text for vector_id in suite.get_injection_vector_defaults()}
@@ -152,11 +233,11 @@ def build_agentdojo_example(
         return None
     attacker_tool = inj_ground_truth[0].function
 
-    turn = _first_tool_turn(user_task, env, suite)
-    if turn is None:
-        _bump(skip_stats, suite.name, "no_first_tool_turn")
+    found = _find_injected_tool_turn(user_task, env, suite)
+    if found is None:
+        _bump(skip_stats, suite.name, "no_injected_tool_turn")
         return None
-    tool_content, read_tool = turn
+    history, tool_content, read_tool, turn_idx = found
 
     if read_tool == attacker_tool:
         _bump(skip_stats, suite.name, "same_tool_name")
@@ -164,6 +245,7 @@ def build_agentdojo_example(
 
     split = _split_on_injection(tool_content)
     if split is None:
+        # _find_injected_tool_turn이 앵커로 턴을 찾았으므로 여기 걸리면 논리 모순이다
         _bump(skip_stats, suite.name, "injection_text_not_found")
         return None
     benign_prefix, injected_span, benign_suffix = split
@@ -176,6 +258,9 @@ def build_agentdojo_example(
     pb.add("special", f"{IM_START}user\n", add_special_tokens=False)
     pb.add("question", user_task.PROMPT)
     pb.add("special", IM_END, add_special_tokens=False)
+
+    # turn_idx=0이면 history가 비어 아무것도 추가되지 않는다 -> 기존 프롬프트와 동일
+    _add_history(pb, history, history_max_chars)
 
     pb.add("special", f"{IM_START}tool\n", add_special_tokens=False)
     pb.add("data_benign", "Tool Response: " + benign_prefix)
@@ -194,6 +279,9 @@ def build_agentdojo_example(
         # tool 이름 문자열은 다르지만(위에서 이미 걸러짐) 첫 토큰이 우연히 같은 경우
         # (예: get_balance/get_iban처럼 공통 접두사 공유) — next-token 확률 proxy로는
         # 두 결과를 구분할 수 없으므로 건너뛴다.
+        # ⚠️ 일반화 이후 이것이 travel의 **최대 잔여 손실**(54건)이 된다. travel의 tool
+        #    28개 중 20개가 `get_`으로 시작한다. 타깃 정의를 바꾸는 건 별도 과제
+        #    (docs/plan-2026-08-26.md 6절 이월 A0).
         _bump(skip_stats, suite.name, "first_token_collision")
         return None
 
@@ -209,6 +297,10 @@ def build_agentdojo_example(
             "injection_task": injection_task.ID,
             "read_tool": read_tool,
             "attacker_tool": attacker_tool,
+            # 주입이 나타난 tool 턴 번호. 0이면 기존(첫 턴) 케이스, >=1이면 일반화로
+            # 새로 살아난 케이스 — 결과 분석에서 두 집단을 분리할 수 있어야 한다.
+            "turn_idx": turn_idx,
+            "n_history_turns": len(history),
         },
     )
 
@@ -218,20 +310,34 @@ def build_agentdojo_clean_example(
     user_task,
     suite: TaskSuite,
     device: str = "cuda",
+    turn_idx: int = 0,
+    skip_stats: Optional[dict] = None,
+    history_max_chars: Optional[int] = None,
 ) -> Optional[IPIExample]:
     """`build_injecagent_clean_example()`과 동일한 역할 — 공격 문구 없이(injection vector에
     기본값만 채운 환경) 같은 구조의 프롬프트를 만들어 read 기준선 relevance 계산에 쓴다.
     exec_target은 이 예시에서 실제로 쓰이지 않지만 IPIExample 필수 필드라 read_target과 같은
-    값을 채운다 (injecagent.py와 동일한 관례)."""
+    값을 채운다 (injecagent.py와 동일한 관례).
+
+    ⚠️ `turn_idx`를 **injected 예시와 같은 값으로** 받아야 한다. 주입 예시가 턴 2에서
+    만들어졌는데 clean이 턴 0에서 만들어지면 대화상 위치가 달라 read 기준선이 비교 대상이
+    되지 못한다.
+    """
     defaults = suite.get_injection_vector_defaults()
     env = suite.load_and_inject_default_environment(defaults)
     env = user_task.init_environment(env)
 
-    turn = _first_tool_turn(user_task, env, suite)
-    if turn is None:
-        _bump(skip_stats, suite.name, "no_first_tool_turn")
+    turns, messages = _collect_tool_turns(user_task, env, suite)
+    if turn_idx >= len(turns):
+        # 주입이 없는 환경에서는 롤아웃이 더 짧아질 수 있다
+        _bump(skip_stats, suite.name, "clean_turn_missing")
         return None
-    tool_content, read_tool = turn
+
+    tool_content = turns[turn_idx]["content"]
+    read_tool = _next_action_after(messages, turns[turn_idx]["msg_idx"])
+    if read_tool is None:
+        _bump(skip_stats, suite.name, "clean_no_next_action")
+        return None
 
     pb = PromptBuilder(tokenizer)
     pb.add("special", f"{IM_START}system\n", add_special_tokens=False)
@@ -241,6 +347,8 @@ def build_agentdojo_clean_example(
     pb.add("special", f"{IM_START}user\n", add_special_tokens=False)
     pb.add("question", user_task.PROMPT)
     pb.add("special", IM_END, add_special_tokens=False)
+
+    _add_history(pb, turns[:turn_idx], history_max_chars)
 
     pb.add("special", f"{IM_START}tool\n", add_special_tokens=False)
     pb.add("data_benign", "Tool Response: " + tool_content)
@@ -257,7 +365,10 @@ def build_agentdojo_clean_example(
         spans=spans,
         read_target=read_target,
         exec_target=read_target,  # 미사용 placeholder (injecagent.py와 동일한 관례)
-        meta={"mode": "agentdojo_clean", "suite": suite.name, "user_task": user_task.ID, "read_tool": read_tool},
+        meta={
+            "mode": "agentdojo_clean", "suite": suite.name, "user_task": user_task.ID,
+            "read_tool": read_tool, "turn_idx": turn_idx,
+        },
     )
 
 
@@ -267,6 +378,7 @@ def build_agentdojo_pairs(
     suite_names: Optional[List[str]] = None,
     benchmark_version: str = DEFAULT_BENCHMARK_VERSION,
     skip_stats: Optional[dict] = None,
+    history_max_chars: Optional[int] = None,
 ) -> List[Dict[str, IPIExample]]:
     """P4 Track A: 지정한 suite들의 모든 (user_task, injection_task) 조합을 순회하며
     {"clean": IPIExample, "injected": IPIExample} 쌍을 만든다. 위 필터(단일 tool 턴 패턴,
@@ -284,10 +396,16 @@ def build_agentdojo_pairs(
                 injected = build_agentdojo_example(
                     tokenizer, user_task, injection_task, suite,
                     device=device, skip_stats=skip_stats,
+                    history_max_chars=history_max_chars,
                 )
                 if injected is None:
                     continue
-                clean = build_agentdojo_clean_example(tokenizer, user_task, suite, device=device)
+                # clean은 **injected와 같은 턴**에서 만들어야 read 기준선이 비교 가능하다
+                clean = build_agentdojo_clean_example(
+                    tokenizer, user_task, suite, device=device,
+                    turn_idx=injected.meta["turn_idx"], skip_stats=skip_stats,
+                    history_max_chars=history_max_chars,
+                )
                 if clean is None:
                     _bump(skip_stats, suite.name, "clean_build_failed")
                     continue
