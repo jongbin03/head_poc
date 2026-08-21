@@ -40,7 +40,7 @@ from head_ranking import (
     expected_jaccard_by_chance,
 )
 from edge_ablation import sweep_knockout
-from runtime_env import add_runtime_args, describe, write_env_json
+from runtime_env import add_runtime_args, describe, resolve_dtype, write_env_json
 
 
 def _clean_ks(full_ks: List[int], n_heads: int) -> List[int]:
@@ -129,11 +129,18 @@ def main():
     add_runtime_args(parser)
     args = parser.parse_args()
 
+    # dtype을 run_dir 이름보다 먼저 확정한다. 폴더명에 dtype을 넣어야 하기 때문 —
+    # 안 넣으면 같은 날 같은 모델을 fp16/fp32로 각각 돌렸을 때 뒤엣것이 앞엣것을
+    # 조용히 덮어쓴다 (P2-a의 --heldout_style_idx 덮어쓰기 버그와 같은 유형).
+    # dtype이 다르면 수치가 다르므로, 이건 서로 다른 실행으로 보존돼야 한다.
+    _torch_dtype, dtype_name = resolve_dtype(args.dtype, args.device)
+
     if args.out_dir:
         run_dir = args.out_dir
     else:
         model_slug = re.sub(r"[^A-Za-z0-9]+", "-", args.model).strip("-")
         suffix = "_4bit" if args.four_bit else ""
+        suffix += f"_{dtype_name}"
         if args.heldout_style_idx is not None:
             suffix += f"_heldout{args.heldout_style_idx}"
         if args.unseen_styles:
@@ -145,9 +152,11 @@ def main():
     os.makedirs(run_dir, exist_ok=True)
 
     print(f"[1/4] loading {args.model} (family={args.family}, four_bit={args.four_bit}) ...")
+    # 위에서 이미 해결한 이름을 그대로 넘긴다 (idempotent) — "auto"를 다시 넘기면
+    # 폴더명과 실제 dtype이 어긋날 여지가 생긴다.
     model, tok, dtype_name = load_model_for_relevance(
         model_path=args.model, four_bit=args.four_bit, device=args.device,
-        model_family=args.family, dtype=args.dtype,
+        model_family=args.family, dtype=dtype_name,
     )
     print(describe(dtype_name))
     # 실행 환경을 결과 폴더에 남긴다 — 모델 로드 직후에 써서, 뒤에서 OOM으로 죽어도
