@@ -62,7 +62,16 @@ def resolve_dtype(name: str = "auto", device: str = "cuda") -> tuple:
 
     if not str(device).startswith("cuda") or not torch.cuda.is_available():
         return torch.float32, "fp32"
-    if torch.cuda.is_bf16_supported():
+
+    # ⚠️ `torch.cuda.is_bf16_supported()`를 쓰면 안 된다.
+    #    최신 PyTorch에서 이 함수는 기본값이 including_emulation=True라, bf16 하드웨어가
+    #    없어도 "에뮬레이션으로 돌릴 수 있으면" True를 반환한다.
+    #    실측(2026-08-21, 서버 Titan RTX + torch 2.13.0+cu126): capability (7,5)인데
+    #    is_bf16_supported()가 True를 돌려줬다 — auto가 bf16을 골라버려 정확히 피하려던
+    #    상황(에뮬레이션 bf16 = 매우 느림)이 된다.
+    #    bf16 하드웨어 지원은 Ampere(sm_80)부터이므로 compute capability를 직접 본다.
+    major, _minor = torch.cuda.get_device_capability()
+    if major >= 8:
         return torch.bfloat16, "bf16"
     return torch.float16, "fp16"
 

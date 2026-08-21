@@ -315,10 +315,28 @@ print("fp16 matmul ok:", bool(torch.isfinite(x @ x).all()))
 PY
 ```
 
-`bf16 supported: False`가 **정상**이다. Titan RTX는 Turing(sm_75)이고 bf16 하드웨어
-지원은 Ampere(sm_80)부터다. 이 때문에 아래 A-5의 `--dtype`이 필요하다.
+**`arch list`에 `sm_75`가 있는지가 핵심**이다. 없으면 `capability`가 (7,5)로 잘 나와도
+실제 연산에서 `no kernel image is available for execution`이 난다.
+
+> ⚠️ **`bf16 supported`가 `True`로 나와도 놀라지 말 것 — 그리고 믿지도 말 것.**
+> 최신 PyTorch의 `torch.cuda.is_bf16_supported()`는 기본값이 `including_emulation=True`라
+> **bf16 하드웨어가 없어도 에뮬레이션이 가능하면 True**를 반환한다.
+> 실측(2026-08-21, Titan RTX + torch 2.13.0+cu126): `capability (7,5)`인데 `True`가 나왔다.
+> 그래서 `runtime_env.resolve_dtype()`은 이 함수를 쓰지 않고 **compute capability를 직접
+> 본다**(`major >= 8`이면 bf16). 판정 기준은 `capability`이지 `bf16 supported`가 아니다.
 
 ### A-4. 나머지 의존성
+
+> ⚠️ **먼저 `PYTHONNOUSERSITE`가 걸려 있는지 확인할 것.** conda env는 venv와 달리
+> `~/.local/lib/pythonX.Y/site-packages`를 그대로 읽는다. 이 서버의 `~/.local`에는 다른
+> 사용자가 깐 패키지가 많아서, 그대로 두면 **`pip install X==핀버전`이 "Requirement already
+> satisfied"로 건너뛰고 남의 버전을 쓰게 된다** — 핀이 무력화되고 재현성이 깨진다.
+> `env.sh`가 `PYTHONNOUSERSITE=1`을 export하므로 **source한 셸에서 설치할 것.**
+>
+> ```bash
+> python -c "import site; print(site.ENABLE_USER_SITE)"   # False 여야 함
+> pip list | wc -l    # 우리가 깐 것만 나와야 함 (수십 개, 100개 넘으면 새는 중)
+> ```
 
 ```bash
 pip install -r requirements.txt

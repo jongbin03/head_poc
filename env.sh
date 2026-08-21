@@ -29,6 +29,16 @@ export CONDA_ENVS_DIRS="$JB/envs"
 mkdir -p "$XDG_CACHE_HOME" "$HF_HOME" "$TORCH_HOME" "$PIP_CACHE_DIR" \
          "$MPLCONFIGDIR" "$TORCH_EXTENSIONS_DIR" "$TRITON_CACHE_DIR"
 
+# ---- 공용 user-site 차단 (중요) --------------------------------------------
+# conda env는 venv와 달리 ~/.local/lib/pythonX.Y/site-packages를 그대로 읽는다.
+# 이 서버의 ~/.local에는 다른 사용자가 깐 패키지가 많아(torch-geometric, openai,
+# scikit-learn, typing-extensions 등) 그대로 두면 두 가지 문제가 난다:
+#   1) `pip install X==핀버전`이 "Requirement already satisfied"로 건너뛰고
+#      남의 버전을 쓰게 된다 → 핀이 무력화되고 재현성이 깨진다
+#   2) torch 버전이 안 맞는 확장(torch_cluster 1.6.3+pt24cu124 등)이 import될 수 있다
+# PYTHONNOUSERSITE=1이면 파이썬이 user-site를 아예 무시한다.
+export PYTHONNOUSERSITE=1
+
 # ---- GPU -------------------------------------------------------------------
 # 이걸 안 켜면 CUDA_VISIBLE_DEVICES 번호가 nvidia-smi 번호와 달라질 수 있다.
 # 공용 서버에서 "빈 GPU 골라 잡기"를 하려면 두 번호가 일치해야 한다.
