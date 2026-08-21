@@ -27,12 +27,22 @@ def load_model_for_relevance(
     four_bit: bool = False,
     device: str = "cuda",
     model_family: str = "qwen2",
+    dtype: str = "auto",
 ):
     """
     model_family: "qwen2" | "llama"  (lxt가 공식 지원하는 아키텍처만)
+    dtype: "auto" | "bf16" | "fp16" | "fp32" — runtime_env.resolve_dtype 참고.
+           Turing(Titan RTX 등)에는 bf16이 없어 auto가 fp16으로 내려간다.
+           ⚠️ fp16은 loss scaling이 없어 아래 backward에서 relevance가 NaN이 될 수 있다.
+           호출자는 `runtime_env.has_nonfinite`로 검사하고 OOM 스킵과 구분해 카운트할 것.
     checkpointing은 여기서 켜지 않는다 — head-level relevance와 상극이기 때문.
+
+    반환: (model, tokenizer, dtype_name) — dtype_name은 "auto"가 실제로 무엇으로
+    해결됐는지이며, 호출자가 env.json에 기록해야 한다.
     """
     from lxt.efficient import monkey_patch
+
+    from runtime_env import resolve_dtype
 
     if model_family == "qwen2":
         from transformers.models.qwen2 import modeling_qwen2 as modeling_mod
@@ -45,11 +55,13 @@ def load_model_for_relevance(
 
     monkey_patch(modeling_mod, verbose=False)
 
-    kwargs = dict(torch_dtype=torch.bfloat16, device_map=device, attn_implementation="eager")
+    torch_dtype, dtype_name = resolve_dtype(dtype, device)
+
+    kwargs = dict(torch_dtype=torch_dtype, device_map=device, attn_implementation="eager")
     if four_bit:
         from transformers import BitsAndBytesConfig
         kwargs["quantization_config"] = BitsAndBytesConfig(
-            load_in_4bit=True, bnb_4bit_compute_dtype=torch.bfloat16
+            load_in_4bit=True, bnb_4bit_compute_dtype=torch_dtype
         )
 
     model = model_cls.from_pretrained(model_path, **kwargs)
@@ -58,7 +70,7 @@ def load_model_for_relevance(
         p.requires_grad_(False)
 
     tok = AutoTokenizer.from_pretrained(model_path)
-    return model, tok
+    return model, tok, dtype_name
 
 
 def _clamp_pos(x: torch.Tensor) -> torch.Tensor:

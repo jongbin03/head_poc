@@ -45,6 +45,7 @@ import tempfile
 import torch
 
 from attn_relevance import load_model_for_relevance, compute_head_relevance
+from runtime_env import add_runtime_args, collect_env_meta, describe, has_nonfinite
 from dataset import build_phase0_batch
 from head_ranking import aggregate_scores, topk_heads, jaccard
 
@@ -53,25 +54,33 @@ def _discover_synthetic(args, model, tok):
     pairs = build_phase0_batch(tok, device=args.device, limit=args.dataset_limit)
 
     internal_scores, external_scores = [], []
+    n_nan = 0
     for i, ex in enumerate(pairs):
         internal_ex = ex["internal"]
-        internal_scores.append(
-            compute_head_relevance(
-                model, internal_ex.input_ids, internal_ex.exec_target,
-                key_spans={"data_inj": internal_ex.spans["data_inj"]},
-            )
+        internal_gs = compute_head_relevance(
+            model, internal_ex.input_ids, internal_ex.exec_target,
+            key_spans={"data_inj": internal_ex.spans["data_inj"]},
         )
         external_ex = ex["external"]
-        external_scores.append(
-            compute_head_relevance(
-                model, external_ex.input_ids, external_ex.exec_target,
-                key_spans={"data_inj": external_ex.spans["data_inj"]},
-            )
+        external_gs = compute_head_relevance(
+            model, external_ex.input_ids, external_ex.exec_target,
+            key_spans={"data_inj": external_ex.spans["data_inj"]},
         )
+        # fp16에는 loss scaling이 없어 backward에서 relevance가 NaN/inf로 죽을 수 있다.
+        # 둘 중 하나라도 오염되면 그 템플릿은 통째로 버린다 (internal/external을 짝으로 유지).
+        if has_nonfinite(internal_gs) or has_nonfinite(external_gs):
+            n_nan += 1
+            print(f"  [synthetic] non-finite relevance at template {i}, skipping (dtype 문제 의심)")
+        else:
+            internal_scores.append(internal_gs)
+            external_scores.append(external_gs)
         gc.collect()
         torch.cuda.empty_cache()
         if (i + 1) % 10 == 0:
-            print(f"  [synthetic] {i + 1}/{len(pairs)} templates done")
+            print(f"  [synthetic] {i + 1}/{len(pairs)} templates done (nan_skipped={n_nan})")
+
+    if not internal_scores:
+        raise RuntimeError("[synthetic] 모든 예시가 non-finite — --dtype을 fp32로 올려볼 것")
 
     internal_score = aggregate_scores(internal_scores, "data_inj")
     external_score = aggregate_scores(external_scores, "data_inj")
@@ -85,7 +94,8 @@ def _discover_synthetic(args, model, tok):
         "heads": heads,
         "num_layers": num_layers,
         "num_heads_per_layer": num_heads_per_layer,
-        "n_examples_used": len(pairs),
+        "n_examples_used": len(internal_scores),
+        "n_nan_skipped": n_nan,
         "topk": args.topk,
     }
 
@@ -141,15 +151,21 @@ def _discover_single_channel(args, model, tok, source_name):
 
     scores = []
     n_skipped_oom = 0
+    n_skipped_nan = 0
     for i, pair in enumerate(head_pairs):
         inj_ex = pair["injected"]
         try:
-            scores.append(
-                compute_head_relevance(
-                    model, inj_ex.input_ids, inj_ex.exec_target,
-                    key_spans={"data_inj": inj_ex.spans["data_inj"]},
-                )
+            gs = compute_head_relevance(
+                model, inj_ex.input_ids, inj_ex.exec_target,
+                key_spans={"data_inj": inj_ex.spans["data_inj"]},
             )
+            # fp16 backward의 NaN은 OOM과 원인이 완전히 다르므로 따로 센다 —
+            # 섞으면 "왜 표본이 줄었는지"를 사후에 가릴 수 없다.
+            if has_nonfinite(gs):
+                n_skipped_nan += 1
+                print(f"  [{source_name}] non-finite relevance at pair {i}, skipping (dtype 문제 의심)")
+            else:
+                scores.append(gs)
         except torch.cuda.OutOfMemoryError:
             # agentdojo 케이스 중 일부(예: 긴 tool 응답)는 backward pass의 attention*grad
             # 텐서가 시퀀스 길이 제곱에 비례해 커져, compute_head_relevance의 프로세스 전역
@@ -162,10 +178,16 @@ def _discover_single_channel(args, model, tok, source_name):
         torch.cuda.empty_cache()
         if (i + 1) % 20 == 0:
             alloc = torch.cuda.memory_allocated() / (1024**3)
-            print(f"  [{source_name}] {i + 1}/{len(head_pairs)} (cuda allocated={alloc:.2f}GiB, oom_skipped={n_skipped_oom})")
+            print(
+                f"  [{source_name}] {i + 1}/{len(head_pairs)} (cuda allocated={alloc:.2f}GiB, "
+                f"oom_skipped={n_skipped_oom}, nan_skipped={n_skipped_nan})"
+            )
 
     if not scores:
-        raise RuntimeError(f"[{source_name}] every pair OOM'd — reduce --head_n")
+        raise RuntimeError(
+            f"[{source_name}] 남은 예시가 없다 (oom={n_skipped_oom}, nan={n_skipped_nan}) — "
+            f"oom이 대부분이면 --head_n/--max_seq_len을 낮추고, nan이 대부분이면 --dtype을 올릴 것"
+        )
 
     score = aggregate_scores(scores, "data_inj")
     heads = topk_heads(score, args.topk)
@@ -177,6 +199,7 @@ def _discover_single_channel(args, model, tok, source_name):
         "num_heads_per_layer": num_heads_per_layer,
         "n_examples_used": len(scores),
         "n_oom_skipped": n_skipped_oom,
+        "n_nan_skipped": n_skipped_nan,
         "head_n": args.head_n,
         "seed": args.seed,
         "topk": args.topk,
@@ -200,11 +223,15 @@ _DISCOVER_FNS = {
 
 def cmd_discover(args):
     print(f"[discover:{args.source}] loading {args.model} (family={args.family}, four_bit={args.four_bit}) ...")
-    model, tok = load_model_for_relevance(
-        model_path=args.model, four_bit=args.four_bit, device=args.device, model_family=args.family
+    model, tok, dtype_name = load_model_for_relevance(
+        model_path=args.model, four_bit=args.four_bit, device=args.device,
+        model_family=args.family, dtype=args.dtype,
     )
+    print(describe(dtype_name))
     result = _DISCOVER_FNS[args.source](args, model, tok)
     result["model"] = args.model
+    # heads JSON은 결과 폴더가 아니라 단독 파일로 나가므로 환경을 안에 넣는다
+    result["env"] = collect_env_meta(dtype_name)
 
     out_json = args.out_json or f"heads_{args.source}.json"
     with open(out_json, "w", encoding="utf-8") as f:
@@ -222,14 +249,17 @@ def cmd_discover_batch(args):
     subset = head_pairs[args.start:args.end]
 
     print(f"[discover-batch:{args.source}] loading {args.model} for batch [{args.start}:{args.end}] ...")
-    model, _ = load_model_for_relevance(
-        model_path=args.model, four_bit=args.four_bit, device=args.device, model_family=args.family
+    model, _, dtype_name = load_model_for_relevance(
+        model_path=args.model, four_bit=args.four_bit, device=args.device,
+        model_family=args.family, dtype=args.dtype,
     )
+    print(describe(dtype_name))
     num_layers = model.config.num_hidden_layers
     num_heads_per_layer = model.config.num_attention_heads
     sum_tensor = torch.zeros(num_layers, num_heads_per_layer)
     count = 0
     n_oom = 0
+    n_nan = 0
 
     for i, pair in enumerate(subset):
         inj_ex = pair["injected"]
@@ -238,16 +268,28 @@ def cmd_discover_batch(args):
                 model, inj_ex.input_ids, inj_ex.exec_target,
                 key_spans={"data_inj": inj_ex.spans["data_inj"]},
             )
-            sum_tensor += gs["data_inj"]
-            count += 1
+            # NaN 하나가 sum_tensor에 섞이면 그 배치 전체(그리고 최종 합)가 통째로 오염된다.
+            # 누적 전에 반드시 거른다.
+            if has_nonfinite(gs):
+                n_nan += 1
+                print(f"  [discover-batch:{args.source}] non-finite at local idx {i} (global {args.start + i}), skipping")
+            else:
+                sum_tensor += gs["data_inj"]
+                count += 1
         except torch.cuda.OutOfMemoryError:
             n_oom += 1
             print(f"  [discover-batch:{args.source}] OOM at local idx {i} (global {args.start + i}), skipping")
         gc.collect()
         torch.cuda.empty_cache()
 
-    torch.save({"sum": sum_tensor, "count": count, "n_oom": n_oom}, args.out_partial)
-    print(f"[discover-batch:{args.source}] batch [{args.start}:{args.end}] done: {count} ok, {n_oom} oom -> {args.out_partial}")
+    torch.save(
+        {"sum": sum_tensor, "count": count, "n_oom": n_oom, "n_nan": n_nan, "dtype": dtype_name},
+        args.out_partial,
+    )
+    print(
+        f"[discover-batch:{args.source}] batch [{args.start}:{args.end}] done: "
+        f"{count} ok, {n_oom} oom, {n_nan} nan -> {args.out_partial}"
+    )
 
 
 def cmd_discover_parallel(args):
@@ -263,6 +305,8 @@ def cmd_discover_parallel(args):
     num_layers = num_heads_per_layer = None
     count = 0
     n_oom_total = 0
+    n_nan_total = 0
+    batch_dtypes = set()
     try:
         for start in range(0, total, args.batch_size):
             end = min(start + args.batch_size, total)
@@ -271,6 +315,9 @@ def cmd_discover_parallel(args):
                 sys.executable, __file__, "discover-batch",
                 "--source", args.source, "--model", args.model, "--family", args.family,
                 "--device", args.device, "--head_n", str(args.head_n), "--seed", str(args.seed),
+                # dtype을 안 넘기면 서브프로세스가 "auto"로 각자 판단해버려, 부모가 기록한
+                # dtype과 실제 계산 dtype이 어긋날 수 있다. 반드시 전달할 것.
+                "--dtype", args.dtype,
                 "--injecagent_repo_dir", args.injecagent_repo_dir,
                 "--agentdojo_benchmark_version", args.agentdojo_benchmark_version,
                 "--start", str(start), "--end", str(end), "--out_partial", out_partial,
@@ -297,11 +344,25 @@ def cmd_discover_parallel(args):
                 sum_tensor += partial["sum"]
             count += partial["count"]
             n_oom_total += partial["n_oom"]
+            n_nan_total += partial.get("n_nan", 0)
+            if partial.get("dtype"):
+                batch_dtypes.add(partial["dtype"])
     finally:
         shutil.rmtree(tmp_dir, ignore_errors=True)
 
     if count == 0:
-        raise RuntimeError(f"[discover-parallel:{args.source}] every batch OOM'd — --batch_size나 --max_seq_len을 낮출 것")
+        raise RuntimeError(
+            f"[discover-parallel:{args.source}] 남은 예시가 없다 "
+            f"(oom={n_oom_total}, nan={n_nan_total}) — oom이면 --batch_size/--max_seq_len을 "
+            f"낮추고, nan이면 --dtype을 올릴 것"
+        )
+    # 배치마다 dtype이 다르면 부분합을 더한 것 자체가 무의미하다 — 조용히 넘어가지 않는다
+    if len(batch_dtypes) > 1:
+        raise RuntimeError(
+            f"[discover-parallel:{args.source}] 배치별 dtype이 섞였다: {sorted(batch_dtypes)}. "
+            f"--dtype을 명시적으로 지정해 재실행할 것"
+        )
+    resolved_dtype = next(iter(batch_dtypes), args.dtype)
 
     mean_score = sum_tensor / count
     heads = topk_heads(mean_score, args.topk)
@@ -312,18 +373,20 @@ def cmd_discover_parallel(args):
         "num_heads_per_layer": num_heads_per_layer,
         "n_examples_used": count,
         "n_oom_skipped": n_oom_total,
+        "n_nan_skipped": n_nan_total,
         "head_n": args.head_n,
         "seed": args.seed,
         "topk": args.topk,
         "model": args.model,
         "batch_size": args.batch_size,
+        "env": collect_env_meta(resolved_dtype),
     }
     out_json = args.out_json or f"heads_{args.source}.json"
     with open(out_json, "w", encoding="utf-8") as f:
         json.dump(result, f, indent=2)
     print(
         f"[discover-parallel:{args.source}] {len(heads)} heads (from {count}/{total} examples, "
-        f"{n_oom_total} oom) -> saved to {out_json}"
+        f"{n_oom_total} oom, {n_nan_total} nan) -> saved to {out_json}"
     )
     print(f"  heads = {heads}")
 
@@ -416,6 +479,7 @@ def _add_common_discover_args(p):
     p.add_argument("--family", default="qwen2", choices=["qwen2", "llama"])
     p.add_argument("--device", default="cuda")
     p.add_argument("--four_bit", action="store_true")
+    add_runtime_args(p)
     p.add_argument("--topk", type=int, default=20)
     p.add_argument(
         "--dataset_limit", type=int, default=None,
@@ -432,7 +496,9 @@ def _add_common_discover_args(p):
         "--max_seq_len", type=int, default=None,
         help="injecagent/agentdojo 소스 전용: 이 길이(토큰)를 넘는 pair는 head 탐색 풀에서 "
         "미리 제외 (긴 시퀀스가 OOM을 유발하고 이미 알려진 메모리 누적 버그와 겹치면 연쇄 "
-        "OOM으로 번짐 — agentdojo는 2000 권장, 실측상 전체의 ~6%만 넘음).",
+        # argparse는 help 문자열에 `help % params`를 적용하므로 리터럴 %는 %%로 써야 한다.
+        # (%만 쓰면 `--help` 자체가 ValueError로 죽는다 — 실제로 죽고 있었다)
+        "OOM으로 번짐 — agentdojo는 2000 권장, 실측상 전체의 ~6%%만 넘음).",
     )
     p.add_argument("--injecagent_repo_dir", default="external_injecagent")
     p.add_argument("--agentdojo_suites", nargs="*", default=None)

@@ -24,6 +24,7 @@ from typing import Dict, List, Tuple
 from attn_relevance import load_model_for_relevance
 from dataset import build_phase0_batch
 from edge_ablation import sweep_knockout
+from runtime_env import add_runtime_args, collect_env_meta, describe
 
 
 def _load_heads(heads_json: str) -> List[Tuple[int, int]]:
@@ -42,6 +43,7 @@ def main():
     parser.add_argument("--injecagent_repo_dir", default="external_injecagent")
     parser.add_argument("--injecagent_limit", type=int, default=None)
     parser.add_argument("--out_json", default=None)
+    add_runtime_args(parser)
     args = parser.parse_args()
 
     heads = _load_heads(args.heads_json)
@@ -49,9 +51,11 @@ def main():
     ks = sorted({0, len(heads)})
 
     print(f"[run_proxy_eval] loading {args.model} (family={args.family}, four_bit={args.four_bit}) ...")
-    model, tok = load_model_for_relevance(
-        model_path=args.model, four_bit=args.four_bit, device=args.device, model_family=args.family
+    model, tok, dtype_name = load_model_for_relevance(
+        model_path=args.model, four_bit=args.four_bit, device=args.device,
+        model_family=args.family, dtype=args.dtype,
     )
+    print(describe(dtype_name))
     if args.family == "qwen2":
         from transformers.models.qwen2 import modeling_qwen2 as modeling_mod
     else:
@@ -87,6 +91,7 @@ def main():
     results["injecagent"] = injecagent_sweep
 
     out_json = args.out_json or "proxy_eval_summary.json"
+    results["env"] = collect_env_meta(dtype_name)
     with open(out_json, "w", encoding="utf-8") as f:
         json.dump(results, f, indent=2)
     print(f"\nsummary saved to {out_json}")

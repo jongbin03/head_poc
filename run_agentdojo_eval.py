@@ -33,26 +33,31 @@ from agentdojo.attacks.attack_registry import load_attack
 from agentdojo.task_suite.load_suites import get_suite
 
 from adapters.agentdojo_pipeline import KnockoutLocalLLM
+from runtime_env import add_runtime_args, collect_env_meta, describe
 
 
-def _load_model(model_path: str, family: str, four_bit: bool, device: str):
+def _load_model(model_path: str, family: str, four_bit: bool, device: str, dtype: str = "auto"):
     # Track B는 forward-only(edge_knockout)라 attn_relevance.load_model_for_relevance의
     # lxt monkey-patch(backward 전용)가 필요 없다 — 그냥 eager attention으로만 로드한다.
+    from runtime_env import resolve_dtype
+
     if family == "qwen2":
         from transformers.models.qwen2 import modeling_qwen2 as modeling_mod
     else:
         from transformers.models.llama import modeling_llama as modeling_mod
 
-    kwargs = dict(torch_dtype=torch.bfloat16, device_map=device, attn_implementation="eager")
+    torch_dtype, dtype_name = resolve_dtype(dtype, device)
+
+    kwargs = dict(torch_dtype=torch_dtype, device_map=device, attn_implementation="eager")
     if four_bit:
         from transformers import BitsAndBytesConfig
 
-        kwargs["quantization_config"] = BitsAndBytesConfig(load_in_4bit=True, bnb_4bit_compute_dtype=torch.bfloat16)
+        kwargs["quantization_config"] = BitsAndBytesConfig(load_in_4bit=True, bnb_4bit_compute_dtype=torch_dtype)
 
     model = AutoModelForCausalLM.from_pretrained(model_path, **kwargs)
     model.eval()
     tok = AutoTokenizer.from_pretrained(model_path)
-    return model, tok, modeling_mod
+    return model, tok, modeling_mod, dtype_name
 
 
 def _build_pipeline(llm, max_iters: int) -> AgentPipeline:
@@ -107,6 +112,7 @@ def main():
         "너무 오래 걸리는 걸 방지).",
     )
     parser.add_argument("--out_json", default=None)
+    add_runtime_args(parser)
     args = parser.parse_args()
 
     heads = _load_heads(args.heads_json)
@@ -114,7 +120,10 @@ def main():
     print(f"[run_agentdojo_eval] {len(heads)} heads loaded from {args.heads_json}: {heads}")
 
     print(f"[run_agentdojo_eval] loading {args.model} ...")
-    model, tok, modeling_mod = _load_model(args.model, args.family, args.four_bit, args.device)
+    model, tok, modeling_mod, dtype_name = _load_model(
+        args.model, args.family, args.four_bit, args.device, args.dtype
+    )
+    print(describe(dtype_name))
 
     llm = KnockoutLocalLLM(model, tok, modeling_mod, knockout_map=None, max_new_tokens=args.max_new_tokens, device=args.device)
     pipeline = _build_pipeline(llm, args.max_iters)
@@ -204,6 +213,9 @@ def main():
     )
 
     out_json = args.out_json or "agentdojo_eval_summary.json"
+    # 결과 폴더가 아니라 단일 JSON으로 나가는 경로라, env.json 대신 summary 안에 넣는다.
+    # 이게 없으면 "어느 커밋/어느 dtype으로 낸 숫자인지" 사후에 가릴 수 없다.
+    summary["env"] = collect_env_meta(dtype_name)
     with open(out_json, "w", encoding="utf-8") as f:
         json.dump(summary, f, indent=2)
     print(f"\nsummary saved to {out_json}")

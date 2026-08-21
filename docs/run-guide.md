@@ -6,6 +6,11 @@ PowerShell을 쓸 경우 `source .venv/Scripts/activate` 대신
 
 모든 명령은 이 디렉토리(`atlas_poc/`)에서 실행한다.
 
+> 🖥️ **연구실 공용 SSH 서버(Titan RTX 24GB × 3)에서 돌리는 경우 아래 0~2단계를 그대로
+> 따르면 안 된다.** 시스템 python이 3.8.19라 `transformers==4.51.3`이 안 깔리고, pyenv는
+> 공용 서버에서 쓰면 안 되며, bf16이 없어 dtype도 달라진다.
+> → **[부록 A. 공용 SSH 서버 절차](#부록-a-공용-ssh-서버-titan-rtx-24gb--3-절차)** 로 갈 것.
+
 ---
 
 ## 0단계 — Python 버전 준비
@@ -213,3 +218,152 @@ python run_pipeline.py \
 | knockout sweep 전 구간 확률 동일 | `edge_ablation.py` 패치가 eager 경로를 못 잡음 | `k=0`과 `k=80`의 `malicious_token_prob` 차이가 0인지 확인 |
 | OOM | 시퀀스 길이 × attention tensor 메모리 | `nvidia-smi`로 실측, 모델 크기/템플릿 길이 축소 |
 | HF 모델 다운로드 안 됨 | 네트워크/인증 | `huggingface-cli login`, 프록시 설정 확인 |
+| relevance가 전부 NaN / `nan_skipped`가 큼 | fp16 backward 언더플로 (loss scaling 없음) | `--dtype fp32`로 올려서 재현되는지 확인 (부록 A-5) |
+| `CUBLAS_STATUS_NOT_SUPPORTED` | bf16 없는 GPU에서 bf16 요청 | `--dtype fp16` 명시. Turing(sm_75)은 bf16 미지원 |
+| 같은 설정인데 지난번과 숫자가 다름 | dtype/커밋이 다름 | 두 결과의 `env.json`에서 `dtype`·`git.commit`·`git.dirty` 비교 |
+
+---
+
+## 부록 A. 공용 SSH 서버 (Titan RTX 24GB × 3) 절차
+
+본문 0~2단계를 **대체**한다. 3단계 이후의 실험 명령은 그대로 쓰되 `--dtype`만 추가된다.
+
+### A-0. 지켜야 할 제약 (교수님 규칙)
+
+> - 누가 돌리고 있을 수도 있으니 그럴 경우 기다리고 쓸 것
+> - `~/jbwon` 에서만 작업할 것. 다른 곳 절대 수정 금지. 패키지 설치도 최대한 영향 없게
+
+홈(`~`)이 공용일 가능성이 높다는 뜻으로 해석한다. 따라서:
+
+- **`sudo` 금지**
+- **`pip install --user` 금지** — `~/.local`에 깔려 공용 파이썬의 import 경로를 바꾼다
+- **pyenv 설치 금지** — 소스 빌드라 `libssl-dev` 등 시스템 패키지가 필요하고,
+  `~/.pyenv`와 `.bashrc`를 오염시킨다. 본문 0단계를 서버에서 따라하지 말 것
+- **`git config --global` 금지** — 저장소 로컬 설정만 사용
+- 남의 GPU 프로세스 **kill 절대 금지**
+
+### A-1. 저장소 clone + 캐시 리다이렉트
+
+```bash
+mkdir -p ~/jbwon && cd ~/jbwon
+git clone http://github.com/jongbin03/head_poc atlas_poc
+cd atlas_poc
+```
+
+`env.sh`가 HF/pip/torch/matplotlib 캐시를 전부 `~/jbwon` 안으로 접는다. 이걸 먼저 하지 않고
+`pip install`이나 모델 다운로드를 하면 수십 GB가 `~/.cache`에 떨어진다.
+
+```bash
+source ~/jbwon/atlas_poc/env.sh   # 이 시점엔 Miniforge 경고가 뜨는 게 정상 (A-2에서 설치)
+```
+
+매 세션 이걸 `source` 하는 것을 습관화한다.
+
+### A-2. Miniforge로 Python 3.11 (시스템 python 3.8.19는 못 씀)
+
+시스템 python 3.8.19로는 `transformers==4.51.3`(≥3.9), `torch`≥2.5(≥3.9),
+`agentdojo`(≥3.10)가 전부 설치되지 않는다. Miniforge는 단일 디렉토리 자기완결형이라
+root도 빌드 의존성도 필요 없고, `-b` 플래그로 `.bashrc`도 건드리지 않는다.
+
+```bash
+cd ~/jbwon
+curl -L -O "https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh"
+bash Miniforge3-Linux-x86_64.sh -b -p ~/jbwon/miniforge3
+~/jbwon/miniforge3/bin/conda create -y -p ~/jbwon/envs/atlas python=3.11
+
+source ~/jbwon/atlas_poc/env.sh   # 이제 envs/atlas가 활성화된다
+python --version                   # Python 3.11.x 확인
+```
+
+### A-3. PyTorch — Turing(sm_75)용
+
+로컬 5070Ti와 달리 cu128이 강제되지 않는다. pytorch.org가 안내하는 stable CUDA 빌드를
+쓰되, **sm_75 커널이 실제로 들어 있는지 반드시 검증한다** (없으면 조용히 CPU로 폴백하거나
+`no kernel image is available` 에러가 난다):
+
+```bash
+pip install --upgrade pip
+pip install torch --index-url https://download.pytorch.org/whl/cu126   # 예시
+
+python - <<'PY'
+import torch
+print("torch:", torch.__version__)
+print("cuda available:", torch.cuda.is_available())
+print("device:", torch.cuda.get_device_name(0))
+print("capability:", torch.cuda.get_device_capability(0))   # Titan RTX면 (7, 5)
+print("bf16 supported:", torch.cuda.is_bf16_supported())    # Turing이면 False가 정상
+x = torch.randn(256, 256, device="cuda", dtype=torch.float16)
+print("fp16 matmul ok:", bool(torch.isfinite(x @ x).all()))
+PY
+```
+
+`bf16 supported: False`가 **정상**이다. Titan RTX는 Turing(sm_75)이고 bf16 하드웨어
+지원은 Ampere(sm_80)부터다. 이 때문에 아래 A-5의 `--dtype`이 필요하다.
+
+### A-4. 나머지 의존성
+
+```bash
+pip install -r requirements.txt
+```
+
+`requirements.txt`는 `transformers==4.51.3`만 확정 핀이고 나머지는 아직 미확정이다.
+**설치가 성공하면 첫 실행의 `env.json`에 남은 `packages`를 보고 requirements.txt를
+확정 핀으로 갱신할 것.**
+
+InjecAgent는 저장소에 포함돼 있지 않으므로 따로 받는다:
+
+```bash
+git clone https://github.com/uiuc-kang-lab/InjecAgent.git external_injecagent
+```
+
+### A-5. `--dtype` — 서버에서는 fp16
+
+모든 실행 스크립트에 `--dtype {auto,bf16,fp16,fp32}`가 있다. 기본 `auto`는 bf16 지원
+여부를 조회해서 고르므로 Titan RTX에서는 자동으로 fp16이 된다. 다만 **어떤 값으로
+해결됐는지는 콘솔 첫 줄(`[env] ... dtype=fp16 ...`)과 결과의 `env.json`에 기록된다.**
+
+```bash
+CUDA_VISIBLE_DEVICES=0 python run_pipeline.py \
+  --model Qwen/Qwen2.5-7B-Instruct --family qwen2 --four_bit --dtype fp16 --topk 20
+```
+
+> ⚠️ **bf16(로컬)과 fp16(서버) 결과는 수치가 같지 않다.** fp16은 가수부가 더 길고
+> (10비트 vs 7비트) 지수 범위는 좁아, knockout 붕괴 지점이 밀릴 수 있다.
+> **dtype이 다른 실행을 같은 비교표에 섞지 말 것.** 결과의 `env.json`에서 확인한다.
+
+> ⚠️ **fp16 backward는 NaN이 날 수 있다.** lxt의 relevance 계산에는 loss scaling이 없다.
+> 이 경우 로그에 `non-finite relevance ... skipping`이 뜨고 결과 JSON의 `n_nan_skipped`가
+> 올라간다 — **OOM 스킵(`n_oom_skipped`)과 별도로 센다.** `n_nan_skipped`가 크면
+> `--dtype fp32`로 올려서 사라지는지 확인한다 (메모리를 훨씬 많이 쓰므로 작은 모델부터).
+
+### A-6. GPU 점유 — 실행 전 매번 확인
+
+`env.sh`가 `gpu_free` 함수를 정의해 둔다.
+
+```bash
+gpu_free
+```
+
+비어 있는 GPU만 골라 쓴다. **3장을 관성적으로 다 잡지 않는다** — 32B 4bit도 24GB 한 장에
+들어가므로 1장으로도 진행된다. 3장이 다 비어 있으면 한 모델을 쪼개지 말고 **독립 실험 3개를
+동시에** 돌리는 편이 낫다:
+
+```bash
+tmux new -s jbwon-gpu0    # 세션 이름에 식별자+GPU를 넣어 남이 오해하지 않게
+CUDA_VISIBLE_DEVICES=0 python compare_head_sources.py discover-parallel --source agentdojo ...
+```
+
+SSH가 끊겨도 실행이 유지되도록 **긴 실행은 반드시 tmux 안에서** 돌린다.
+
+### A-7. 결과 회수
+
+서버는 **실행 전용**이다. 코드는 `git pull`만 하고, 편집은 로컬에서 한다
+(docs/plan-2026-08-26.md 1.5절). 결과만 커밋해서 올린다:
+
+```bash
+git config user.name "Won"                  # --global 쓰지 말 것
+git config user.email "jongbinwon@gmail.com"
+git add results/ && git commit -m "..." && git push
+```
+
+`results/`는 실행마다 새 폴더라 로컬 작업과 구조적으로 충돌하지 않는다.

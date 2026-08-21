@@ -40,6 +40,7 @@ from head_ranking import (
     expected_jaccard_by_chance,
 )
 from edge_ablation import sweep_knockout
+from runtime_env import add_runtime_args, describe, write_env_json
 
 
 def _clean_ks(full_ks: List[int], n_heads: int) -> List[int]:
@@ -125,6 +126,7 @@ def main():
         "compute_head_relevance의 GPU 메모리 누수 때문에 head 탐색 직후 eval sweep이 물리 "
         "VRAM 거의 꽉 찬 상태에서 극도로 느려지는 문제를 우회하는 용도(새 프로세스로 재실행).",
     )
+    add_runtime_args(parser)
     args = parser.parse_args()
 
     if args.out_dir:
@@ -143,9 +145,14 @@ def main():
     os.makedirs(run_dir, exist_ok=True)
 
     print(f"[1/4] loading {args.model} (family={args.family}, four_bit={args.four_bit}) ...")
-    model, tok = load_model_for_relevance(
-        model_path=args.model, four_bit=args.four_bit, device=args.device, model_family=args.family
+    model, tok, dtype_name = load_model_for_relevance(
+        model_path=args.model, four_bit=args.four_bit, device=args.device,
+        model_family=args.family, dtype=args.dtype,
     )
+    print(describe(dtype_name))
+    # 실행 환경을 결과 폴더에 남긴다 — 모델 로드 직후에 써서, 뒤에서 OOM으로 죽어도
+    # "무슨 환경에서 어디까지 갔는지"는 남게 한다 (docs/plan-2026-08-26.md 1.3절)
+    write_env_json(run_dir, dtype_name, extra={"stage": "run_pipeline", "run_dir": run_dir})
 
     head_style_indices = None
     if args.heldout_style_idx is not None:
@@ -521,8 +528,11 @@ def main():
     summary_path = os.path.join(run_dir, "summary.txt")
     with open(summary_path, "w", encoding="utf-8") as f:
         f.write(f"model={args.model} family={args.family} four_bit={args.four_bit} "
+                 f"dtype={dtype_name} "
                  f"topk={args.topk} dataset_limit={args.dataset_limit} "
-                 f"heldout_style_idx={args.heldout_style_idx}\n\n")
+                 f"heldout_style_idx={args.heldout_style_idx}\n")
+        # dtype이 다르면 수치를 직접 비교하면 안 된다. 자세한 환경은 같은 폴더의 env.json.
+        f.write("(전체 실행 환경: 같은 폴더의 env.json — commit/dtype/GPU/패키지 버전)\n\n")
         f.write(f"jaccard(read,internal)   = {summary['jaccard_read_internal']:.3f}\n")
         f.write(f"jaccard(read,external)   = {summary['jaccard_read_external']:.3f}\n")
         f.write(f"jaccard(internal,external)= {summary['jaccard_internal_external']:.3f}\n")

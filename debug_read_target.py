@@ -18,6 +18,8 @@ import argparse
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
+from runtime_env import add_runtime_args, describe, resolve_dtype
+
 from dataset import build_phase0_batch
 
 
@@ -53,12 +55,15 @@ def main():
     parser.add_argument("--device", default="cuda")
     parser.add_argument("--dataset_limit", type=int, default=3)
     parser.add_argument("--gen_tokens", type=int, default=12)
+    add_runtime_args(parser)
     args = parser.parse_args()
 
+    torch_dtype, dtype_name = resolve_dtype(args.dtype, args.device)
+    print(describe(dtype_name))
     print(f"loading {args.model} (plain HF, no lxt patch) ...")
     tok = AutoTokenizer.from_pretrained(args.model)
     model = AutoModelForCausalLM.from_pretrained(
-        args.model, torch_dtype=torch.bfloat16, device_map=args.device,
+        args.model, torch_dtype=torch_dtype, device_map=args.device,
         attn_implementation="eager",
     )
     model.eval()

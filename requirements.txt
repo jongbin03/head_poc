@@ -1,0 +1,42 @@
+# atlas_poc 의존성
+#
+# ⚠️ torch는 여기에 없다. GPU마다 필요한 CUDA 빌드가 달라 index-url을 따로 줘야 하기
+#    때문 — docs/run-guide.md의 환경별 절차를 먼저 따르고, 그 다음 이 파일을 설치할 것.
+#
+#      로컬 5070 Ti (Blackwell sm_120) : cu128 이상 강제. 실측 조합 torch 2.11.0+cu128
+#      서버 Titan RTX (Turing sm_75)   : cu121~cu128 범위에서 pytorch.org 안내대로.
+#                                        설치 후 sm_75 커널이 실제로 있는지 반드시 검증
+#                                        (run-guide.md "1단계 검증" 참고)
+#
+# ⚠️ 이 파일의 핀은 "재현이 확인된 것"과 "아직 미확정"이 섞여 있다. 아래 UNPINNED 절을
+#    반드시 읽을 것. 실제로 무엇이 깔려 돌았는지는 **각 실행 결과의 env.json**에
+#    `packages`로 전부 남으므로, 서버 첫 설치가 성공하면 그 env.json을 보고 이 파일을
+#    확정 핀으로 갱신한다.
+
+# ---- 확정 핀 (재현 확인됨) -------------------------------------------------
+# 4.46.3에서는 lxt가 무조건 import하는 qwen3 모듈이 없어 실패한다.
+# Colab(2026-07-27)과 로컬 5070Ti(2026-07-28) 양쪽에서 이 버전으로 재현 확인됨.
+# (results/2026-07-27_colab_smoketest/README.md, results/2026-07-28_local_5070ti/README.md)
+transformers==4.51.3
+
+# ---- UNPINNED — 서버 첫 설치 후 env.json 보고 핀 고정할 것 ------------------
+# 지금까지 버전을 기록해두지 않아 확정 핀을 쓸 수 없다. 아래 하한만 근거가 있다.
+
+# lxt.efficient.monkey_patch API를 쓴다 (attn_relevance.py).
+lxt
+
+# device_map= 로 모델을 올리는 데 필요.
+accelerate
+
+# 4bit(NF4). Turing sm_75가 bitsandbytes 4bit의 최소 요구 compute capability라
+# Titan RTX는 경계선에서 지원된다. 너무 낮은 버전은 sm_75 4bit 커널이 없을 수 있음.
+bitsandbytes>=0.43.0
+
+# functional_map.png
+matplotlib
+
+# AgentDojo Track A/B. 패키지 자체에 task suite 데이터가 포함돼 있다.
+# ⚠️ Python >=3.10 요구 — 서버 시스템 python 3.8.19로는 설치 불가.
+#    코드가 쓰는 benchmark_version은 v1.2.2 (이건 패키지 버전이 아니라 suite 데이터 버전).
+#    설치 후 get_suite(v1.2.2, ...)가 실제로 되는지 확인하고 그때 핀을 고정할 것.
+agentdojo
