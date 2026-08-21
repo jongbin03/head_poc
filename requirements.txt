@@ -23,35 +23,37 @@
 #                                        설치 후 sm_75 커널이 실제로 있는지 반드시 검증
 #                                        (run-guide.md "1단계 검증" 참고)
 #
-# ⚠️ 이 파일의 핀은 "재현이 확인된 것"과 "아직 미확정"이 섞여 있다. 아래 UNPINNED 절을
-#    반드시 읽을 것. 실제로 무엇이 깔려 돌았는지는 **각 실행 결과의 env.json**에
-#    `packages`로 전부 남으므로, 서버 첫 설치가 성공하면 그 env.json을 보고 이 파일을
-#    확정 핀으로 갱신한다.
+# 아래 핀은 **2026-08-21 서버(Titan RTX, Python 3.11.15) 첫 설치에서 실제로 동작이
+# 확인된 조합**이다. 각 실행 결과의 env.json에 `packages`로 전체 목록이 남으므로,
+# 조합을 바꿀 때는 그 파일과 대조할 것.
 
-# ---- 확정 핀 (재현 확인됨) -------------------------------------------------
 # 4.46.3에서는 lxt가 무조건 import하는 qwen3 모듈이 없어 실패한다.
 # Colab(2026-07-27)과 로컬 5070Ti(2026-07-28) 양쪽에서 이 버전으로 재현 확인됨.
 # (results/2026-07-27_colab_smoketest/README.md, results/2026-07-28_local_5070ti/README.md)
 transformers==4.51.3
 
-# ---- UNPINNED — 서버 첫 설치 후 env.json 보고 핀 고정할 것 ------------------
-# 지금까지 버전을 기록해두지 않아 확정 핀을 쓸 수 없다. 아래 하한만 근거가 있다.
-
 # lxt.efficient.monkey_patch API를 쓴다 (attn_relevance.py).
-lxt
+# 2.1의 DEFAULT_MAP: llama / qwen2 / qwen3 / gemma3 / bert / gpt2 / vit
+# (실측 확인 2026-08-21). 단 README는 Qwen3에 "attribution skewed toward first token"
+# 경고를 달아뒀다 — docs/plan-2026-08-26.md 3.1.1절.
+lxt==2.1
 
 # device_map= 로 모델을 올리는 데 필요.
-accelerate
+accelerate==1.14.0
 
 # 4bit(NF4). Turing sm_75가 bitsandbytes 4bit의 최소 요구 compute capability라
-# Titan RTX는 경계선에서 지원된다. 너무 낮은 버전은 sm_75 4bit 커널이 없을 수 있음.
-bitsandbytes>=0.43.0
+# Titan RTX는 경계선에서 지원된다.
+bitsandbytes==0.50.1
 
 # functional_map.png
-matplotlib
+matplotlib==3.11.1
 
 # AgentDojo Track A/B. 패키지 자체에 task suite 데이터가 포함돼 있다.
 # ⚠️ Python >=3.10 요구 — 서버 시스템 python 3.8.19로는 설치 불가.
-#    코드가 쓰는 benchmark_version은 v1.2.2 (이건 패키지 버전이 아니라 suite 데이터 버전).
-#    설치 후 get_suite(v1.2.2, ...)가 실제로 되는지 확인하고 그때 핀을 고정할 것.
-agentdojo
+# 0.1.35에서 benchmark_version="v1.2.2" suite 로드 확인 (2026-08-21):
+#   banking 16x9=144 / slack 21x5=105 / travel 20x7=140 / workspace 40x14=560, 합계 949
+agentdojo==0.1.35
+
+# 참고 — 위 조합에서 함께 깔린 주요 전이 의존성 (핀은 안 걸지만 기록용):
+#   numpy 2.4.6 / tokenizers 0.21.4 / huggingface-hub 0.36.2 / safetensors 0.8.0
+#   torch 2.13.0+cu126 / torchvision 0.28.0+cu126 (둘 다 위 경고대로 별도 설치)

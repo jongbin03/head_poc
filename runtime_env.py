@@ -103,12 +103,17 @@ def git_commit() -> dict:
             return None
 
     head = _run("git", "rev-parse", "HEAD")
-    status = _run("git", "status", "--porcelain")
+    # --untracked-files=no가 중요하다. 이게 없으면 실행이 방금 만든 results/<run_dir>가
+    # untracked로 잡혀 **항상** dirty=True가 된다 (실측 2026-08-21 서버 첫 실행).
+    # 여기서 알고 싶은 건 "추적 중인 코드가 커밋과 다른가"이지 "새 산출물이 있는가"가 아니다.
+    status = _run("git", "status", "--porcelain", "--untracked-files=no")
     return {
         "commit": head,
         "branch": _run("git", "rev-parse", "--abbrev-ref", "HEAD"),
         # dirty=True면 커밋되지 않은 수정 위에서 돌린 결과라 그 커밋으로 재현되지 않는다
         "dirty": bool(status) if status is not None else None,
+        # 무엇이 수정됐는지도 남긴다 — dirty=True일 때 사후 추적이 가능해야 한다
+        "dirty_files": status.splitlines() if status else [],
     }
 
 
