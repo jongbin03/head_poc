@@ -59,10 +59,22 @@
   같은 비교표에 섞지 않는다** — 8/19 재현 실패 건에 dtype 축이 하나 더 얹히는 셈이다.
   lxt backward가 fp16에서 NaN을 낼 수 있어 NaN 가드를 OOM 스킵과 분리해 카운트한다.
 
-**모델 선택**: 현재 lxt monkey_patch가 `qwen2`/`llama`만 지원한다(`attn_relevance.py:37-43`).
-27B(Gemma)는 lxt 미지원 + 스케일·패밀리·세대를 동시에 바꿔 원인 분리가 안 된다. 대신
-**Qwen2.5-32B 4bit(스케일 축)** 와 **Llama-3.1-8B(패밀리 축)** 는 코드 수정 없이 바로 되므로
-축을 분리해 진행한다. Qwen3-8B는 lxt 지원 확인 후.
+**모델 선택** (2026-08-21 lxt 2.1 소스 확인 후 갱신): 병목은 lxt가 아니라 우리 코드다.
+lxt 2.1의 `DEFAULT_MAP`은 **llama/qwen2/qwen3/gemma3/bert/gpt2/vit**를 지원하고,
+`monkey_patch`가 자동 dispatch한다 — 막고 있는 건 `attn_relevance.py:37-43`이 `qwen2`/`llama`만
+분기한다는 점뿐(모델당 ~6줄). 그럼에도 이번 사이클은 **코드 수정 0인 두 축**으로 간다:
+
+- **스케일 축**: Qwen2.5-7B → **Qwen2.5-32B 4bit** (family 고정, lxt qwen2 ✅)
+- **패밀리 축**: Qwen2.5-7B → **Llama-3.1-8B** (`--family llama` 이미 있음)
+
+- ⚠️ **Qwen3-8B 보류**: lxt README가 **"Attribution skewed toward first token"**(🧪)으로
+  명시 경고. 우리는 relevance를 D_inj span에 합산하는 방식이라 질량이 position 0에
+  흡수되면 점수가 계통적으로 눌린다. 배선(6줄)보다 **position별 relevance 분포 진단이
+  선행**돼야 한다.
+- ⚠️ **Gemma-3-27B 보류** (이전 기록의 "lxt 미지원"은 **오류** — `models/gemma3.py` 있고 ✅):
+  멀티모달 래퍼(`Gemma3ForConditionalGeneration`), **sliding-window local attention**
+  (AgentDojo 긴 tool 응답에서 D_inj가 윈도우 밖으로 나갈 수 있음 — 위 (a)와 얽힘),
+  게이트 모델. 여기에 스케일·패밀리·세대 동시 변경 교란까지 남는다.
 
 **환경 제약(교수님 규칙: `~/jbwon` 밖 수정 금지)**: `run-guide.md` 0단계의 pyenv 방식은
 서버에서 쓰면 안 된다(빌드 의존성 → root 필요, `~/.pyenv`+`.bashrc` 오염). Miniforge를
