@@ -40,7 +40,7 @@ from head_ranking import (
     expected_jaccard_by_chance,
 )
 from edge_ablation import sweep_knockout
-from runtime_env import add_runtime_args, describe, resolve_dtype, write_env_json
+from runtime_env import add_runtime_args, describe, has_nonfinite, resolve_dtype, write_env_json
 
 
 def _clean_ks(full_ks: List[int], n_heads: int) -> List[int]:
@@ -177,8 +177,9 @@ def main():
     )
 
     read_scores_list, internal_scores_list, external_scores_list = [], [], []
+    n_nan_templates = 0
 
-    for ex in pairs:
+    for t_idx, ex in enumerate(pairs):
         # read: 정상 컨텐츠(D_benign)를 읽는지. 주입문이 없는 clean 프롬프트에서 재서
         # read head의 baseline이 공격에 오염되지 않게 한다.
         read_ex = ex["read_clean"]
@@ -186,7 +187,6 @@ def main():
             model, read_ex.input_ids, read_ex.read_target,
             key_spans={"data_benign": read_ex.spans["data_benign"]},
         )
-        read_scores_list.append(read_groups)
 
         # internal: 자유 텍스트 답변이 D_inj의 영향을 받는지 -> target=exec_target
         internal_ex = ex["internal"]
@@ -194,7 +194,6 @@ def main():
             model, internal_ex.input_ids, internal_ex.exec_target,
             key_spans={"data_inj": internal_ex.spans["data_inj"]},
         )
-        internal_scores_list.append(internal_groups)
 
         # external: tool_call 인자가 D_inj의 영향을 받는지 -> target=exec_target
         external_ex = ex["external"]
@@ -202,7 +201,37 @@ def main():
             model, external_ex.input_ids, external_ex.exec_target,
             key_spans={"data_inj": external_ex.spans["data_inj"]},
         )
+
+        # ⚠️ NaN 가드 — 이게 없으면 조용히 전부 망가진다.
+        # 실측(2026-08-21, 0.5B/fp16): 템플릿 3개 중 1개의 external에서만 NaN이 140/336개
+        # 발생했는데, aggregate_scores가 평균을 내면서 external_score 전체가 NaN이 되고,
+        # topk_heads가 점수 순서가 아니라 인덱스 순서((0,0),(0,1),...)를 반환해
+        # jaccard(*,external)이 0.000으로 찍혔다. 에러도 경고도 없이 그럴듯한 숫자가 나온다.
+        # 세 score를 같은 템플릿 집합에서 뽑아야 jaccard 비교가 성립하므로,
+        # 하나라도 오염되면 그 템플릿을 통째로 버린다.
+        bad = [n for n, g in (("read", read_groups), ("internal", internal_groups),
+                              ("external", external_groups)) if has_nonfinite(g)]
+        if bad:
+            n_nan_templates += 1
+            print(f"  [nan-guard] template {t_idx}: non-finite relevance in {bad} — "
+                  f"이 템플릿을 통째로 제외 (dtype={dtype_name})")
+            continue
+
+        read_scores_list.append(read_groups)
+        internal_scores_list.append(internal_groups)
         external_scores_list.append(external_groups)
+
+    if not read_scores_list:
+        raise RuntimeError(
+            f"모든 템플릿이 non-finite로 걸렀다 (dtype={dtype_name}). "
+            f"--dtype fp32로 올려서 재현되는지 확인할 것."
+        )
+    if n_nan_templates:
+        print(
+            f"  [nan-guard] 총 {n_nan_templates}/{len(pairs)} 템플릿 제외됨 "
+            f"({n_nan_templates / len(pairs):.0%}). 비율이 높으면 결과를 신뢰하지 말고 "
+            f"--dtype fp32와 대조할 것."
+        )
 
     read_score = aggregate_scores(read_scores_list, "data_benign")
     internal_score = aggregate_scores(internal_scores_list, "data_inj")
@@ -540,6 +569,10 @@ def main():
                  f"dtype={dtype_name} "
                  f"topk={args.topk} dataset_limit={args.dataset_limit} "
                  f"heldout_style_idx={args.heldout_style_idx}\n")
+        # 제외된 템플릿 수는 반드시 결과에 남긴다. 이 값이 0이 아니면 아래 모든 수치가
+        # 그만큼 줄어든 표본에서 나온 것이고, 비율이 높으면 dtype 문제를 의심해야 한다.
+        f.write(f"n_templates_used={len(read_scores_list)}/{len(pairs)} "
+                 f"nan_excluded={n_nan_templates}\n")
         # dtype이 다르면 수치를 직접 비교하면 안 된다. 자세한 환경은 같은 폴더의 env.json.
         f.write("(전체 실행 환경: 같은 폴더의 env.json — commit/dtype/GPU/패키지 버전)\n\n")
         f.write(f"jaccard(read,internal)   = {summary['jaccard_read_internal']:.3f}\n")
