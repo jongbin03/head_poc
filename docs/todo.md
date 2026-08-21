@@ -9,18 +9,70 @@
 | ~~P2~~ | ~~외부/추가 데이터셋으로 기존 control head의 edge knockout 효과 검증~~ | **완료** (2026-07-28, P2-a/b/c/d 전부) |
 | ~~P7~~ | ~~방법론 진단 — 랜덤 head 기준선 / top-K sweep / jaccard 우연 기준선 / 문서-코드 불일치 정정~~ | **완료** (2026-07-31, `../results/2026-07-31_Qwen-Qwen2-5-1-5B-Instruct`) |
 | P8 | 합성 데이터셋의 content-availability 교란 제거 | **보류 (2026-07-31 결정)**. head 탐색은 synthetic 그대로 써도 유효하다고 판단, 발표용 헤드라인은 AgentDojo 네이티브 채점(P4)에 맡기기로 함 |
-| **P4** | **(교수님 피드백) Head 탐색 방법론 재설계 — synthetic/InjecAgent/AgentDojo 3소스 비교, Track A(탐색)/Track B(평가) 하이브리드** | **최우선.** 구 P4+P6 통합. 가장 비중 큰 작업 |
+| **P9** | **SSH 공용 서버 이전 + 3차 발표(8/26) 확장 실험** — 환경 이전, suite 균등화, 모델 스케일업, split 재설계 | **최우선.** 상세 계획은 **[plan-2026-08-26.md](plan-2026-08-26.md)** |
+| **P4** | **(교수님 피드백) Head 탐색 방법론 재설계 — synthetic/InjecAgent/AgentDojo 3소스 비교, Track A(탐색)/Track B(평가) 하이브리드** | 진행 중. 구 P4+P6 통합. P9의 4·5절이 이 항목의 연장 |
 | P5 | (교수님 피드백) 키 그룹 2개 vs 데이터셋 모드 4개 문서 정비 | P4 결과로 서술이 또 바뀔 수 있어 그 뒤에 |
-| P3 | control head 내 internal-only vs external-only 채널 분기 검증 | **보류**. P4가 channel 축을 source 축으로 대체해 자동 흡수되지 않게 됨 |
+| P3 | control head 내 internal-only vs external-only 채널 분기 검증 | **후순위 (2026-08-21 결정)**. 겹침 정도는 기존 결과에서 산출 완료(합성 한정 예비, plan-2026-08-26.md 2절). **정식 분석은 AgentDojo injection task 재라벨링(신설 P10)이 선행돼야 함** — 합성 데이터는 품질이 낮아 이 위에서 결론 내면 content-availability 교란이 곱해짐 |
+| P10 | **AgentDojo에 internal/external 채널 축 이식 — injection task 재라벨링** | **신설 (2026-08-21)**. P3의 선행 조건. P9의 1·2·4 항목이 끝난 뒤 다음 사이클. 설계는 plan-2026-08-26.md 2.6절 |
 
 아래는 우선순위 순서대로 자세한 내용, 그 뒤에 보류 항목.
 자세한 대응 계획(특히 "키 그룹" 정의 재확인)은 `feedback-2026-07-29.md`,
 **현재 방법론의 교란 요인 분석은 `review-2026-07-29.md`** 참고.
+**3차 발표(8/26) 사이클의 실행 계획 전체는 `plan-2026-08-26.md`** 참고.
 
 > ⚠️ **2026-07-29 자체 리뷰로 우선순위가 크게 바뀌었다.** `review-2026-07-29.md`에서
 > 합성 데이터의 완전 억제(`0.0000`)가 content-availability 교란으로 부풀려졌을 가능성,
 > InjecAgent utility 지표가 ASR의 산술적 뒷면이라 독립 정보가 없다는 점이 확인됐다.
 > 측정을 고치기 전에 AgentDojo(P4)로 넘어가면 신뢰할 수 없는 숫자만 하나 더 늘어난다.
+
+---
+
+## P9. SSH 공용 서버 이전 + 3차 발표(8/26) 확장 실험 — 최우선
+
+**상세 계획은 [plan-2026-08-26.md](plan-2026-08-26.md)에 별도 문서로 정리했다.** 여기엔
+요약과, 기존 항목(P3/P4)과의 접점만 남긴다.
+
+**배경**: 16GB 5070Ti의 실용 한계(14B-4bit)를 이미 소진해 연구실 SSH 서버로 이전한다.
+서버 사양 — **Titan RTX 24GB × 3, 시스템 Python 3.8.19, 디스크 2.1T, 공용**.
+
+**교수님 지시 4개 항목**:
+1. AgentDojo suite **균등** 진행 (travel이 OOM으로 빠졌으므로)
+2. **모델 스케일업** — 27B 혹은 모델 교체(Qwen3-8B)
+3. **internal / external head가 겹치는지** 분석 → 합성 기준 예비 결과만 산출하고
+   **후순위로 이월** (P3, 선행 조건은 신설 P10). 8/26 사이클의 GPU 시간은 1·2·4에 쓴다
+4. **AgentDojo로 head 그룹 찾기** — 데이터셋 split
+
+**이 문서(todo.md)에 반영해야 할 발견 3가지**:
+
+- **(a) 지시 1은 VRAM 문제가 아니다.** travel/workspace가 빠진 진짜 원인은
+  `--max_seq_len 2000` 필터(긴 tool 응답이 이 두 suite에 몰려 있음)와 P2-d의
+  `compute_head_relevance` 메모리 누수다. 24GB로 올려도 터지는 시점만 늦춰진다.
+  → 필터 대신 **span offset을 보존하는 절단**, **suite별 층화 샘플링**,
+  **suite별 스킵 카운트 기록**이 필요하다. `discover-parallel`을 기본 경로로 쓴다.
+- **(b) `split_pairs`에 user_task 누수가 있다.** `adapters/agentdojo.py:263-270`이
+  (user_task × injection_task) 전조합을 만드는데 이를 무작위로 나누면 같은 user_task가
+  탐색셋과 평가셋 양쪽에 들어간다. **user_task 단위 group split** 또는
+  **leave-one-suite-out**으로 바꿔야 P2-a(held-out style)와 같은 논리가 성립한다.
+- **(c) Titan RTX(Turing, sm_75)에는 bf16이 없다.** `attn_relevance.py:48,52`,
+  `run_agentdojo_eval.py:46,50`, `debug_read_target.py:61`의 하드코딩된 `torch.bfloat16`을
+  `--dtype` 인자로 빼고 서버는 fp16으로 내려야 한다. **bf16/fp16 결과는 수치가 다르므로
+  같은 비교표에 섞지 않는다** — 8/19 재현 실패 건에 dtype 축이 하나 더 얹히는 셈이다.
+  lxt backward가 fp16에서 NaN을 낼 수 있어 NaN 가드를 OOM 스킵과 분리해 카운트한다.
+
+**모델 선택**: 현재 lxt monkey_patch가 `qwen2`/`llama`만 지원한다(`attn_relevance.py:37-43`).
+27B(Gemma)는 lxt 미지원 + 스케일·패밀리·세대를 동시에 바꿔 원인 분리가 안 된다. 대신
+**Qwen2.5-32B 4bit(스케일 축)** 와 **Llama-3.1-8B(패밀리 축)** 는 코드 수정 없이 바로 되므로
+축을 분리해 진행한다. Qwen3-8B는 lxt 지원 확인 후.
+
+**환경 제약(교수님 규칙: `~/jbwon` 밖 수정 금지)**: `run-guide.md` 0단계의 pyenv 방식은
+서버에서 쓰면 안 된다(빌드 의존성 → root 필요, `~/.pyenv`+`.bashrc` 오염). Miniforge를
+`~/jbwon`에 넣고 Python 3.11 환경을 만든다. HF/pip/torch/matplotlib 캐시는 전부
+환경변수로 `~/jbwon` 안에 접는다. 3.8.19로는 `transformers` 4.51.3(≥3.9),
+`torch` ≥2.5(≥3.9), **`agentdojo`(≥3.10)** 가 전부 안 깔린다.
+
+**브랜치**: 실험 전용 브랜치를 만들지 않는다. 코드가 이미 이식 가능하고(하드코딩 경로 0)
+저장소가 2.2MB라 분기 이득이 없으며, `results/`의 숫자와 그걸 만든 코드가 같은 선형
+히스토리에 있어야 재현성 추적이 된다. master 단일 유지, 서버는 pull + `results/` 커밋만.
 
 ---
 
@@ -701,12 +753,44 @@ penalty 없음)이 숫자 필드에서 퇴화하는 현상"이라, `max_new_toke
 5-3(7B 자체 head 재실행 + `_load_heads` 가드) → 5의 재현성 확인(2회 실행) →
 결정성 개선 → 표본 확대(재배분 160쌍) → 최종 head 집합 결정 → 6(K/baseline) → 7(문서화).
 
-## P3. control head 내 internal-only vs external-only 채널 분기 검증 (보류)
+## P3. control head 내 internal-only vs external-only 채널 분기 검증 — **후순위 (2026-08-21)**
 
-**2026-07-31 갱신**: P4에서 AgentDojo에 internal/external 채널 축을 이식하지 않기로
-결정(channel 축 → source 축 전환)했으므로, 이 항목은 더 이상 P4에 자동으로 흡수되지
-않는다. internal/external 구분이 남아있는 건 synthetic 데이터셋뿐이라, 진행한다면
-synthetic 한정 분석으로 남을 것 — 우선순위는 낮음(보류). 아래는 기존 배경 기록.
+**2026-08-21 갱신.** 교수님이 "internal head와 external head가 겹치는지"를 직접 지시하셔서
+한 번 되살아났고, **겹침 "정도"는 GPU 없이 기존 결과 파일에서 이미 산출했다** — 전체 표와
+해석은 [plan-2026-08-26.md 2절](plan-2026-08-26.md#2-internalexternal-head-겹침--합성-한정-예비-결과-후순위).
+
+**그러나 같은 날 다시 후순위로 내렸다.** internal/external 축은 합성 데이터셋에만 존재하는데,
+합성 데이터셋은 AgentDojo 등 외부 벤치마크 대비 품질이 낮고 `review-2026-07-29.md`에서
+**content-availability 교란**이 이미 확인됐다. 그 위에 채널 분기 결론까지 얹으면 교란이
+곱해진다. 아래 표는 **"합성 한정 예비 결과"로만 발표에 보고**하고, 정식 분석은
+**P10(AgentDojo injection task 재라벨링)이 선행된 뒤**로 미룬다.
+
+핵심만 옮기면:
+
+| 모델 | K | 교집합 | internal-only | external-only | jaccard | 우연 기대값 | 우연 대비 |
+|---|---|---|---|---|---|---|---|
+| 1.5B | 5 | 3 | 2 | 2 | 0.429 | 0.007 | 61배 |
+| 1.5B | **10** | **9** | **1** | **1** | **0.818** | 0.015 | **55배** |
+| 1.5B | 20 | 14 | 6 | 6 | 0.538 | 0.031 | 17배 |
+| 1.5B | 40 | 32 | 8 | 8 | 0.667 | 0.063 | 11배 |
+| 7B 4bit | 20 | 15 | 5 | 5 | 0.600 | 0.013 | 46배 |
+
+- **채널 전용 head는 존재하지만 소수다.** 아래 "할 일" 1~2번의 전제(`internal_only`,
+  `external_only`가 비어있지 않을 것)는 확인됐다.
+- **겹침이 K에 대해 비단조**라는 게 새로 드러났다. K=10에서 9/10(0.818)로 최대이고 K를
+  늘리면 겹침 비율이 떨어진다 → "공유 core + 채널별 주변부" 구조를 시사한다.
+- **방어 효과의 주역은 공유 core다.** 9/10이 겹치는 K=10에서 knockout이 완전히 듣고
+  (`malicious 0.0000`), 3/5만 겹치는 K=5에서는 안 듣는다(`0.3464`).
+- **남은 갭**: `head_ranking.py:83-108`의 `summarize_overlap`이 `internal_heads`/
+  `external_heads`를 이미 반환하고 있는데 `run_pipeline.py`가 이를 출력하지 않아
+  **어느 head가 채널 전용인지 멤버십이 저장돼 있지 않다.** 아래 1~2번(출력 2줄 추가)을
+  하고 1.5B를 재실행하면 로컬 5070Ti로 수 분 만에 채워지지만, **합성 기준이라 결론용으로는
+  쓸 수 없다** — 곁다리 작업으로만 남긴다. 3번(대칭 knockout)은 **P10 이후**.
+
+**2026-07-31 기록 (보류 결정 당시)**: P4에서 AgentDojo에 internal/external 채널 축을
+이식하지 않기로 결정(channel 축 → source 축 전환)했으므로, 이 항목은 더 이상 P4에
+자동으로 흡수되지 않는다. internal/external 구분이 남아있는 건 synthetic 데이터셋뿐이라,
+진행한다면 synthetic 한정 분석으로 남을 것. 아래는 기존 배경 기록.
 
 **배경**: 현재 `head_ranking.py`의 `summarize_overlap`은 `internal_heads ∩ external_heads`
 (=`control_heads_both`, "명령을 명령으로 받아들여 실행하는" 공통 회로)만 계산한다.
@@ -727,6 +811,35 @@ synthetic 한정 분석으로 남을 것 — 우선순위는 낮음(보류). 아
 
 **참고**: 2026-07-27 대화에서 나온 논의. `../results/2026-07-27_colab_phase1to3/README.md`의
 `control_heads_both` 결과가 이 실험의 출발점(내부/외부 공통 control head 후보)이 됨.
+
+---
+
+## P10. AgentDojo에 internal/external 채널 축 이식 — injection task 재라벨링 (신설 2026-08-21)
+
+**P3의 선행 조건.** 채널 분기 결론을 합성 데이터가 아닌 외부 벤치마크 위에서 내기 위한
+작업이다. 상세 설계는 [plan-2026-08-26.md 2.6절](plan-2026-08-26.md#26-후순위로-미룬-이유와-정식-분석-설계-agentdojo-재라벨링).
+
+**시점**: P9의 1·2·4 항목(서버 이전 / suite 균등화 / split 재설계)이 끝난 뒤 다음 사이클.
+8/26 발표 사이클에서는 착수하지 않는다.
+
+**할 일**:
+1. **프롬프트 변형** — `adapters/agentdojo.py`에 `build_agentdojo_internal_example` 신설.
+   기존 `build_agentdojo_example`에서 system의 tool 스펙(`_tool_list_text`, `agentdojo.py:70`)을
+   제거하고 자유 텍스트 응답을 유도하는 prefix로 교체. `D_benign`/`D_inj` span 분리 로직은
+   그대로 재사용 가능.
+2. **`exec_target` 재정의 — 이게 "재라벨링"의 실체이자 이 항목의 대부분.**
+   AgentDojo의 injection task는 "특정 tool을 호출하게 만드는 것"으로 성공이 정의돼 있어,
+   tool이 없는 자유 텍스트 모드에서는 그 정의가 성립하지 않는다. **injection task를 유형별로
+   분류해 자유 텍스트로도 성공 판정이 가능한 것(정보 유출·특정 문구 출력 계열)만 골라내야
+   한다.** 유형 분류 없이 tool 이름 첫 토큰을 그대로 쓰면 P2-c의 InjecAgent 매핑과 같은
+   proxy가 되어, `review-2026-07-29.md`가 지적한 "ASR의 산술적 뒷면이라 독립 정보가 없다"
+   문제를 그대로 반복한다.
+3. **대칭 knockout 검증** (= 기존 P3의 3번) — `external_only`만 죽였을 때 tool-call 쪽
+   `malicious_token_prob`만 떨어지고 자유 텍스트 오염은 유지되는지, 반대 방향도 확인.
+
+**주의**: 2번을 건너뛰고 1번만 하면 "채널 전용 head가 있다/없다"가 아니라 "타깃 토큰을
+어떻게 정했나"를 측정하게 된다. **2번이 이 항목의 병목이고, 여기서 시간을 아끼면 결과가
+무의미해진다.**
 
 ---
 
