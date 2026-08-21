@@ -42,14 +42,23 @@ export CUDA_DEVICE_ORDER=PCI_BUS_ID
 # 왜 `conda create`가 아니라 venv인가: conda는 환경을 만들 때 ~/.conda/environments.txt를
 # 홈에 기록한다. "~/jbwon 밖 수정 금지" 규칙에 걸리므로 conda 명령 자체를 쓰지 않는다.
 # (설치 절차는 docs/run-guide.md 부록 A)
+# 환경은 venv / conda env 둘 다 지원한다. Miniforge base가 3.13이라 핀과 안 맞는 경우
+# `conda create -p $JB/envs/atlas python=3.11`로 만들게 되는데, conda env에는 venv와 달리
+# `bin/activate`가 없어서 분기가 필요하다 (conda env는 `conda-meta/`로 식별).
 if [ -f "$JB/envs/atlas/bin/activate" ]; then
+    # venv
     # shellcheck disable=SC1091
     source "$JB/envs/atlas/bin/activate"
-elif [ -f "$JB/miniforge3/bin/activate" ]; then
-    # venv가 아직 없고 miniforge만 있는 경우 — base만 활성화 (venv 생성 직전 상태)
+elif [ -d "$JB/envs/atlas/conda-meta" ] && [ -f "$JB/miniforge3/bin/activate" ]; then
+    # conda env — miniforge base를 먼저 켜야 `conda activate`가 셸 함수로 존재한다
     # shellcheck disable=SC1091
     source "$JB/miniforge3/bin/activate"
-    echo "[env.sh] 경고: $JB/envs/atlas venv가 없다. miniforge base만 활성화됨." >&2
+    conda activate "$JB/envs/atlas"
+elif [ -f "$JB/miniforge3/bin/activate" ]; then
+    # 환경이 아직 없고 miniforge만 있는 경우 — base만 활성화 (환경 생성 직전 상태)
+    # shellcheck disable=SC1091
+    source "$JB/miniforge3/bin/activate"
+    echo "[env.sh] 경고: $JB/envs/atlas 환경이 없다. miniforge base만 활성화됨." >&2
 else
     echo "[env.sh] 경고: $JB/miniforge3 가 없다. docs/run-guide.md 부록 A를 먼저 진행할 것." >&2
 fi
