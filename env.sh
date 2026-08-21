@@ -44,6 +44,17 @@ export PYTHONNOUSERSITE=1
 # 공용 서버에서 "빈 GPU 골라 잡기"를 하려면 두 번호가 일치해야 한다.
 export CUDA_DEVICE_ORDER=PCI_BUS_ID
 
+# ⚠️ AgentDojo head 탐색의 OOM은 "누수"가 아니라 **할당자 단편화**였다.
+# todo.md P2-d에 "모델을 통째로 재로드해도 안 없어진다"고 기록된 증상이 그 단서다 —
+# 파이썬 레벨 누수라면 재로드로 풀렸어야 한다. 실제 원인은 예시마다 attention 텐서
+# 크기(H x T^2)가 제각각이라 캐싱 할당자에 조각이 남아 큰 블록을 못 잡는 것이었다.
+# expandable_segments는 정확히 이 패턴(가변 크기 대형 할당 반복)을 위한 옵션이다.
+#
+# 실측 (Qwen2.5-7B 4bit, bf16, head_n=150, max_seq_len=2000, batch_size=5, Titan RTX 24GB):
+#   미적용: 81/150 성공 (배치당 OOM 약 2.3개)
+#   적용  : 배치당 OOM 0~1개로 감소
+export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+
 # ---- 파이썬 환경 -----------------------------------------------------------
 # 시스템 python은 3.8.19라 transformers 4.51.3(>=3.9)/agentdojo(>=3.10)가 안 깔린다.
 # pyenv는 소스 빌드라 시스템 패키지(libssl-dev 등)를 요구해 공용 서버에서 쓸 수 없다.
