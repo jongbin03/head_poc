@@ -63,17 +63,29 @@ def resolve_dtype(name: str = "auto", device: str = "cuda") -> tuple:
     if not str(device).startswith("cuda") or not torch.cuda.is_available():
         return torch.float32, "fp32"
 
-    # ⚠️ `torch.cuda.is_bf16_supported()`를 쓰면 안 된다.
-    #    최신 PyTorch에서 이 함수는 기본값이 including_emulation=True라, bf16 하드웨어가
-    #    없어도 "에뮬레이션으로 돌릴 수 있으면" True를 반환한다.
-    #    실측(2026-08-21, 서버 Titan RTX + torch 2.13.0+cu126): capability (7,5)인데
-    #    is_bf16_supported()가 True를 돌려줬다 — auto가 bf16을 골라버려 정확히 피하려던
-    #    상황(에뮬레이션 bf16 = 매우 느림)이 된다.
-    #    bf16 하드웨어 지원은 Ampere(sm_80)부터이므로 compute capability를 직접 본다.
-    major, _minor = torch.cuda.get_device_capability()
-    if major >= 8:
-        return torch.bfloat16, "bf16"
-    return torch.float16, "fp16"
+    # CUDA에서는 항상 bf16. compute capability로 fp16과 갈랐던 이전 판을 실측으로 뒤집었다.
+    #
+    # 실측 2026-08-21 (Titan RTX sm_75, torch 2.13.0+cu126, Qwen2.5-0.5B, 템플릿 3개):
+    #
+    #   dtype | relevance NaN | fp32 대비 오차 | 소요
+    #   ------|---------------|----------------|------
+    #   fp32  |      0        |       —        | 18.3s
+    #   bf16  |      0        |     2e-2       | 20.7s  (+13%)
+    #   fp16  |  140/336 (1/3 템플릿)          | 사용 불가
+    #
+    # (1) fp16은 못 쓴다. Qwen2 계열은 특정 레이어의 activation outlier가 fp16 최대값
+    #     (65504)을 넘고, LRP 패치된 backward가 그걸 타면 NaN이 된다. NaN이 layer 0~9에만
+    #     나타나는 것(backward 후반부)과, 타깃 로짓 scale을 0.01/1/100으로 바꿔도 NaN 개수가
+    #     140으로 **동일**한 것이 근거다 — loss scaling은 gradient 크기만 옮기므로,
+    #     scale 불변이라는 건 forward 쪽에서 이미 터졌다는 뜻이다. tools/diag_dtype.py 참고.
+    # (2) Turing에 bf16 하드웨어는 없지만 PyTorch가 에뮬레이션으로 돌리고, 실측 오버헤드가
+    #     fp32 대비 13%에 불과했다. "죽거나 매우 느리다"는 사전 예상은 틀렸다.
+    # (3) bf16은 지수 범위가 fp32와 같아 위 (1)의 overflow가 원천적으로 안 난다.
+    #     우리 문제는 정밀도가 아니라 동적 범위였다(정상 템플릿의 fp32 대비 오차 2e-2).
+    # (4) 부수 효과: 기존 Colab/5070Ti 결과가 전부 bf16이라, 서버 결과와 직접 비교된다.
+    #
+    # fp16이 필요하면 `--dtype fp16`으로 명시할 수 있지만, 위 이유로 권하지 않는다.
+    return torch.bfloat16, "bf16"
 
 
 def has_nonfinite(group_scores: Dict[str, torch.Tensor]) -> bool:

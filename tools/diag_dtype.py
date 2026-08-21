@@ -84,7 +84,7 @@ def relevance_with_scale(model, input_ids, target_token_id, positions, scale: fl
                 stats["grad_all_zero_layers"].append(l)
         # fp32로 올린 뒤 scale을 되돌린다 → scale과 무관하게 같은 값이 나와야 정상
         rel = (a[0].float() * a.grad[0].float()).clamp(min=0) / scale
-        rel_sum[l] = rel[:, :, positions].sum(dim=(1, 2)).cpu()
+        rel_sum[l] = rel[:, :, positions].sum(dim=(1, 2)).detach().cpu()
 
     return rel_sum, stats
 

@@ -320,12 +320,15 @@ PY
 **`arch list`에 `sm_75`가 있는지가 핵심**이다. 없으면 `capability`가 (7,5)로 잘 나와도
 실제 연산에서 `no kernel image is available for execution`이 난다.
 
-> ⚠️ **`bf16 supported`가 `True`로 나와도 놀라지 말 것 — 그리고 믿지도 말 것.**
+> ℹ️ **`bf16 supported: True`가 나오는데, 하드웨어 지원이라는 뜻은 아니다.**
 > 최신 PyTorch의 `torch.cuda.is_bf16_supported()`는 기본값이 `including_emulation=True`라
 > **bf16 하드웨어가 없어도 에뮬레이션이 가능하면 True**를 반환한다.
-> 실측(2026-08-21, Titan RTX + torch 2.13.0+cu126): `capability (7,5)`인데 `True`가 나왔다.
-> 그래서 `runtime_env.resolve_dtype()`은 이 함수를 쓰지 않고 **compute capability를 직접
-> 본다**(`major >= 8`이면 bf16). 판정 기준은 `capability`이지 `bf16 supported`가 아니다.
+> Titan RTX는 `capability (7,5)`(Turing)라 bf16 하드웨어가 없다. `env.json`의
+> `gpus[].bf16_supported`는 compute capability(`major >= 8`)로 판정하므로 `False`로 찍힌다 —
+> 둘이 달라도 정상이다.
+>
+> **그래도 dtype은 bf16을 쓴다** (부록 A-5). 에뮬레이션 오버헤드가 실측 +13%에 불과했고,
+> fp16은 NaN 때문에 못 쓴다.
 
 ### A-4. 나머지 의존성
 
@@ -361,9 +364,8 @@ pip install torchvision --index-url https://download.pytorch.org/whl/cu126   # A
 > **`transformers.models.*` import 전체가 실패**한다. 증상이 lxt/transformers 쪽으로
 > 보이지만 원인은 torchvision이다. 위 uninstall→재설치로 해결된다.
 
-`requirements.txt`는 `transformers==4.51.3`만 확정 핀이고 나머지는 아직 미확정이다.
-**설치가 성공하면 첫 실행의 `env.json`에 남은 `packages`를 보고 requirements.txt를
-확정 핀으로 갱신할 것.**
+`requirements.txt`의 핀은 2026-08-21 서버 첫 설치에서 동작이 확인된 조합이다.
+조합을 바꿀 때는 각 실행의 `env.json`에 남은 `packages`와 대조할 것.
 
 InjecAgent는 저장소에 포함돼 있지 않으므로 따로 받는다:
 
@@ -371,25 +373,40 @@ InjecAgent는 저장소에 포함돼 있지 않으므로 따로 받는다:
 git clone https://github.com/uiuc-kang-lab/InjecAgent.git external_injecagent
 ```
 
-### A-5. `--dtype` — 서버에서는 fp16
+### A-5. `--dtype` — **bf16을 쓴다** (fp16 금지)
 
-모든 실행 스크립트에 `--dtype {auto,bf16,fp16,fp32}`가 있다. 기본 `auto`는 bf16 지원
-여부를 조회해서 고르므로 Titan RTX에서는 자동으로 fp16이 된다. 다만 **어떤 값으로
-해결됐는지는 콘솔 첫 줄(`[env] ... dtype=fp16 ...`)과 결과의 `env.json`에 기록된다.**
+모든 실행 스크립트에 `--dtype {auto,bf16,fp16,fp32}`가 있고, **`auto`는 CUDA에서 항상
+bf16**을 고른다. 해결된 값은 콘솔 첫 줄(`[env] ... dtype=bf16 ...`), 결과의 `env.json`,
+`summary.txt` 헤더, 그리고 **결과 폴더 이름**에 기록된다.
 
 ```bash
 CUDA_VISIBLE_DEVICES=0 python run_pipeline.py \
-  --model Qwen/Qwen2.5-7B-Instruct --family qwen2 --four_bit --dtype fp16 --topk 20
+  --model Qwen/Qwen2.5-7B-Instruct --family qwen2 --four_bit --topk 20
 ```
 
-> ⚠️ **bf16(로컬)과 fp16(서버) 결과는 수치가 같지 않다.** fp16은 가수부가 더 길고
-> (10비트 vs 7비트) 지수 범위는 좁아, knockout 붕괴 지점이 밀릴 수 있다.
-> **dtype이 다른 실행을 같은 비교표에 섞지 말 것.** 결과의 `env.json`에서 확인한다.
+> ⚠️ **`--dtype fp16`을 쓰지 말 것 (실측 2026-08-21).** Qwen2 계열은 특정 레이어의
+> activation이 fp16 최대값(65504)을 넘고, LRP 패치된 backward가 그 값을 타면 NaN이 된다.
+> 0.5B 기준 **템플릿 3개 중 1개**에서 relevance 140/336개가 NaN이었다.
+> 타깃 로짓 scale을 0.01/1/100으로 바꿔도 NaN 개수가 동일해 **loss scaling으로도 못 살린다**
+> (scale 불변 = forward 쪽에서 이미 터졌다는 뜻). 판별 도구: `tools/diag_dtype.py`.
+>
+> Titan RTX에 bf16 하드웨어는 없지만 에뮬레이션 오버헤드가 **fp32 대비 +13%**에 불과했고
+> (0.5B, 18.3s → 20.7s), bf16은 지수 범위가 fp32와 같아 이 문제가 원천적으로 안 난다.
 
-> ⚠️ **fp16 backward는 NaN이 날 수 있다.** lxt의 relevance 계산에는 loss scaling이 없다.
-> 이 경우 로그에 `non-finite relevance ... skipping`이 뜨고 결과 JSON의 `n_nan_skipped`가
-> 올라간다 — **OOM 스킵(`n_oom_skipped`)과 별도로 센다.** `n_nan_skipped`가 크면
-> `--dtype fp32`로 올려서 사라지는지 확인한다 (메모리를 훨씬 많이 쓰므로 작은 모델부터).
+> ℹ️ **기존 결과와 비교 가능하다.** Colab/5070Ti의 모든 이전 실험이 bf16이었으므로,
+> 서버 bf16 결과를 같은 표에 놓을 수 있다.
+
+> ⚠️ **NaN 가드는 dtype과 무관하게 항상 확인할 것.** 이번에 잡힌 실패 모드는 "에러 없이
+> 그럴듯한 숫자가 나오는" 것이었다 — `aggregate_scores`가 NaN을 평균에 섞으면
+> `topk_heads`가 점수 순서가 아니라 **인덱스 순서**((0,0),(0,1),…)를 반환해
+> `jaccard=0.000`, `control_heads_both=[]`로 찍힌다. 결과를 볼 때 **먼저** 확인할 것:
+>
+> ```bash
+> grep nan_excluded results/<run>/summary.txt        # run_pipeline
+> grep -o '"n_nan_skipped": [0-9]*' <heads>.json     # compare_head_sources
+> ```
+>
+> 0이 아니면 그만큼 줄어든 표본에서 나온 수치다. 비율이 높으면 `--dtype fp32`와 대조한다.
 
 ### A-6. GPU 점유 — 실행 전 매번 확인
 

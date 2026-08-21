@@ -77,11 +77,33 @@
   (user_task × injection_task) 전조합을 만드는데 이를 무작위로 나누면 같은 user_task가
   탐색셋과 평가셋 양쪽에 들어간다. **user_task 단위 group split** 또는
   **leave-one-suite-out**으로 바꿔야 P2-a(held-out style)와 같은 논리가 성립한다.
-- **(c) Titan RTX(Turing, sm_75)에는 bf16이 없다.** `attn_relevance.py:48,52`,
-  `run_agentdojo_eval.py:46,50`, `debug_read_target.py:61`의 하드코딩된 `torch.bfloat16`을
-  `--dtype` 인자로 빼고 서버는 fp16으로 내려야 한다. **bf16/fp16 결과는 수치가 다르므로
-  같은 비교표에 섞지 않는다** — 8/19 재현 실패 건에 dtype 축이 하나 더 얹히는 셈이다.
-  lxt backward가 fp16에서 NaN을 낼 수 있어 NaN 가드를 OOM 스킵과 분리해 카운트한다.
+- **(c) dtype은 bf16 유지 — 2026-08-21 서버 실측으로 확정.**
+  ⚠️ 이 항목의 초판("Turing엔 bf16이 없으니 fp16으로 내려야 한다")은 **틀렸다.**
+  실측(Titan RTX / torch 2.13.0+cu126 / Qwen2.5-0.5B / 템플릿 3개):
+
+  | dtype | relevance NaN | fp32 대비 오차 | 소요 |
+  |---|---|---|---|
+  | fp32 | 0 | — | 18.3s |
+  | **bf16** | **0** | 2e-2 | **20.7s (+13%)** |
+  | fp16 | **140/336 (템플릿 1/3)** | — | 사용 불가 |
+
+  **fp16이 못 쓰는 이유**: Qwen2 계열 activation이 fp16 최대값(65504)을 넘어 LRP backward가
+  NaN을 낸다. 타깃 로짓 scale을 0.01/1/100으로 바꿔도 NaN 개수가 같아 **loss scaling으로도
+  못 살린다** (scale 불변 = forward 쪽에서 이미 터짐). 판별 도구 `tools/diag_dtype.py` 신설.
+  **Turing bf16 에뮬레이션은 죽지도 느리지도 않았다** (+13%). bf16은 지수 범위가 fp32와
+  같아 이 문제가 원천적으로 안 난다.
+  **부수 효과**: 기존 Colab/5070Ti 결과가 전부 bf16이라 서버 결과와 같은 표에 놓을 수 있다 —
+  초판이 우려한 "dtype 혼입" 문제가 사라졌다.
+
+  `--dtype {auto,bf16,fp16,fp32}`은 그대로 두되 `auto`는 CUDA에서 항상 bf16. 대조 실험
+  재현용 + 다른 모델 계열에서 문제 생겼을 때 fp32로 도피할 길로 남긴다.
+
+- **(c-2) NaN 가드는 dtype과 무관하게 필수.** 이번에 잡힌 실패 모드가 "에러 없이 그럴듯한
+  숫자가 나오는" 것이었다 — `aggregate_scores`가 NaN을 평균에 섞으면 `topk_heads`가 점수
+  순서가 아니라 **인덱스 순서**((0,0),(0,1),…)를 반환해 `jaccard(*,external)=0.000`,
+  `control_heads_both=[]`로 찍힌다. `run_pipeline.py`에는 가드가 없어 실제로 이렇게 나왔다.
+  양쪽 스크립트에 가드를 넣고 `n_templates_used`/`nan_excluded`/`n_nan_skipped`를 결과에
+  기록한다 (**OOM 스킵과 반드시 구분**). 결과를 볼 때 이 값부터 확인할 것.
 
 **모델 선택** (2026-08-21 lxt 2.1 소스 확인 후 갱신): 병목은 lxt가 아니라 우리 코드다.
 lxt 2.1의 `DEFAULT_MAP`은 **llama/qwen2/qwen3/gemma3/bert/gpt2/vit**를 지원하고,
