@@ -31,6 +31,49 @@ dataset.py  ──▶  attn_relevance.py  ──▶  head_ranking.py  ──▶ 
 
 ## 2. Head를 찾는 방법론 — AttnLRP relevance (`attn_relevance.py`)
 
+### 2.0 Atlas / AttnLRP / lxt — 셋의 관계
+
+이 세 이름이 문서·코드에 섞여 나와 혼동하기 쉬운데, **경쟁 관계가 아니라 층위가 다릅니다.**
+
+| | 무엇 | 출처 |
+|---|---|---|
+| **AttnLRP** | attribution **방법론**. LRP를 트랜스포머용으로 확장해, 비선형 구간(RMSNorm, softmax)에서 gradient가 왜곡되는 걸 보정한다. backward **한 번**으로 `R(x\|y)`("이 성분이 출력 로짓 y에 얼마나 기여했나")를 얻는다 | Achtibat et al., **ICML 2024** |
+| **lxt** | 그 방법론의 **레퍼런스 구현 라이브러리**. `monkey_patch`가 HF 모델링 모듈의 forward를 갈아끼워, 평범한 `.backward()`가 raw gradient 대신 LRP relevance를 흘리게 만든다 | **같은 저자** (Achtibat) |
+| **Atlas** | AttnLRP를 **가져다 쓰는 연구**. 새 attribution 방법을 만들지 않는다 — 논문에 *"we adopt AttnLRP [2]"*, *"AttnLRP [2], **on which our method is based**"*로 명시 | NeurIPS'25, **저자에 Achtibat 포함** |
+
+즉 **lxt는 Atlas의 대안이 아니라, Atlas의 방법이 돌아가는 엔진**입니다.
+Atlas = *무엇을 계산할지*, AttnLRP = *어떻게 relevance를 정의할지*, lxt = *그 계산을 수행하는 코드*.
+세 작업이 사실상 같은 그룹에서 나와서 조합이 자연스럽습니다.
+
+**Atlas가 AttnLRP 위에 얹은 것** — AttnLRP는 "relevance를 구하는 법"까지만 준다. Atlas는
+거기에 (1) head 단위로 attribute하고, (2) key 위치별로 집계하고, (3) top-K로 고르고,
+(4) knockout으로 인과성을 검증하는 절차를 추가했다. 우리가 응용한 게 이 절차다.
+
+#### ⚠️ Atlas에는 head relevance 정의가 **두 개** 있다 — 우리가 쓰는 건 Eq. 7/8
+
+혼동의 실제 원인이 대개 여기다.
+
+| | 무엇에 대한 relevance | 논문에서 쓰는 곳 |
+|---|---|---|
+| **Eq. 4** | head의 **latent output** `z^h_i` — 차원 `d_h`와 위치 `i`를 전부 합산 → **head당 스칼라 1개** | §5, in-context vs parametric head 분리 |
+| **Eq. 7/8** | **attention weight** `A^h_{i,j}` — **key 위치 `j`별** 점수 | §6, head가 *어느 토큰을 읽는지* 특화 분석 |
+
+논문 원문:
+
+```
+ρ^h_j    = Σ_{i=1..S} R+( A^h_{i,j} | y_t )                       ... Eq. 7  (p.7)
+ρ^h_task = Σ_{j∈J_task} ρ^h_j ,   ρ^h_ret = Σ_{j∈J_ret} ρ^h_j     ... Eq. 8  (p.8)
+```
+
+**우리는 Eq. 7/8을 쓴다.** "어느 head가 주입된 span을 읽는가"를 알아야 하므로 key 위치별
+분해가 필수인데, Eq. 4는 head당 스칼라라 그걸 줄 수 없다. 논문의 `J_task`/`J_ret`(질문 토큰 /
+검색된 답 토큰) 자리에 우리는 `data_benign`/`data_inj`를 넣었다 — 2.3절 표 참고.
+
+> 이 선택의 부작용: **Eq. 7이 key 위치별 분해라서, attribution이 특정 위치로 쏠리는
+> 버그에 직접 노출된다.** lxt가 Qwen3에 붙인 "attribution skewed toward first token" 경고가
+> 우리에게 치명적인 이유가 이것이다 (2.2절). Eq. 4 방식이었다면 위치를 합쳐버리니
+> 덜 민감했을 것이다.
+
 ### 2.1 어떤 head가 "기여했는가"를 재는 방법
 
 attention 확률(얼마나 쳐다봤는지)만 보면 "쳐다보긴 했지만 실제로 안 썼다"를 구분하지
@@ -64,8 +107,33 @@ from transformers.models.qwen2 import modeling_qwen2
 monkey_patch(modeling_qwen2)   # RMSNorm/gated-MLP/attention의 backward 규칙을 교정
 ```
 
-표준 `Qwen2ForCausalLM`을 그대로 쓰면서 AttnLRP-정합적인 backward를 얻습니다. Qwen2/Llama
-계열만 공식 지원(Qwen3는 첫 토큰 쏠림 버그가 있어 제외).
+표준 `Qwen2ForCausalLM`을 그대로 쓰면서 AttnLRP-정합적인 backward를 얻습니다.
+
+**지원 범위** (lxt 2.1 소스 `lxt/efficient/models/__init__.py`의 `DEFAULT_MAP` 직접 확인,
+2026-08-21):
+
+| lxt가 지원하는 것 | 우리 코드가 분기하는 것 |
+|---|---|
+| llama · qwen2 · **qwen3** · **gemma3** · bert · gpt2 · vit | **qwen2 · llama 뿐** (`attn_relevance.py:37-43`) |
+
+`monkey_patch(module)`은 `DEFAULT_MAP`에서 patch를 자동으로 찾으므로 **lxt 쪽에 할 일은
+없습니다.** 다른 모델을 쓰려면 `attn_relevance.py`에 분기를 추가하면 되고, 모델당 ~6줄입니다.
+
+다만 lxt README의 지원 상태 표에 단서가 있습니다:
+
+- **Qwen3 = 🧪 "Attribution skewed toward first token"** — 2.0절 마지막 경고 참고.
+  우리 방법론(Eq. 7, key 위치별 분해)에 직접 타격이므로 **쓰기 전에 position별 relevance
+  분포 진단이 선행돼야 합니다.**
+- **Gemma 3 = ✅** (lxt의 대표 예시로 쓰일 만큼 검증됨). 단 4B 이상은 멀티모달 래퍼
+  (`Gemma3ForConditionalGeneration`)라 텍스트 타워 로드 경로를 따로 잡아야 하고,
+  대부분 레이어가 sliding-window local attention이라 **긴 프롬프트에서 D_inj span이
+  윈도우 밖으로 나가면 그 레이어 head의 relevance가 구조적으로 0**이 됩니다.
+- lxt 2.1은 `transformers==4.52.4`로 테스트됐다고 명시. 우리 핀은 4.51.3 — qwen2/llama
+  경로는 실측으로 검증됐지만 qwen3/gemma3 경로는 이 조합에서 확인된 적이 없습니다.
+
+**참고**: Atlas 원 논문이 쓴 모델은 Llama-3.1-8B-Instruct / Mistral-7B-Instruct-v0.3 /
+Gemma-2-9B-it 세 개인데, 이 중 현재 lxt로 바로 되는 건 **Llama-3.1-8B 하나뿐**입니다
+(Mistral·Gemma-2는 `DEFAULT_MAP`에 없음).
 
 **⚠️ gradient checkpointing과 상극**: checkpointing을 켜면 backward 시점의 attention
 텐서가 forward 때 잡아둔 것과 다른(재계산된) tensor가 되어 `.grad`가 채워지지 않습니다.
