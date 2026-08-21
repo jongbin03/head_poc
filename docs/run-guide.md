@@ -218,6 +218,8 @@ python run_pipeline.py \
 | knockout sweep 전 구간 확률 동일 | `edge_ablation.py` 패치가 eager 경로를 못 잡음 | `k=0`과 `k=80`의 `malicious_token_prob` 차이가 0인지 확인 |
 | OOM | 시퀀스 길이 × attention tensor 메모리 | `nvidia-smi`로 실측, 모델 크기/템플릿 길이 축소 |
 | HF 모델 다운로드 안 됨 | 네트워크/인증 | `huggingface-cli login`, 프록시 설정 확인 |
+| `operator torchvision::nms does not exist` | torchvision이 torch와 다른 인덱스/빌드 | torch와 **같은 index-url**로 torchvision 재설치 (부록 A-4) |
+| `Failed to import transformers.models.llama...` | 위와 같은 원인(연쇄 실패) | 위와 동일 |
 | relevance가 전부 NaN / `nan_skipped`가 큼 | fp16 backward 언더플로 (loss scaling 없음) | `--dtype fp32`로 올려서 재현되는지 확인 (부록 A-5) |
 | `CUBLAS_STATUS_NOT_SUPPORTED` | bf16 없는 GPU에서 bf16 요청 | `--dtype fp16` 명시. Turing(sm_75)은 bf16 미지원 |
 | 같은 설정인데 지난번과 숫자가 다름 | dtype/커밋이 다름 | 두 결과의 `env.json`에서 `dtype`·`git.commit`·`git.dirty` 비교 |
@@ -340,7 +342,24 @@ PY
 
 ```bash
 pip install -r requirements.txt
+
+# ⚠️ 필수 후처리 — torchvision을 torch와 같은 인덱스에서 다시 받는다
+pip uninstall -y torchvision
+pip install torchvision --index-url https://download.pytorch.org/whl/cu126   # A-3과 동일 URL
 ```
+
+> ⚠️ **`torchvision` ABI 불일치 (실측 2026-08-21).** `lxt`는 import-time에 torchvision을
+> 요구한다 (`lxt/efficient/models/__init__.py` → `vit_torch` → `from torchvision.models
+> import vision_transformer`). 그래서 `pip install -r requirements.txt`가 torchvision을
+> **기본 PyPI에서** 끌어오는데, torch를 pytorch 인덱스에서 받았다면 빌드가 달라 아래로 죽는다:
+>
+> ```
+> RuntimeError: operator torchvision::nms does not exist
+> ```
+>
+> transformers의 `image_utils`가 torchvision을 opportunistic import하기 때문에
+> **`transformers.models.*` import 전체가 실패**한다. 증상이 lxt/transformers 쪽으로
+> 보이지만 원인은 torchvision이다. 위 uninstall→재설치로 해결된다.
 
 `requirements.txt`는 `transformers==4.51.3`만 확정 핀이고 나머지는 아직 미확정이다.
 **설치가 성공하면 첫 실행의 `env.json`에 남은 `packages`를 보고 requirements.txt를

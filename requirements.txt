@@ -1,7 +1,22 @@
 # atlas_poc 의존성
 #
-# ⚠️ torch는 여기에 없다. GPU마다 필요한 CUDA 빌드가 달라 index-url을 따로 줘야 하기
-#    때문 — docs/run-guide.md의 환경별 절차를 먼저 따르고, 그 다음 이 파일을 설치할 것.
+# ⚠️ torch/torchvision은 여기에 없다. GPU마다 필요한 CUDA 빌드가 달라 index-url을 따로
+#    줘야 하기 때문 — docs/run-guide.md의 환경별 절차를 먼저 따르고, 그 다음 이 파일을 설치할 것.
+#
+# ⚠️⚠️ **torchvision은 반드시 torch와 같은 index-url에서 받을 것.**
+#    lxt가 import-time에 torchvision을 요구한다 (lxt/efficient/models/__init__.py가
+#    vit_torch를 import → `from torchvision.models import vision_transformer`).
+#    그래서 아래 lxt를 깔면 torchvision이 **기본 PyPI에서** 딸려 들어오는데, torch를
+#    pytorch 인덱스(cu126 등)에서 받았다면 ABI가 안 맞아 다음 에러로 죽는다:
+#
+#        RuntimeError: operator torchvision::nms does not exist
+#
+#    (transformers의 image_utils가 torchvision을 opportunistic import하기 때문에
+#     transformers.models.* import 전체가 이 에러로 실패한다 — 실측 2026-08-21)
+#
+#    해결:
+#        pip uninstall -y torchvision
+#        pip install torchvision --index-url <torch를 받은 것과 동일한 URL>
 #
 #      로컬 5070 Ti (Blackwell sm_120) : cu128 이상 강제. 실측 조합 torch 2.11.0+cu128
 #      서버 Titan RTX (Turing sm_75)   : cu121~cu128 범위에서 pytorch.org 안내대로.
