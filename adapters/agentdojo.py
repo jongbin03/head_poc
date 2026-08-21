@@ -118,12 +118,21 @@ def _first_tool_turn(user_task, env, suite: TaskSuite):
     return tool_content, next_tool_name
 
 
+def _bump(stats, suite_name: str, reason: str) -> None:
+    """skip_stats[suite][reason] += 1. stats가 None이면 아무것도 안 한다."""
+    if stats is None:
+        return
+    stats.setdefault(suite_name, {}).setdefault(reason, 0)
+    stats[suite_name][reason] += 1
+
+
 def build_agentdojo_example(
     tokenizer,
     user_task,
     injection_task,
     suite: TaskSuite,
     device: str = "cuda",
+    skip_stats: Optional[dict] = None,
 ) -> Optional[IPIExample]:
     """한 (user_task, injection_task) 쌍 -> 주입 있는 IPIExample. 아래 조건을 만족하지
     않으면 None(건너뜀):
@@ -139,19 +148,23 @@ def build_agentdojo_example(
 
     inj_ground_truth = injection_task.ground_truth(env)
     if not inj_ground_truth:
+        _bump(skip_stats, suite.name, "no_inj_ground_truth")
         return None
     attacker_tool = inj_ground_truth[0].function
 
     turn = _first_tool_turn(user_task, env, suite)
     if turn is None:
+        _bump(skip_stats, suite.name, "no_first_tool_turn")
         return None
     tool_content, read_tool = turn
 
     if read_tool == attacker_tool:
+        _bump(skip_stats, suite.name, "same_tool_name")
         return None
 
     split = _split_on_injection(tool_content)
     if split is None:
+        _bump(skip_stats, suite.name, "injection_text_not_found")
         return None
     benign_prefix, injected_span, benign_suffix = split
 
@@ -181,6 +194,7 @@ def build_agentdojo_example(
         # tool 이름 문자열은 다르지만(위에서 이미 걸러짐) 첫 토큰이 우연히 같은 경우
         # (예: get_balance/get_iban처럼 공통 접두사 공유) — next-token 확률 proxy로는
         # 두 결과를 구분할 수 없으므로 건너뛴다.
+        _bump(skip_stats, suite.name, "first_token_collision")
         return None
 
     return IPIExample(
@@ -215,6 +229,7 @@ def build_agentdojo_clean_example(
 
     turn = _first_tool_turn(user_task, env, suite)
     if turn is None:
+        _bump(skip_stats, suite.name, "no_first_tool_turn")
         return None
     tool_content, read_tool = turn
 
@@ -251,6 +266,7 @@ def build_agentdojo_pairs(
     device: str = "cuda",
     suite_names: Optional[List[str]] = None,
     benchmark_version: str = DEFAULT_BENCHMARK_VERSION,
+    skip_stats: Optional[dict] = None,
 ) -> List[Dict[str, IPIExample]]:
     """P4 Track A: 지정한 suite들의 모든 (user_task, injection_task) 조합을 순회하며
     {"clean": IPIExample, "injected": IPIExample} 쌍을 만든다. 위 필터(단일 tool 턴 패턴,
@@ -264,11 +280,17 @@ def build_agentdojo_pairs(
         suite = get_suite(benchmark_version, suite_name)
         for user_task in suite.user_tasks.values():
             for injection_task in suite.injection_tasks.values():
-                injected = build_agentdojo_example(tokenizer, user_task, injection_task, suite, device=device)
+                _bump(skip_stats, suite.name, "attempted")
+                injected = build_agentdojo_example(
+                    tokenizer, user_task, injection_task, suite,
+                    device=device, skip_stats=skip_stats,
+                )
                 if injected is None:
                     continue
                 clean = build_agentdojo_clean_example(tokenizer, user_task, suite, device=device)
                 if clean is None:
+                    _bump(skip_stats, suite.name, "clean_build_failed")
                     continue
+                _bump(skip_stats, suite.name, "ok")
                 out.append({"clean": clean, "injected": injected})
     return out
