@@ -23,6 +23,9 @@ export PIP_CACHE_DIR="$JB/.cache/pip"
 export MPLCONFIGDIR="$JB/.cache/matplotlib"
 export TORCH_EXTENSIONS_DIR="$JB/.cache/torch_extensions"
 export TRITON_CACHE_DIR="$JB/.cache/triton"
+# conda를 쓰게 될 경우를 대비 (아래 기본 경로는 venv라 보통 안 쓰임)
+export CONDA_PKGS_DIRS="$JB/.conda/pkgs"
+export CONDA_ENVS_DIRS="$JB/envs"
 mkdir -p "$XDG_CACHE_HOME" "$HF_HOME" "$TORCH_HOME" "$PIP_CACHE_DIR" \
          "$MPLCONFIGDIR" "$TORCH_EXTENSIONS_DIR" "$TRITON_CACHE_DIR"
 
@@ -34,12 +37,21 @@ export CUDA_DEVICE_ORDER=PCI_BUS_ID
 # ---- 파이썬 환경 -----------------------------------------------------------
 # 시스템 python은 3.8.19라 transformers 4.51.3(>=3.9)/agentdojo(>=3.10)가 안 깔린다.
 # pyenv는 소스 빌드라 시스템 패키지(libssl-dev 등)를 요구해 공용 서버에서 쓸 수 없다.
-# → Miniforge를 ~/jbwon 안에 넣는다 (설치 절차는 docs/run-guide.md "공용 서버" 절).
-if [ -f "$JB/miniforge3/bin/activate" ]; then
+# → Miniforge를 ~/jbwon 안에 넣고, 그 python으로 **평범한 venv**를 만든다.
+#
+# 왜 `conda create`가 아니라 venv인가: conda는 환경을 만들 때 ~/.conda/environments.txt를
+# 홈에 기록한다. "~/jbwon 밖 수정 금지" 규칙에 걸리므로 conda 명령 자체를 쓰지 않는다.
+# (설치 절차는 docs/run-guide.md 부록 A)
+if [ -f "$JB/envs/atlas/bin/activate" ]; then
     # shellcheck disable=SC1091
-    source "$JB/miniforge3/bin/activate" "$JB/envs/atlas"
+    source "$JB/envs/atlas/bin/activate"
+elif [ -f "$JB/miniforge3/bin/activate" ]; then
+    # venv가 아직 없고 miniforge만 있는 경우 — base만 활성화 (venv 생성 직전 상태)
+    # shellcheck disable=SC1091
+    source "$JB/miniforge3/bin/activate"
+    echo "[env.sh] 경고: $JB/envs/atlas venv가 없다. miniforge base만 활성화됨." >&2
 else
-    echo "[env.sh] 경고: $JB/miniforge3 가 없다. docs/run-guide.md의 Miniforge 설치를 먼저 할 것." >&2
+    echo "[env.sh] 경고: $JB/miniforge3 가 없다. docs/run-guide.md 부록 A를 먼저 진행할 것." >&2
 fi
 
 # ---- 확인 -----------------------------------------------------------------

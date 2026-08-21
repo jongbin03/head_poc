@@ -259,20 +259,38 @@ source ~/jbwon/atlas_poc/env.sh   # 이 시점엔 Miniforge 경고가 뜨는 게
 
 매 세션 이걸 `source` 하는 것을 습관화한다.
 
-### A-2. Miniforge로 Python 3.11 (시스템 python 3.8.19는 못 씀)
+### A-2. Miniforge + venv (시스템 python 3.8.19는 못 씀)
 
 시스템 python 3.8.19로는 `transformers==4.51.3`(≥3.9), `torch`≥2.5(≥3.9),
 `agentdojo`(≥3.10)가 전부 설치되지 않는다. Miniforge는 단일 디렉토리 자기완결형이라
 root도 빌드 의존성도 필요 없고, `-b` 플래그로 `.bashrc`도 건드리지 않는다.
 
+> ⚠️ **`conda create`를 쓰지 않는다.** conda는 환경을 만들 때 `~/.conda/environments.txt`를
+> **홈에** 기록한다 — "`~/jbwon` 밖 수정 금지" 규칙에 걸린다. 대신 Miniforge의 python으로
+> **평범한 venv**를 만든다. conda 명령 자체를 안 쓰므로 홈이 전혀 오염되지 않는다.
+
 ```bash
 cd ~/jbwon
 curl -L -O "https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh"
 bash Miniforge3-Linux-x86_64.sh -b -p ~/jbwon/miniforge3
-~/jbwon/miniforge3/bin/conda create -y -p ~/jbwon/envs/atlas python=3.11
+
+# base python 버전 확인 — 3.10~3.12 범위여야 한다
+~/jbwon/miniforge3/bin/python --version
+
+# 그 python으로 venv 생성 (conda create 아님)
+~/jbwon/miniforge3/bin/python -m venv ~/jbwon/envs/atlas
 
 source ~/jbwon/atlas_poc/env.sh   # 이제 envs/atlas가 활성화된다
-python --version                   # Python 3.11.x 확인
+python --version                   # 3.10~3.12 확인
+which python                       # ~/jbwon/envs/atlas/bin/python 이어야 함
+```
+
+base python이 3.13 이상이라 `transformers==4.51.3`이 안 맞으면, 그때만 conda로 특정 버전을
+받는다 (`env.sh`가 `CONDA_PKGS_DIRS`/`CONDA_ENVS_DIRS`를 `~/jbwon`으로 돌려두므로 패키지
+캐시는 안전하다. 다만 `~/.conda/environments.txt` 한 줄은 생기니 그때 교수님께 알릴 것):
+
+```bash
+~/jbwon/miniforge3/bin/conda create -y -p ~/jbwon/envs/atlas python=3.11
 ```
 
 ### A-3. PyTorch — Turing(sm_75)용
