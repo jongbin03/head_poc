@@ -111,20 +111,52 @@ def _discover_synthetic(args, model, tok):
     }
 
 
+def _pair_suite(pair) -> str:
+    """pair가 속한 suite 이름. suite 개념이 없는 소스(InjecAgent)는 "n/a"."""
+    meta = getattr(pair.get("injected"), "meta", None) or {}
+    return str(meta.get("suite", "n/a"))
+
+
+def _bump_suite(counts: dict, suite: str, key: str) -> None:
+    """counts[suite][key] += 1.
+
+    ⚠️ 왜 suite별로 세야 하는가: 지금까지 n_oom_skipped가 **총합만** 남아서, 어느 suite가
+    얼마나 빠졌는지 사후에 알 수 없었다. 8/19에 travel이 통째로 빠진 걸 나중에야 발견한
+    것도 이 때문이다. "균등하게 뽑았다"고 주장하려면 실제로 몇 개가 살아남았는지가
+    suite별로 결과에 남아야 한다 (docs/plan-2026-08-26.md 4.6절).
+    """
+    counts.setdefault(suite, {}).setdefault(key, 0)
+    counts[suite][key] += 1
+
+
+def _merge_suite_counts(dst: dict, src: dict) -> None:
+    """discover-parallel이 배치별 부분 카운트를 합칠 때 쓴다."""
+    for suite, d in (src or {}).items():
+        for k, v in d.items():
+            dst.setdefault(suite, {}).setdefault(k, 0)
+            dst[suite][k] += v
+
+
 def _load_tokenizer(args):
     from transformers import AutoTokenizer
 
     return AutoTokenizer.from_pretrained(args.model)
 
 
-def _build_head_pairs(args, source_name, tok=None, device="cpu"):
-    """injecagent/agentdojo 공용: 전체 pair를 만들고 (선택) 길이 필터 + split_pairs로
+def _build_head_pairs(args, source_name, tok=None, device="cpu", return_info=False):
+    """injecagent/agentdojo 공용: 전체 pair를 만들고 (선택) 길이 필터 + split으로
     head 탐색용 부분집합을 뽑는다. GPU/모델이 필요 없어(토크나이저만 필요) `discover`
     (단일 프로세스)와 `discover-batch`/`discover-parallel`(서브프로세스 분리) 양쪽에서 공유한다.
     device="cpu"가 기본인 이유: 이 함수만 쓰는 호출자(카운트용)는 GPU 텐서가 필요 없다 —
-    실제 relevance 계산은 항상 GPU 모델로 별도 진행."""
+    실제 relevance 계산은 항상 GPU 모델로 별도 진행.
+
+    ⚠️ **split이 결정적으로 중요하다.** 이전에는 `split_pairs`로 pair를 무작위로 섞어 잘랐는데,
+    AgentDojo pair는 (user_task × injection_task)라 같은 user_task가 탐색셋과 평가셋 양쪽에
+    들어갔다 — 프롬프트의 system/user 질문/history를 전부 공유하므로 held-out이 아니었다.
+    `pair_sampling.stratified_group_split`이 (a) user_task 단위 그룹 분리와
+    (b) suite 층화를 함께 처리한다. 자세한 배경은 그 모듈 docstring."""
     tok = tok if tok is not None else _load_tokenizer(args)
-    from adapters.injecagent import split_pairs
+    from pair_sampling import stratified_group_split, format_split_info
 
     if source_name == "injecagent":
         from adapters.injecagent import build_injecagent_pairs
@@ -136,6 +168,7 @@ def _build_head_pairs(args, source_name, tok=None, device="cpu"):
         all_pairs = build_agentdojo_pairs(
             tok, device=device, suite_names=args.agentdojo_suites,
             benchmark_version=args.agentdojo_benchmark_version,
+            history_max_chars=getattr(args, "history_max_chars", None),
         )
     else:
         raise ValueError(f"unsupported single-channel source: {source_name}")
@@ -149,8 +182,19 @@ def _build_head_pairs(args, source_name, tok=None, device="cpu"):
         before = len(all_pairs)
         all_pairs = [p for p in all_pairs if p["injected"].input_ids.shape[-1] <= args.max_seq_len]
         print(f"  [{source_name}] filtered by max_seq_len={args.max_seq_len}: {before} -> {len(all_pairs)} pairs")
-    head_pairs, _ = split_pairs(all_pairs, head_n=args.head_n, seed=args.seed)
-    print(f"  [{source_name}] {len(all_pairs)} total pairs -> {len(head_pairs)} used for head discovery (seed={args.seed})")
+    head_pairs, _eval_pairs, split_info = stratified_group_split(
+        all_pairs,
+        head_n=args.head_n,
+        seed=args.seed,
+        group_key=None if args.split_group_key == "none" else args.split_group_key,
+        stratify_key=None if args.split_stratify_key == "none" else args.split_stratify_key,
+        holdout_stratum=args.holdout_suite,
+    )
+    split_info["n_all_pairs"] = len(all_pairs)
+    print(f"  [{source_name}] {len(all_pairs)} total pairs")
+    print(format_split_info(split_info))
+    if return_info:
+        return head_pairs, split_info
     return head_pairs
 
 
@@ -163,8 +207,10 @@ def _discover_single_channel(args, model, tok, source_name):
     scores = []
     n_skipped_oom = 0
     n_skipped_nan = 0
+    suite_counts: dict = {}
     for i, pair in enumerate(head_pairs):
         inj_ex = pair["injected"]
+        suite = _pair_suite(pair)
         try:
             gs = compute_head_relevance(
                 model, inj_ex.input_ids, inj_ex.exec_target,
@@ -174,17 +220,20 @@ def _discover_single_channel(args, model, tok, source_name):
             # 섞으면 "왜 표본이 줄었는지"를 사후에 가릴 수 없다.
             if has_nonfinite(gs):
                 n_skipped_nan += 1
-                print(f"  [{source_name}] non-finite relevance at pair {i}, skipping (dtype 문제 의심)")
+                _bump_suite(suite_counts, suite, "nan")
+                print(f"  [{source_name}] non-finite relevance at pair {i} (suite={suite}), skipping")
             else:
                 scores.append(gs)
+                _bump_suite(suite_counts, suite, "ok")
         except torch.cuda.OutOfMemoryError:
             # agentdojo 케이스 중 일부(예: 긴 tool 응답)는 backward pass의 attention*grad
             # 텐서가 시퀀스 길이 제곱에 비례해 커져, compute_head_relevance의 프로세스 전역
             # 메모리 누적(docs/todo.md P2-d 참고)과 겹치면 head_n을 안전 범위로 잡아도 개별
             # 호출에서 OOM이 날 수 있다. 전체를 죽이는 대신 그 예시만 건너뛴다.
             n_skipped_oom += 1
+            _bump_suite(suite_counts, suite, "oom")
             seq_len = inj_ex.input_ids.shape[-1]
-            print(f"  [{source_name}] OOM at pair {i} (seq_len={seq_len}), skipping and clearing cache ...")
+            print(f"  [{source_name}] OOM at pair {i} (suite={suite}, seq_len={seq_len}), skipping ...")
         gc.collect()
         torch.cuda.empty_cache()
         if (i + 1) % 20 == 0:
@@ -211,6 +260,8 @@ def _discover_single_channel(args, model, tok, source_name):
         "n_examples_used": len(scores),
         "n_oom_skipped": n_skipped_oom,
         "n_nan_skipped": n_skipped_nan,
+        # suite별 ok/oom/nan — "균등하게 뽑았다"의 근거이자 반증 자료
+        "suite_counts": suite_counts,
         "head_n": args.head_n,
         "seed": args.seed,
         "topk": args.topk,
@@ -271,9 +322,11 @@ def cmd_discover_batch(args):
     count = 0
     n_oom = 0
     n_nan = 0
+    suite_counts: dict = {}
 
     for i, pair in enumerate(subset):
         inj_ex = pair["injected"]
+        suite = _pair_suite(pair)
         try:
             gs = compute_head_relevance(
                 model, inj_ex.input_ids, inj_ex.exec_target,
@@ -283,18 +336,24 @@ def cmd_discover_batch(args):
             # 누적 전에 반드시 거른다.
             if has_nonfinite(gs):
                 n_nan += 1
-                print(f"  [discover-batch:{args.source}] non-finite at local idx {i} (global {args.start + i}), skipping")
+                _bump_suite(suite_counts, suite, "nan")
+                print(f"  [discover-batch:{args.source}] non-finite at local idx {i} "
+                      f"(global {args.start + i}, suite={suite}), skipping")
             else:
                 sum_tensor += gs["data_inj"]
                 count += 1
+                _bump_suite(suite_counts, suite, "ok")
         except torch.cuda.OutOfMemoryError:
             n_oom += 1
-            print(f"  [discover-batch:{args.source}] OOM at local idx {i} (global {args.start + i}), skipping")
+            _bump_suite(suite_counts, suite, "oom")
+            print(f"  [discover-batch:{args.source}] OOM at local idx {i} "
+                  f"(global {args.start + i}, suite={suite}), skipping")
         gc.collect()
         torch.cuda.empty_cache()
 
     torch.save(
-        {"sum": sum_tensor, "count": count, "n_oom": n_oom, "n_nan": n_nan, "dtype": dtype_name},
+        {"sum": sum_tensor, "count": count, "n_oom": n_oom, "n_nan": n_nan,
+         "dtype": dtype_name, "suite_counts": suite_counts},
         args.out_partial,
     )
     print(
@@ -307,7 +366,7 @@ def cmd_discover_parallel(args):
     """소스 하나를 --batch_size개씩 나눠 각 배치를 새 서브프로세스(discover-batch)로 실행하고,
     부분합을 모아 최종 head를 뽑는다. AgentDojo처럼 단일 프로세스(discover)로는 메모리 누적
     버그 때문에 수율이 낮은 소스에 쓴다."""
-    head_pairs = _build_head_pairs(args, args.source)  # GPU 불필요 — 개수만 확인
+    head_pairs, split_info = _build_head_pairs(args, args.source, return_info=True)
     total = len(head_pairs)
     print(f"[discover-parallel:{args.source}] {total} head_pairs total, batch_size={args.batch_size}")
 
@@ -317,6 +376,7 @@ def cmd_discover_parallel(args):
     count = 0
     n_oom_total = 0
     n_nan_total = 0
+    suite_counts: dict = {}
     batch_dtypes = set()
     try:
         for start in range(0, total, args.batch_size):
@@ -329,6 +389,10 @@ def cmd_discover_parallel(args):
                 # dtype을 안 넘기면 서브프로세스가 "auto"로 각자 판단해버려, 부모가 기록한
                 # dtype과 실제 계산 dtype이 어긋날 수 있다. 반드시 전달할 것.
                 "--dtype", args.dtype,
+                # split 인자를 안 넘기면 자식이 기본값으로 다시 나눠 부모와 다른 부분집합을
+                # 계산한다. head_pairs는 부모가 정한 것과 정확히 같아야 한다.
+                "--split_group_key", args.split_group_key,
+                "--split_stratify_key", args.split_stratify_key,
                 "--injecagent_repo_dir", args.injecagent_repo_dir,
                 "--agentdojo_benchmark_version", args.agentdojo_benchmark_version,
                 "--start", str(start), "--end", str(end), "--out_partial", out_partial,
@@ -339,6 +403,10 @@ def cmd_discover_parallel(args):
                 cmd += ["--max_seq_len", str(args.max_seq_len)]
             if args.agentdojo_suites:
                 cmd += ["--agentdojo_suites", *args.agentdojo_suites]
+            if args.holdout_suite:
+                cmd += ["--holdout_suite", args.holdout_suite]
+            if args.history_max_chars is not None:
+                cmd += ["--history_max_chars", str(args.history_max_chars)]
 
             print(f"[discover-parallel:{args.source}] batch [{start}:{end}]/{total} -> new subprocess ...")
             proc = subprocess.run(cmd)
@@ -356,6 +424,7 @@ def cmd_discover_parallel(args):
             count += partial["count"]
             n_oom_total += partial["n_oom"]
             n_nan_total += partial.get("n_nan", 0)
+            _merge_suite_counts(suite_counts, partial.get("suite_counts"))
             if partial.get("dtype"):
                 batch_dtypes.add(partial["dtype"])
     finally:
@@ -385,6 +454,11 @@ def cmd_discover_parallel(args):
         "n_examples_used": count,
         "n_oom_skipped": n_oom_total,
         "n_nan_skipped": n_nan_total,
+        # suite별 ok/oom/nan — 균등성 주장의 근거
+        "suite_counts": suite_counts,
+        # 어느 user_task가 head 탐색에 쓰였는지까지 기록한다. 평가 단계(run_agentdojo_eval)가
+        # 이 목록을 제외해야 진짜 held-out 평가가 된다.
+        "split_info": split_info,
         "head_n": args.head_n,
         "seed": args.seed,
         "topk": args.topk,
@@ -510,6 +584,28 @@ def _add_common_discover_args(p):
         # argparse는 help 문자열에 `help % params`를 적용하므로 리터럴 %는 %%로 써야 한다.
         # (%만 쓰면 `--help` 자체가 ValueError로 죽는다 — 실제로 죽고 있었다)
         "OOM으로 번짐 — agentdojo는 2000 권장, 실측상 전체의 ~6%%만 넘음).",
+    )
+    p.add_argument(
+        "--split_group_key", default="user_task",
+        help="이 메타 키가 같은 pair들은 통째로 head/eval 한쪽에만 간다 (누수 방지). "
+        "AgentDojo pair는 (user_task x injection_task)라 무작위로 나누면 같은 user_task가 "
+        "양쪽에 들어가고, 프롬프트의 system/user 질문/history를 전부 공유해 held-out이 "
+        "아니게 된다. 'none'으로 끌 수 있다(권장하지 않음). 메타에 키가 없는 소스는 자동 우회.",
+    )
+    p.add_argument(
+        "--split_stratify_key", default="suite",
+        help="이 메타 키별로 같은 쿼터씩 뽑는다 (교수님 지시 1번 'suite 균등'). "
+        "쿼터는 head_n // stratum수. 'none'으로 끌 수 있다.",
+    )
+    p.add_argument(
+        "--holdout_suite", default=None,
+        help="leave-one-suite-out: 이 suite 전체를 평가 전용으로 빼고 나머지에서만 head를 "
+        "찾는다 (예: --holdout_suite workspace). P2-a의 held-out style과 같은 논리.",
+    )
+    p.add_argument(
+        "--history_max_chars", type=int, default=None,
+        help="AgentDojo 전용: 주입 턴보다 앞선 tool 응답을 이 길이로 자른다 (기본 자르지 않음). "
+        "실측상 turn>=1 프롬프트가 최대 1945토큰이라 보통 불필요하다.",
     )
     p.add_argument("--injecagent_repo_dir", default="external_injecagent")
     p.add_argument("--agentdojo_suites", nargs="*", default=None)
