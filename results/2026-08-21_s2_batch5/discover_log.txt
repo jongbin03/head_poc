@@ -1,0 +1,493 @@
+  [agentdojo] filtered by max_seq_len=2000: 220 -> 207 pairs
+  [agentdojo] 207 total pairs -> 150 used for head discovery (seed=42)
+[discover-parallel:agentdojo] 150 head_pairs total, batch_size=5
+[discover-parallel:agentdojo] batch [0:5]/150 -> new subprocess ...
+Sliding Window Attention is enabled but not implemented for `eager`; unexpected results may be encountered.
+  [agentdojo] filtered by max_seq_len=2000: 220 -> 207 pairs
+  [agentdojo] 207 total pairs -> 150 used for head discovery (seed=42)
+[discover-batch:agentdojo] loading Qwen/Qwen2.5-7B-Instruct for batch [0:5] ...
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:01<00:03,  1.32s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:02<00:02,  1.28s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:03<00:01,  1.27s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:04<00:00,  1.22s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:04<00:00,  1.24s/it]
+[W821 05:30:54.460459702 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 293601280 bytes (free: 68550656, total: 25388515328).
+[W821 05:30:55.936751776 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 146800640 bytes (free: 60162048, total: 25388515328).
+[W821 05:30:55.936897725 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 146800640 bytes (free: 60162048, total: 25388515328).
+[W821 05:30:56.753935740 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 150994944 bytes (free: 32899072, total: 25388515328).
+[W821 05:30:57.157931355 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 136314880 bytes (free: 20316160, total: 25388515328).
+[W821 05:30:57.158054930 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 136314880 bytes (free: 20316160, total: 25388515328).
+[env] commit=a2118b78 dtype=bf16 gpu=NVIDIA TITAN RTX torch=2.13.0+cu126
+  [discover-batch:agentdojo] OOM at local idx 2 (global 2), skipping
+  [discover-batch:agentdojo] OOM at local idx 3 (global 3), skipping
+[discover-batch:agentdojo] batch [0:5] done: 3 ok, 2 oom, 0 nan -> /tmp/compare_head_sources_j6qyl09l/batch_0_5.pt
+[discover-parallel:agentdojo] batch [5:10]/150 -> new subprocess ...
+Sliding Window Attention is enabled but not implemented for `eager`; unexpected results may be encountered.
+  [agentdojo] filtered by max_seq_len=2000: 220 -> 207 pairs
+  [agentdojo] 207 total pairs -> 150 used for head discovery (seed=42)
+[discover-batch:agentdojo] loading Qwen/Qwen2.5-7B-Instruct for batch [5:10] ...
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:01<00:03,  1.32s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:02<00:02,  1.28s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:03<00:01,  1.27s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:04<00:00,  1.22s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:04<00:00,  1.24s/it]
+[W821 05:33:00.803443657 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 121634816 bytes (free: 51773440, total: 25388515328).
+[W821 05:33:00.803938531 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 121634816 bytes (free: 55967744, total: 25388515328).
+[env] commit=a2118b78 dtype=bf16 gpu=NVIDIA TITAN RTX torch=2.13.0+cu126
+  [discover-batch:agentdojo] OOM at local idx 4 (global 9), skipping
+[discover-batch:agentdojo] batch [5:10] done: 4 ok, 1 oom, 0 nan -> /tmp/compare_head_sources_j6qyl09l/batch_5_10.pt
+[discover-parallel:agentdojo] batch [10:15]/150 -> new subprocess ...
+Sliding Window Attention is enabled but not implemented for `eager`; unexpected results may be encountered.
+  [agentdojo] filtered by max_seq_len=2000: 220 -> 207 pairs
+  [agentdojo] 207 total pairs -> 150 used for head discovery (seed=42)
+[discover-batch:agentdojo] loading Qwen/Qwen2.5-7B-Instruct for batch [10:15] ...
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:01<00:03,  1.32s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:02<00:02,  1.28s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:03<00:01,  1.27s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:04<00:00,  1.22s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:04<00:00,  1.24s/it]
+[W821 05:34:54.163834656 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 228589568 bytes (free: 9830400, total: 25388515328).
+[W821 05:34:56.952109052 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 228589568 bytes (free: 129368064, total: 25388515328).
+[env] commit=a2118b78 dtype=bf16 gpu=NVIDIA TITAN RTX torch=2.13.0+cu126
+  [discover-batch:agentdojo] OOM at local idx 3 (global 13), skipping
+[discover-batch:agentdojo] batch [10:15] done: 4 ok, 1 oom, 0 nan -> /tmp/compare_head_sources_j6qyl09l/batch_10_15.pt
+[discover-parallel:agentdojo] batch [15:20]/150 -> new subprocess ...
+Sliding Window Attention is enabled but not implemented for `eager`; unexpected results may be encountered.
+  [agentdojo] filtered by max_seq_len=2000: 220 -> 207 pairs
+  [agentdojo] 207 total pairs -> 150 used for head discovery (seed=42)
+[discover-batch:agentdojo] loading Qwen/Qwen2.5-7B-Instruct for batch [15:20] ...
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:01<00:03,  1.33s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:02<00:02,  1.29s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:03<00:01,  1.29s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:05<00:00,  1.23s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:05<00:00,  1.26s/it]
+[W821 05:36:53.169639291 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 109051904 bytes (free: 72744960, total: 25388515328).
+[W821 05:36:54.372819162 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 109051904 bytes (free: 74842112, total: 25388515328).
+[W821 05:37:00.586970205 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 281018368 bytes (free: 58064896, total: 25388515328).
+[W821 05:37:00.016114740 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 281018368 bytes (free: 200671232, total: 25388515328).
+[env] commit=a2118b78 dtype=bf16 gpu=NVIDIA TITAN RTX torch=2.13.0+cu126
+  [discover-batch:agentdojo] OOM at local idx 1 (global 16), skipping
+  [discover-batch:agentdojo] OOM at local idx 4 (global 19), skipping
+[discover-batch:agentdojo] batch [15:20] done: 3 ok, 2 oom, 0 nan -> /tmp/compare_head_sources_j6qyl09l/batch_15_20.pt
+[discover-parallel:agentdojo] batch [20:25]/150 -> new subprocess ...
+Sliding Window Attention is enabled but not implemented for `eager`; unexpected results may be encountered.
+  [agentdojo] filtered by max_seq_len=2000: 220 -> 207 pairs
+  [agentdojo] 207 total pairs -> 150 used for head discovery (seed=42)
+[discover-batch:agentdojo] loading Qwen/Qwen2.5-7B-Instruct for batch [20:25] ...
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:01<00:03,  1.33s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:02<00:02,  1.28s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:03<00:01,  1.28s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:04<00:00,  1.23s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:05<00:00,  1.25s/it]
+[W821 05:38:53.963562590 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 278921216 bytes (free: 183894016, total: 25388515328).
+[W821 05:38:55.524721638 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 278921216 bytes (free: 47579136, total: 25388515328).
+[W821 05:38:55.524863751 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 278921216 bytes (free: 47579136, total: 25388515328).
+[W821 05:38:58.224620047 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 165675008 bytes (free: 55967744, total: 25388515328).
+[W821 05:38:59.742601260 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 165675008 bytes (free: 60162048, total: 25388515328).
+[env] commit=86d05c23 dtype=bf16 gpu=NVIDIA TITAN RTX torch=2.13.0+cu126
+  [discover-batch:agentdojo] OOM at local idx 2 (global 22), skipping
+  [discover-batch:agentdojo] OOM at local idx 4 (global 24), skipping
+[discover-batch:agentdojo] batch [20:25] done: 3 ok, 2 oom, 0 nan -> /tmp/compare_head_sources_j6qyl09l/batch_20_25.pt
+[discover-parallel:agentdojo] batch [25:30]/150 -> new subprocess ...
+Sliding Window Attention is enabled but not implemented for `eager`; unexpected results may be encountered.
+  [agentdojo] filtered by max_seq_len=2000: 220 -> 207 pairs
+  [agentdojo] 207 total pairs -> 150 used for head discovery (seed=42)
+[discover-batch:agentdojo] loading Qwen/Qwen2.5-7B-Instruct for batch [25:30] ...
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:01<00:03,  1.32s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:02<00:02,  1.28s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:03<00:01,  1.27s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:04<00:00,  1.22s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:04<00:00,  1.24s/it]
+[W821 05:40:51.895643931 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 226492416 bytes (free: 152436736, total: 25388515328).
+[W821 05:40:51.896445369 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 226492416 bytes (free: 156631040, total: 25388515328).
+[W821 05:40:58.331982148 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 195035136 bytes (free: 100007936, total: 25388515328).
+[W821 05:40:58.332714684 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 195035136 bytes (free: 104202240, total: 25388515328).
+[W821 05:40:59.816642525 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 306184192 bytes (free: 53870592, total: 25388515328).
+[W821 05:41:01.015463153 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 306184192 bytes (free: 55967744, total: 25388515328).
+[W821 05:41:08.304913509 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 96468992 bytes (free: 93716480, total: 25388515328).
+[W821 05:41:09.107249751 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 192937984 bytes (free: 1441792, total: 25388515328).
+[W821 05:41:09.116254833 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 192937984 bytes (free: 97910784, total: 25388515328).
+[env] commit=86d05c23 dtype=bf16 gpu=NVIDIA TITAN RTX torch=2.13.0+cu126
+  [discover-batch:agentdojo] OOM at local idx 0 (global 25), skipping
+  [discover-batch:agentdojo] OOM at local idx 1 (global 26), skipping
+  [discover-batch:agentdojo] OOM at local idx 2 (global 27), skipping
+  [discover-batch:agentdojo] OOM at local idx 4 (global 29), skipping
+[discover-batch:agentdojo] batch [25:30] done: 1 ok, 4 oom, 0 nan -> /tmp/compare_head_sources_j6qyl09l/batch_25_30.pt
+[discover-parallel:agentdojo] batch [30:35]/150 -> new subprocess ...
+Sliding Window Attention is enabled but not implemented for `eager`; unexpected results may be encountered.
+  [agentdojo] filtered by max_seq_len=2000: 220 -> 207 pairs
+  [agentdojo] 207 total pairs -> 150 used for head discovery (seed=42)
+[discover-batch:agentdojo] loading Qwen/Qwen2.5-7B-Instruct for batch [30:35] ...
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:01<00:03,  1.31s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:02<00:02,  1.27s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:03<00:01,  1.27s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:04<00:00,  1.22s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:04<00:00,  1.24s/it]
+[env] commit=86d05c23 dtype=bf16 gpu=NVIDIA TITAN RTX torch=2.13.0+cu126
+[discover-batch:agentdojo] batch [30:35] done: 5 ok, 0 oom, 0 nan -> /tmp/compare_head_sources_j6qyl09l/batch_30_35.pt
+[discover-parallel:agentdojo] batch [35:40]/150 -> new subprocess ...
+Sliding Window Attention is enabled but not implemented for `eager`; unexpected results may be encountered.
+  [agentdojo] filtered by max_seq_len=2000: 220 -> 207 pairs
+  [agentdojo] 207 total pairs -> 150 used for head discovery (seed=42)
+[discover-batch:agentdojo] loading Qwen/Qwen2.5-7B-Instruct for batch [35:40] ...
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:01<00:03,  1.33s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:02<00:02,  1.29s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:03<00:01,  1.28s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:05<00:00,  1.23s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:05<00:00,  1.25s/it]
+[W821 05:44:56.818250973 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 490733568 bytes (free: 221642752, total: 25388515328).
+[W821 05:44:58.829438958 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 490733568 bytes (free: 24510464, total: 25388515328).
+[W821 05:44:58.829709450 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 490733568 bytes (free: 24510464, total: 25388515328).
+[W821 05:45:07.357129495 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 186646528 bytes (free: 135659520, total: 25388515328).
+[W821 05:45:07.364336593 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 186646528 bytes (free: 139853824, total: 25388515328).
+[env] commit=86d05c23 dtype=bf16 gpu=NVIDIA TITAN RTX torch=2.13.0+cu126
+  [discover-batch:agentdojo] OOM at local idx 0 (global 35), skipping
+  [discover-batch:agentdojo] OOM at local idx 2 (global 37), skipping
+[discover-batch:agentdojo] batch [35:40] done: 3 ok, 2 oom, 0 nan -> /tmp/compare_head_sources_j6qyl09l/batch_35_40.pt
+[discover-parallel:agentdojo] batch [40:45]/150 -> new subprocess ...
+Sliding Window Attention is enabled but not implemented for `eager`; unexpected results may be encountered.
+  [agentdojo] filtered by max_seq_len=2000: 220 -> 207 pairs
+  [agentdojo] 207 total pairs -> 150 used for head discovery (seed=42)
+[discover-batch:agentdojo] loading Qwen/Qwen2.5-7B-Instruct for batch [40:45] ...
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:01<00:04,  1.34s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:02<00:02,  1.30s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:03<00:01,  1.29s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:05<00:00,  1.23s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:05<00:00,  1.26s/it]
+[env] commit=2d62ed3f dtype=bf16 gpu=NVIDIA TITAN RTX torch=2.13.0+cu126
+[discover-batch:agentdojo] batch [40:45] done: 5 ok, 0 oom, 0 nan -> /tmp/compare_head_sources_j6qyl09l/batch_40_45.pt
+[discover-parallel:agentdojo] batch [45:50]/150 -> new subprocess ...
+Sliding Window Attention is enabled but not implemented for `eager`; unexpected results may be encountered.
+  [agentdojo] filtered by max_seq_len=2000: 220 -> 207 pairs
+  [agentdojo] 207 total pairs -> 150 used for head discovery (seed=42)
+[discover-batch:agentdojo] loading Qwen/Qwen2.5-7B-Instruct for batch [45:50] ...
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:01<00:03,  1.33s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:02<00:02,  1.30s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:03<00:01,  1.29s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:05<00:00,  1.23s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:05<00:00,  1.26s/it]
+[W821 05:49:07.906137795 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 274726912 bytes (free: 253100032, total: 25388515328).
+[W821 05:49:09.856775391 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 274726912 bytes (free: 118882304, total: 25388515328).
+[W821 05:49:09.856887381 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 274726912 bytes (free: 118882304, total: 25388515328).
+[env] commit=2d62ed3f dtype=bf16 gpu=NVIDIA TITAN RTX torch=2.13.0+cu126
+  [discover-batch:agentdojo] OOM at local idx 2 (global 47), skipping
+[discover-batch:agentdojo] batch [45:50] done: 4 ok, 1 oom, 0 nan -> /tmp/compare_head_sources_j6qyl09l/batch_45_50.pt
+[discover-parallel:agentdojo] batch [50:55]/150 -> new subprocess ...
+Sliding Window Attention is enabled but not implemented for `eager`; unexpected results may be encountered.
+  [agentdojo] filtered by max_seq_len=2000: 220 -> 207 pairs
+  [agentdojo] 207 total pairs -> 150 used for head discovery (seed=42)
+[discover-batch:agentdojo] loading Qwen/Qwen2.5-7B-Instruct for batch [50:55] ...
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:01<00:03,  1.31s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:02<00:02,  1.27s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:03<00:01,  1.27s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:04<00:00,  1.22s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:04<00:00,  1.24s/it]
+[env] commit=2d62ed3f dtype=bf16 gpu=NVIDIA TITAN RTX torch=2.13.0+cu126
+[discover-batch:agentdojo] batch [50:55] done: 5 ok, 0 oom, 0 nan -> /tmp/compare_head_sources_j6qyl09l/batch_50_55.pt
+[discover-parallel:agentdojo] batch [55:60]/150 -> new subprocess ...
+Sliding Window Attention is enabled but not implemented for `eager`; unexpected results may be encountered.
+  [agentdojo] filtered by max_seq_len=2000: 220 -> 207 pairs
+  [agentdojo] 207 total pairs -> 150 used for head discovery (seed=42)
+[discover-batch:agentdojo] loading Qwen/Qwen2.5-7B-Instruct for batch [55:60] ...
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:01<00:03,  1.31s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:02<00:02,  1.27s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:03<00:01,  1.27s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:04<00:00,  1.21s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:04<00:00,  1.24s/it]
+[W821 05:53:12.929240047 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 136314880 bytes (free: 39190528, total: 25388515328).
+[W821 05:53:13.943082606 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 136314880 bytes (free: 43384832, total: 25388515328).
+[W821 05:53:14.367708947 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 111149056 bytes (free: 34996224, total: 25388515328).
+[W821 05:53:15.431255107 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 111149056 bytes (free: 37093376, total: 25388515328).
+[env] commit=2d62ed3f dtype=bf16 gpu=NVIDIA TITAN RTX torch=2.13.0+cu126
+  [discover-batch:agentdojo] OOM at local idx 3 (global 58), skipping
+  [discover-batch:agentdojo] OOM at local idx 4 (global 59), skipping
+[discover-batch:agentdojo] batch [55:60] done: 3 ok, 2 oom, 0 nan -> /tmp/compare_head_sources_j6qyl09l/batch_55_60.pt
+[discover-parallel:agentdojo] batch [60:65]/150 -> new subprocess ...
+Sliding Window Attention is enabled but not implemented for `eager`; unexpected results may be encountered.
+  [agentdojo] filtered by max_seq_len=2000: 220 -> 207 pairs
+  [agentdojo] 207 total pairs -> 150 used for head discovery (seed=42)
+[discover-batch:agentdojo] loading Qwen/Qwen2.5-7B-Instruct for batch [60:65] ...
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:01<00:03,  1.31s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:02<00:02,  1.27s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:03<00:01,  1.28s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:04<00:00,  1.22s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:04<00:00,  1.25s/it]
+[W821 05:55:10.550719474 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 142606336 bytes (free: 64356352, total: 25388515328).
+[W821 05:55:10.551293717 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 142606336 bytes (free: 68550656, total: 25388515328).
+[W821 05:55:11.325717113 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 285212672 bytes (free: 173408256, total: 25388515328).
+[W821 05:55:13.411024350 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 142606336 bytes (free: 32899072, total: 25388515328).
+[W821 05:55:13.411243882 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 142606336 bytes (free: 32899072, total: 25388515328).
+[W821 05:55:18.786388305 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 155189248 bytes (free: 72744960, total: 25388515328).
+[W821 05:55:19.047855062 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 155189248 bytes (free: 74842112, total: 25388515328).
+[env] commit=2d62ed3f dtype=bf16 gpu=NVIDIA TITAN RTX torch=2.13.0+cu126
+  [discover-batch:agentdojo] OOM at local idx 1 (global 61), skipping
+  [discover-batch:agentdojo] OOM at local idx 2 (global 62), skipping
+  [discover-batch:agentdojo] OOM at local idx 4 (global 64), skipping
+[discover-batch:agentdojo] batch [60:65] done: 2 ok, 3 oom, 0 nan -> /tmp/compare_head_sources_j6qyl09l/batch_60_65.pt
+[discover-parallel:agentdojo] batch [65:70]/150 -> new subprocess ...
+Sliding Window Attention is enabled but not implemented for `eager`; unexpected results may be encountered.
+  [agentdojo] filtered by max_seq_len=2000: 220 -> 207 pairs
+  [agentdojo] 207 total pairs -> 150 used for head discovery (seed=42)
+[discover-batch:agentdojo] loading Qwen/Qwen2.5-7B-Instruct for batch [65:70] ...
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:01<00:03,  1.31s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:02<00:02,  1.27s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:03<00:01,  1.27s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:04<00:00,  1.21s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:04<00:00,  1.24s/it]
+[W821 05:57:05.430391813 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 448790528 bytes (free: 381026304, total: 25388515328).
+[W821 05:57:07.747598334 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 224395264 bytes (free: 158728192, total: 25388515328).
+[W821 05:57:07.747820893 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 224395264 bytes (free: 158728192, total: 25388515328).
+[W821 05:57:11.105359157 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 278921216 bytes (free: 175505408, total: 25388515328).
+[W821 05:57:13.115845783 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 140509184 bytes (free: 39190528, total: 25388515328).
+[W821 05:57:13.115955554 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 140509184 bytes (free: 39190528, total: 25388515328).
+[W821 05:57:19.965701965 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 163577856 bytes (free: 11927552, total: 25388515328).
+[W821 05:57:19.972210134 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 163577856 bytes (free: 16121856, total: 25388515328).
+[W821 05:57:25.931634776 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 153092096 bytes (free: 34996224, total: 25388515328).
+[W821 05:57:25.932252260 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 153092096 bytes (free: 39190528, total: 25388515328).
+[env] commit=2d62ed3f dtype=bf16 gpu=NVIDIA TITAN RTX torch=2.13.0+cu126
+  [discover-batch:agentdojo] OOM at local idx 0 (global 65), skipping
+  [discover-batch:agentdojo] OOM at local idx 2 (global 67), skipping
+  [discover-batch:agentdojo] OOM at local idx 3 (global 68), skipping
+  [discover-batch:agentdojo] OOM at local idx 4 (global 69), skipping
+[discover-batch:agentdojo] batch [65:70] done: 1 ok, 4 oom, 0 nan -> /tmp/compare_head_sources_j6qyl09l/batch_65_70.pt
+[discover-parallel:agentdojo] batch [70:75]/150 -> new subprocess ...
+Sliding Window Attention is enabled but not implemented for `eager`; unexpected results may be encountered.
+  [agentdojo] filtered by max_seq_len=2000: 220 -> 207 pairs
+  [agentdojo] 207 total pairs -> 150 used for head discovery (seed=42)
+[discover-batch:agentdojo] loading Qwen/Qwen2.5-7B-Instruct for batch [70:75] ...
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:01<00:04,  1.35s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:02<00:02,  1.29s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:03<00:01,  1.28s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:05<00:00,  1.22s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:05<00:00,  1.25s/it]
+[W821 05:59:12.058370433 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 153092096 bytes (free: 135659520, total: 25388515328).
+[W821 05:59:14.005138719 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 153092096 bytes (free: 137756672, total: 25388515328).
+[env] commit=2d62ed3f dtype=bf16 gpu=NVIDIA TITAN RTX torch=2.13.0+cu126
+  [discover-batch:agentdojo] OOM at local idx 0 (global 70), skipping
+[discover-batch:agentdojo] batch [70:75] done: 4 ok, 1 oom, 0 nan -> /tmp/compare_head_sources_j6qyl09l/batch_70_75.pt
+[discover-parallel:agentdojo] batch [75:80]/150 -> new subprocess ...
+Sliding Window Attention is enabled but not implemented for `eager`; unexpected results may be encountered.
+  [agentdojo] filtered by max_seq_len=2000: 220 -> 207 pairs
+  [agentdojo] 207 total pairs -> 150 used for head discovery (seed=42)
+[discover-batch:agentdojo] loading Qwen/Qwen2.5-7B-Instruct for batch [75:80] ...
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:01<00:03,  1.33s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:02<00:02,  1.29s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:03<00:01,  1.28s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:05<00:00,  1.23s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:05<00:00,  1.25s/it]
+[W821 06:01:19.872819875 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 415236096 bytes (free: 18219008, total: 25388515328).
+[W821 06:01:21.744221601 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 415236096 bytes (free: 22413312, total: 25388515328).
+[W821 06:01:27.574374807 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 165675008 bytes (free: 11927552, total: 25388515328).
+[W821 06:01:27.575159946 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 165675008 bytes (free: 16121856, total: 25388515328).
+[W821 06:01:33.575433334 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 163577856 bytes (free: 1441792, total: 25388515328).
+[W821 06:01:33.576086152 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 163577856 bytes (free: 5636096, total: 25388515328).
+[env] commit=2d62ed3f dtype=bf16 gpu=NVIDIA TITAN RTX torch=2.13.0+cu126
+  [discover-batch:agentdojo] OOM at local idx 1 (global 76), skipping
+  [discover-batch:agentdojo] OOM at local idx 2 (global 77), skipping
+  [discover-batch:agentdojo] OOM at local idx 3 (global 78), skipping
+[discover-batch:agentdojo] batch [75:80] done: 2 ok, 3 oom, 0 nan -> /tmp/compare_head_sources_j6qyl09l/batch_75_80.pt
+[discover-parallel:agentdojo] batch [80:85]/150 -> new subprocess ...
+Sliding Window Attention is enabled but not implemented for `eager`; unexpected results may be encountered.
+  [agentdojo] filtered by max_seq_len=2000: 220 -> 207 pairs
+  [agentdojo] 207 total pairs -> 150 used for head discovery (seed=42)
+[discover-batch:agentdojo] loading Qwen/Qwen2.5-7B-Instruct for batch [80:85] ...
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:01<00:03,  1.32s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:02<00:02,  1.28s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:03<00:01,  1.27s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:04<00:00,  1.21s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:04<00:00,  1.24s/it]
+[W821 06:03:34.176797510 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 320864256 bytes (free: 5636096, total: 25388515328).
+[W821 06:03:35.233692999 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 320864256 bytes (free: 7733248, total: 25388515328).
+[env] commit=2d62ed3f dtype=bf16 gpu=NVIDIA TITAN RTX torch=2.13.0+cu126
+  [discover-batch:agentdojo] OOM at local idx 4 (global 84), skipping
+[discover-batch:agentdojo] batch [80:85] done: 4 ok, 1 oom, 0 nan -> /tmp/compare_head_sources_j6qyl09l/batch_80_85.pt
+[discover-parallel:agentdojo] batch [85:90]/150 -> new subprocess ...
+Sliding Window Attention is enabled but not implemented for `eager`; unexpected results may be encountered.
+  [agentdojo] filtered by max_seq_len=2000: 220 -> 207 pairs
+  [agentdojo] 207 total pairs -> 150 used for head discovery (seed=42)
+[discover-batch:agentdojo] loading Qwen/Qwen2.5-7B-Instruct for batch [85:90] ...
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:01<00:03,  1.33s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:02<00:02,  1.29s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:03<00:01,  1.29s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:05<00:00,  1.23s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:05<00:00,  1.25s/it]
+[W821 06:05:30.251425544 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 165675008 bytes (free: 53870592, total: 25388515328).
+[W821 06:05:30.252100863 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 165675008 bytes (free: 58064896, total: 25388515328).
+[W821 06:05:30.902259816 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 312475648 bytes (free: 70647808, total: 25388515328).
+[W821 06:05:32.100293478 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 312475648 bytes (free: 230031360, total: 25388515328).
+[W821 06:05:38.806458159 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 176160768 bytes (free: 11927552, total: 25388515328).
+[W821 06:05:39.139522797 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 176160768 bytes (free: 16121856, total: 25388515328).
+[env] commit=2d62ed3f dtype=bf16 gpu=NVIDIA TITAN RTX torch=2.13.0+cu126
+  [discover-batch:agentdojo] OOM at local idx 1 (global 86), skipping
+  [discover-batch:agentdojo] OOM at local idx 2 (global 87), skipping
+  [discover-batch:agentdojo] OOM at local idx 4 (global 89), skipping
+[discover-batch:agentdojo] batch [85:90] done: 2 ok, 3 oom, 0 nan -> /tmp/compare_head_sources_j6qyl09l/batch_85_90.pt
+[discover-parallel:agentdojo] batch [90:95]/150 -> new subprocess ...
+Sliding Window Attention is enabled but not implemented for `eager`; unexpected results may be encountered.
+  [agentdojo] filtered by max_seq_len=2000: 220 -> 207 pairs
+  [agentdojo] 207 total pairs -> 150 used for head discovery (seed=42)
+[discover-batch:agentdojo] loading Qwen/Qwen2.5-7B-Instruct for batch [90:95] ...
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:01<00:03,  1.32s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:02<00:02,  1.29s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:03<00:01,  1.28s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:05<00:00,  1.23s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:05<00:00,  1.25s/it]
+[W821 06:07:26.686035586 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 268435456 bytes (free: 45481984, total: 25388515328).
+[W821 06:07:28.063213194 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 268435456 bytes (free: 47579136, total: 25388515328).
+[W821 06:07:38.991900923 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 207618048 bytes (free: 39190528, total: 25388515328).
+[W821 06:07:39.655450055 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 207618048 bytes (free: 43384832, total: 25388515328).
+[W821 06:07:39.995182340 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 211812352 bytes (free: 133562368, total: 25388515328).
+[W821 06:07:40.652206300 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 211812352 bytes (free: 60162048, total: 25388515328).
+[W821 06:07:40.748205912 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 211812352 bytes (free: 62259200, total: 25388515328).
+[env] commit=2d62ed3f dtype=bf16 gpu=NVIDIA TITAN RTX torch=2.13.0+cu126
+  [discover-batch:agentdojo] OOM at local idx 0 (global 90), skipping
+  [discover-batch:agentdojo] OOM at local idx 3 (global 93), skipping
+  [discover-batch:agentdojo] OOM at local idx 4 (global 94), skipping
+[discover-batch:agentdojo] batch [90:95] done: 2 ok, 3 oom, 0 nan -> /tmp/compare_head_sources_j6qyl09l/batch_90_95.pt
+[discover-parallel:agentdojo] batch [95:100]/150 -> new subprocess ...
+Sliding Window Attention is enabled but not implemented for `eager`; unexpected results may be encountered.
+  [agentdojo] filtered by max_seq_len=2000: 220 -> 207 pairs
+  [agentdojo] 207 total pairs -> 150 used for head discovery (seed=42)
+[discover-batch:agentdojo] loading Qwen/Qwen2.5-7B-Instruct for batch [95:100] ...
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:01<00:03,  1.32s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:02<00:02,  1.28s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:03<00:01,  1.28s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:04<00:00,  1.22s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:04<00:00,  1.24s/it]
+[W821 06:09:35.286983219 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 201326592 bytes (free: 173408256, total: 25388515328).
+[W821 06:09:35.288137947 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 201326592 bytes (free: 177602560, total: 25388515328).
+[W821 06:09:41.192882870 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 241172480 bytes (free: 81133568, total: 25388515328).
+[W821 06:09:42.104117835 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 241172480 bytes (free: 206962688, total: 25388515328).
+[env] commit=0ede5ee9 dtype=bf16 gpu=NVIDIA TITAN RTX torch=2.13.0+cu126
+  [discover-batch:agentdojo] OOM at local idx 1 (global 96), skipping
+  [discover-batch:agentdojo] OOM at local idx 4 (global 99), skipping
+[discover-batch:agentdojo] batch [95:100] done: 3 ok, 2 oom, 0 nan -> /tmp/compare_head_sources_j6qyl09l/batch_95_100.pt
+[discover-parallel:agentdojo] batch [100:105]/150 -> new subprocess ...
+Sliding Window Attention is enabled but not implemented for `eager`; unexpected results may be encountered.
+  [agentdojo] filtered by max_seq_len=2000: 307 -> 294 pairs
+  [agentdojo] 294 total pairs -> 150 used for head discovery (seed=42)
+[discover-batch:agentdojo] loading Qwen/Qwen2.5-7B-Instruct for batch [100:105] ...
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:01<00:03,  1.32s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:02<00:02,  1.28s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:03<00:01,  1.27s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:04<00:00,  1.22s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:04<00:00,  1.24s/it]
+[W821 06:11:33.454635438 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 352321536 bytes (free: 345374720, total: 25388515328).
+[W821 06:11:35.551907729 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 176160768 bytes (free: 173408256, total: 25388515328).
+[W821 06:11:35.552034938 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 176160768 bytes (free: 173408256, total: 25388515328).
+[W821 06:11:38.927644265 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 297795584 bytes (free: 66453504, total: 25388515328).
+[W821 06:11:40.000126713 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 297795584 bytes (free: 217448448, total: 25388515328).
+[env] commit=0ede5ee9 dtype=bf16 gpu=NVIDIA TITAN RTX torch=2.13.0+cu126
+  [discover-batch:agentdojo] OOM at local idx 0 (global 100), skipping
+  [discover-batch:agentdojo] OOM at local idx 2 (global 102), skipping
+[discover-batch:agentdojo] batch [100:105] done: 3 ok, 2 oom, 0 nan -> /tmp/compare_head_sources_j6qyl09l/batch_100_105.pt
+[discover-parallel:agentdojo] batch [105:110]/150 -> new subprocess ...
+Sliding Window Attention is enabled but not implemented for `eager`; unexpected results may be encountered.
+  [agentdojo] filtered by max_seq_len=2000: 307 -> 294 pairs
+  [agentdojo] 294 total pairs -> 150 used for head discovery (seed=42)
+[discover-batch:agentdojo] loading Qwen/Qwen2.5-7B-Instruct for batch [105:110] ...
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:01<00:03,  1.33s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:02<00:02,  1.29s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:03<00:01,  1.29s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:05<00:00,  1.23s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:05<00:00,  1.25s/it]
+[W821 06:13:38.586016243 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 249561088 bytes (free: 152436736, total: 25388515328).
+[W821 06:13:40.889688920 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 249561088 bytes (free: 156631040, total: 25388515328).
+[W821 06:13:47.413092286 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 136314880 bytes (free: 129368064, total: 25388515328).
+[W821 06:13:49.433969972 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 136314880 bytes (free: 133562368, total: 25388515328).
+[env] commit=0ede5ee9 dtype=bf16 gpu=NVIDIA TITAN RTX torch=2.13.0+cu126
+  [discover-batch:agentdojo] OOM at local idx 1 (global 106), skipping
+  [discover-batch:agentdojo] OOM at local idx 4 (global 109), skipping
+[discover-batch:agentdojo] batch [105:110] done: 3 ok, 2 oom, 0 nan -> /tmp/compare_head_sources_j6qyl09l/batch_105_110.pt
+[discover-parallel:agentdojo] batch [110:115]/150 -> new subprocess ...
+Sliding Window Attention is enabled but not implemented for `eager`; unexpected results may be encountered.
+  [agentdojo] filtered by max_seq_len=2000: 307 -> 294 pairs
+  [agentdojo] 294 total pairs -> 150 used for head discovery (seed=42)
+[discover-batch:agentdojo] loading Qwen/Qwen2.5-7B-Instruct for batch [110:115] ...
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:01<00:03,  1.32s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:02<00:02,  1.28s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:03<00:01,  1.27s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:04<00:00,  1.22s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:04<00:00,  1.24s/it]
+[W821 06:15:46.141610977 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 400556032 bytes (free: 81133568, total: 25388515328).
+[W821 06:15:48.001835804 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 400556032 bytes (free: 83230720, total: 25388515328).
+[W821 06:15:49.859332619 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 281018368 bytes (free: 238419968, total: 25388515328).
+[W821 06:15:51.901686005 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 281018368 bytes (free: 240517120, total: 25388515328).
+[env] commit=0ede5ee9 dtype=bf16 gpu=NVIDIA TITAN RTX torch=2.13.0+cu126
+  [discover-batch:agentdojo] OOM at local idx 3 (global 113), skipping
+  [discover-batch:agentdojo] OOM at local idx 4 (global 114), skipping
+[discover-batch:agentdojo] batch [110:115] done: 3 ok, 2 oom, 0 nan -> /tmp/compare_head_sources_j6qyl09l/batch_110_115.pt
+[discover-parallel:agentdojo] batch [115:120]/150 -> new subprocess ...
+Sliding Window Attention is enabled but not implemented for `eager`; unexpected results may be encountered.
+  [agentdojo] filtered by max_seq_len=2000: 307 -> 294 pairs
+  [agentdojo] 294 total pairs -> 150 used for head discovery (seed=42)
+[discover-batch:agentdojo] loading Qwen/Qwen2.5-7B-Instruct for batch [115:120] ...
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:01<00:03,  1.32s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:02<00:02,  1.28s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:03<00:01,  1.27s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:04<00:00,  1.22s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:04<00:00,  1.24s/it]
+[W821 06:17:47.939854905 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 136314880 bytes (free: 26607616, total: 25388515328).
+[W821 06:17:49.405450301 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 136314880 bytes (free: 28704768, total: 25388515328).
+[W821 06:17:52.544282421 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 136314880 bytes (free: 18219008, total: 25388515328).
+[W821 06:17:53.015204075 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 136314880 bytes (free: 20316160, total: 25388515328).
+[W821 06:17:54.429231163 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 257949696 bytes (free: 64356352, total: 25388515328).
+[W821 06:17:55.520278442 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 257949696 bytes (free: 198574080, total: 25388515328).
+[env] commit=0ede5ee9 dtype=bf16 gpu=NVIDIA TITAN RTX torch=2.13.0+cu126
+  [discover-batch:agentdojo] OOM at local idx 1 (global 116), skipping
+  [discover-batch:agentdojo] OOM at local idx 3 (global 118), skipping
+  [discover-batch:agentdojo] OOM at local idx 4 (global 119), skipping
+[discover-batch:agentdojo] batch [115:120] done: 2 ok, 3 oom, 0 nan -> /tmp/compare_head_sources_j6qyl09l/batch_115_120.pt
+[discover-parallel:agentdojo] batch [120:125]/150 -> new subprocess ...
+Sliding Window Attention is enabled but not implemented for `eager`; unexpected results may be encountered.
+  [agentdojo] filtered by max_seq_len=2000: 307 -> 294 pairs
+  [agentdojo] 294 total pairs -> 150 used for head discovery (seed=42)
+[discover-batch:agentdojo] loading Qwen/Qwen2.5-7B-Instruct for batch [120:125] ...
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:01<00:03,  1.32s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:02<00:02,  1.28s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:03<00:01,  1.27s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:04<00:00,  1.22s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:04<00:00,  1.24s/it]
+[W821 06:19:51.261560804 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 144703488 bytes (free: 133562368, total: 25388515328).
+[W821 06:19:52.632430235 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 144703488 bytes (free: 127270912, total: 25388515328).
+[W821 06:19:52.632542828 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 144703488 bytes (free: 127270912, total: 25388515328).
+[W821 06:19:57.654714053 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 165675008 bytes (free: 18219008, total: 25388515328).
+[W821 06:19:58.992329555 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 165675008 bytes (free: 156631040, total: 25388515328).
+[env] commit=0ede5ee9 dtype=bf16 gpu=NVIDIA TITAN RTX torch=2.13.0+cu126
+  [discover-batch:agentdojo] OOM at local idx 1 (global 121), skipping
+  [discover-batch:agentdojo] OOM at local idx 4 (global 124), skipping
+[discover-batch:agentdojo] batch [120:125] done: 3 ok, 2 oom, 0 nan -> /tmp/compare_head_sources_j6qyl09l/batch_120_125.pt
+[discover-parallel:agentdojo] batch [125:130]/150 -> new subprocess ...
+Sliding Window Attention is enabled but not implemented for `eager`; unexpected results may be encountered.
+  [agentdojo] filtered by max_seq_len=2000: 307 -> 294 pairs
+  [agentdojo] 294 total pairs -> 150 used for head discovery (seed=42)
+[discover-batch:agentdojo] loading Qwen/Qwen2.5-7B-Instruct for batch [125:130] ...
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:01<00:03,  1.32s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:02<00:02,  1.28s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:03<00:01,  1.27s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:04<00:00,  1.22s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:04<00:00,  1.24s/it]
+[W821 06:21:49.073768082 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 161480704 bytes (free: 68550656, total: 25388515328).
+[W821 06:21:51.070112936 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 161480704 bytes (free: 72744960, total: 25388515328).
+[W821 06:21:59.698587494 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 297795584 bytes (free: 185991168, total: 25388515328).
+[W821 06:22:01.256105557 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 297795584 bytes (free: 188088320, total: 25388515328).
+[env] commit=d95d45a8 dtype=bf16 gpu=NVIDIA TITAN RTX torch=2.13.0+cu126
+  [discover-batch:agentdojo] OOM at local idx 0 (global 125), skipping
+  [discover-batch:agentdojo] OOM at local idx 3 (global 128), skipping
+[discover-batch:agentdojo] batch [125:130] done: 3 ok, 2 oom, 0 nan -> /tmp/compare_head_sources_j6qyl09l/batch_125_130.pt
+[discover-parallel:agentdojo] batch [130:135]/150 -> new subprocess ...
+Sliding Window Attention is enabled but not implemented for `eager`; unexpected results may be encountered.
+  [agentdojo] filtered by max_seq_len=2000: 307 -> 294 pairs
+  [agentdojo] 294 total pairs
+[split] head_n=150 seed=42 group_key=user_task stratify_key=suite quota/stratum=37
+[split]   banking     head=  37  eval=  27  (head_groups=6/12)
+[split]   slack       head=  41  eval=  33  (head_groups=11/20)
+[split]   travel      head=  38  eval=  21  (head_groups=12/19)
+[split]   workspace   head=  38  eval=  59  (head_groups=9/22)
+[split] 합계 head=154 eval=140  head turn_idx={0: 95, 1: 32, 2: 15, 3: 6, 4: 6}
+[discover-batch:agentdojo] loading Qwen/Qwen2.5-7B-Instruct for batch [130:135] ...
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:01<00:03,  1.31s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:02<00:02,  1.27s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:03<00:01,  1.27s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:04<00:00,  1.21s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:04<00:00,  1.24s/it]
+[W821 06:23:54.959804796 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 492830720 bytes (free: 259391488, total: 25388515328).
+[W821 06:23:56.965584661 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 492830720 bytes (free: 60162048, total: 25388515328).
+[W821 06:23:56.965905396 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 492830720 bytes (free: 60162048, total: 25388515328).
+[W821 06:23:58.420775234 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 480247808 bytes (free: 202768384, total: 25388515328).
+[W821 06:24:00.605778176 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 480247808 bytes (free: 141950976, total: 25388515328).
+[W821 06:24:00.606006234 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 480247808 bytes (free: 141950976, total: 25388515328).
+[W821 06:24:01.060688216 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 476053504 bytes (free: 120979456, total: 25388515328).
+[W821 06:24:04.312508320 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 476053504 bytes (free: 395706368, total: 25388515328).
+[W821 06:24:05.823456974 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 268435456 bytes (free: 45481984, total: 25388515328).
+[W821 06:24:05.823560861 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 268435456 bytes (free: 45481984, total: 25388515328).
+[W821 06:24:09.757907626 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 478150656 bytes (free: 11927552, total: 25388515328).
+[W821 06:24:09.758005995 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 478150656 bytes (free: 11927552, total: 25388515328).
+[env] commit=d95d45a8 dtype=bf16 gpu=NVIDIA TITAN RTX torch=2.13.0+cu126
+  [discover-batch:agentdojo] OOM at local idx 0 (global 130, suite=workspace), skipping
+  [discover-batch:agentdojo] OOM at local idx 1 (global 131, suite=workspace), skipping
+  [discover-batch:agentdojo] OOM at local idx 2 (global 132, suite=workspace), skipping
+  [discover-batch:agentdojo] OOM at local idx 3 (global 133, suite=workspace), skipping
+  [discover-batch:agentdojo] OOM at local idx 4 (global 134, suite=workspace), skipping
+[discover-batch:agentdojo] batch [130:135] done: 0 ok, 5 oom, 0 nan -> /tmp/compare_head_sources_j6qyl09l/batch_130_135.pt
+[discover-parallel:agentdojo] batch [135:140]/150 -> new subprocess ...
+Sliding Window Attention is enabled but not implemented for `eager`; unexpected results may be encountered.
+  [agentdojo] filtered by max_seq_len=2000: 307 -> 294 pairs
+  [agentdojo] 294 total pairs
+[split] head_n=150 seed=42 group_key=user_task stratify_key=suite quota/stratum=37
+[split]   banking     head=  37  eval=  27  (head_groups=6/12)
+[split]   slack       head=  41  eval=  33  (head_groups=11/20)
+[split]   travel      head=  38  eval=  21  (head_groups=12/19)
+[split]   workspace   head=  38  eval=  59  (head_groups=9/22)
+[split] 합계 head=154 eval=140  head turn_idx={0: 95, 1: 32, 2: 15, 3: 6, 4: 6}
+[discover-batch:agentdojo] loading Qwen/Qwen2.5-7B-Instruct for batch [135:140] ...
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:01<00:03,  1.33s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:02<00:02,  1.29s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:03<00:01,  1.28s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:05<00:00,  1.23s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:05<00:00,  1.25s/it]
+[W821 06:26:03.228223792 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 490733568 bytes (free: 221642752, total: 25388515328).
+[W821 06:26:05.229570120 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 490733568 bytes (free: 22413312, total: 25388515328).
+[W821 06:26:05.229835847 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 490733568 bytes (free: 22413312, total: 25388515328).
+[W821 06:26:06.701464982 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 478150656 bytes (free: 9830400, total: 25388515328).
+[W821 06:26:08.868194670 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 478150656 bytes (free: 286654464, total: 25388515328).
+[W821 06:26:15.575297259 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 203423744 bytes (free: 62259200, total: 25388515328).
+[W821 06:26:15.580189881 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 203423744 bytes (free: 66453504, total: 25388515328).
+[W821 06:26:22.191280079 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 197132288 bytes (free: 156631040, total: 25388515328).
+[W821 06:26:22.192011151 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 197132288 bytes (free: 160825344, total: 25388515328).
+[W821 06:26:29.230858256 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 209715200 bytes (free: 32899072, total: 25388515328).
+[W821 06:26:29.232088930 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 209715200 bytes (free: 37093376, total: 25388515328).
+[env] commit=d95d45a8 dtype=bf16 gpu=NVIDIA TITAN RTX torch=2.13.0+cu126
+  [discover-batch:agentdojo] OOM at local idx 0 (global 135, suite=workspace), skipping
+  [discover-batch:agentdojo] OOM at local idx 1 (global 136, suite=workspace), skipping
+  [discover-batch:agentdojo] OOM at local idx 2 (global 137, suite=workspace), skipping
+  [discover-batch:agentdojo] OOM at local idx 3 (global 138, suite=workspace), skipping
+  [discover-batch:agentdojo] OOM at local idx 4 (global 139, suite=workspace), skipping
+[discover-batch:agentdojo] batch [135:140] done: 0 ok, 5 oom, 0 nan -> /tmp/compare_head_sources_j6qyl09l/batch_135_140.pt
+[discover-parallel:agentdojo] batch [140:145]/150 -> new subprocess ...
+Sliding Window Attention is enabled but not implemented for `eager`; unexpected results may be encountered.
+  [agentdojo] filtered by max_seq_len=2000: 307 -> 294 pairs
+  [agentdojo] 294 total pairs
+[split] head_n=150 seed=42 group_key=user_task stratify_key=suite quota/stratum=37
+[split]   banking     head=  37  eval=  27  (head_groups=6/12)
+[split]   slack       head=  41  eval=  33  (head_groups=11/20)
+[split]   travel      head=  38  eval=  21  (head_groups=12/19)
+[split]   workspace   head=  38  eval=  59  (head_groups=9/22)
+[split] 합계 head=154 eval=140  head turn_idx={0: 95, 1: 32, 2: 15, 3: 6, 4: 6}
+[discover-batch:agentdojo] loading Qwen/Qwen2.5-7B-Instruct for batch [140:145] ...
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:01<00:03,  1.33s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:02<00:02,  1.29s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:03<00:01,  1.28s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:04<00:00,  1.22s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:04<00:00,  1.25s/it]
+[W821 06:28:19.339249975 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 404750336 bytes (free: 20316160, total: 25388515328).
+[W821 06:28:21.604666185 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 404750336 bytes (free: 22413312, total: 25388515328).
+[W821 06:28:22.399391583 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 396361728 bytes (free: 383123456, total: 25388515328).
+[W821 06:28:24.703809474 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 396361728 bytes (free: 385220608, total: 25388515328).
+[W821 06:28:25.339325108 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 413138944 bytes (free: 74842112, total: 25388515328).
+[W821 06:28:27.768857888 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 413138944 bytes (free: 76939264, total: 25388515328).
+[W821 06:28:28.405249339 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 406847488 bytes (free: 345374720, total: 25388515328).
+[W821 06:28:30.892114981 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 406847488 bytes (free: 347471872, total: 25388515328).
+[W821 06:28:31.549735749 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 425721856 bytes (free: 397803520, total: 25388515328).
+[W821 06:28:33.027607509 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 213909504 bytes (free: 188088320, total: 25388515328).
+[W821 06:28:33.027840244 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 213909504 bytes (free: 188088320, total: 25388515328).
+[env] commit=d95d45a8 dtype=bf16 gpu=NVIDIA TITAN RTX torch=2.13.0+cu126
+  [discover-batch:agentdojo] OOM at local idx 0 (global 140, suite=workspace), skipping
+  [discover-batch:agentdojo] OOM at local idx 1 (global 141, suite=workspace), skipping
+  [discover-batch:agentdojo] OOM at local idx 2 (global 142, suite=workspace), skipping
+  [discover-batch:agentdojo] OOM at local idx 3 (global 143, suite=workspace), skipping
+  [discover-batch:agentdojo] OOM at local idx 4 (global 144, suite=workspace), skipping
+[discover-batch:agentdojo] batch [140:145] done: 0 ok, 5 oom, 0 nan -> /tmp/compare_head_sources_j6qyl09l/batch_140_145.pt
+[discover-parallel:agentdojo] batch [145:150]/150 -> new subprocess ...
+Sliding Window Attention is enabled but not implemented for `eager`; unexpected results may be encountered.
+  [agentdojo] filtered by max_seq_len=2000: 307 -> 294 pairs
+  [agentdojo] 294 total pairs
+[split] head_n=150 seed=42 group_key=user_task stratify_key=suite quota/stratum=37
+[split]   banking     head=  37  eval=  27  (head_groups=6/12)
+[split]   slack       head=  41  eval=  33  (head_groups=11/20)
+[split]   travel      head=  38  eval=  21  (head_groups=12/19)
+[split]   workspace   head=  38  eval=  59  (head_groups=9/22)
+[split] 합계 head=154 eval=140  head turn_idx={0: 95, 1: 32, 2: 15, 3: 6, 4: 6}
+[discover-batch:agentdojo] loading Qwen/Qwen2.5-7B-Instruct for batch [145:150] ...
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:01<00:03,  1.33s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:02<00:02,  1.29s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:03<00:01,  1.28s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:05<00:00,  1.23s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:05<00:00,  1.25s/it]
+[W821 06:30:27.226093416 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 406847488 bytes (free: 345374720, total: 25388515328).
+[W821 06:30:29.483923156 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 203423744 bytes (free: 144048128, total: 25388515328).
+[W821 06:30:29.484071970 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 203423744 bytes (free: 144048128, total: 25388515328).
+[W821 06:30:35.710727265 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 201326592 bytes (free: 185991168, total: 25388515328).
+[W821 06:30:35.711690018 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 201326592 bytes (free: 190185472, total: 25388515328).
+[W821 06:30:42.227549330 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 195035136 bytes (free: 70647808, total: 25388515328).
+[W821 06:30:42.228280332 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 195035136 bytes (free: 74842112, total: 25388515328).
+[W821 06:30:48.143999832 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 205520896 bytes (free: 165019648, total: 25388515328).
+[W821 06:30:48.145207705 CUDACachingAllocator.cpp:3933] memory allocation failed with OOM on device 0 while trying to allocate 205520896 bytes (free: 169213952, total: 25388515328).
+[env] commit=d95d45a8 dtype=bf16 gpu=NVIDIA TITAN RTX torch=2.13.0+cu126
+  [discover-batch:agentdojo] OOM at local idx 0 (global 145, suite=workspace), skipping
+  [discover-batch:agentdojo] OOM at local idx 1 (global 146, suite=workspace), skipping
+  [discover-batch:agentdojo] OOM at local idx 2 (global 147, suite=workspace), skipping
+  [discover-batch:agentdojo] OOM at local idx 3 (global 148, suite=workspace), skipping
+[discover-batch:agentdojo] batch [145:150] done: 1 ok, 4 oom, 0 nan -> /tmp/compare_head_sources_j6qyl09l/batch_145_150.pt
+[discover-parallel:agentdojo] 20 heads (from 81/150 examples, 69 oom, 0 nan) -> saved to results/2026-08-21_s2_batch5/heads_agentdojo_7b.json
+  heads = [(19, 23), (18, 24), (21, 24), (20, 27), (15, 23), (0, 10), (19, 17), (19, 24), (0, 3), (18, 15), (18, 21), (17, 23), (0, 15), (19, 22), (18, 27), (19, 19), (18, 22), (23, 15), (18, 16), (20, 23)]

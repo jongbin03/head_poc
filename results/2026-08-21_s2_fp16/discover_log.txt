@@ -1,0 +1,105 @@
+  [agentdojo] filtered by max_seq_len=2000: 307 -> 294 pairs
+  [agentdojo] 294 total pairs
+[split] head_n=150 seed=42 group_key=user_task stratify_key=suite quota/stratum=37
+[split]   banking     head=  37  eval=  27  (head_groups=6/12)
+[split]   slack       head=  41  eval=  33  (head_groups=11/20)
+[split]   travel      head=  38  eval=  21  (head_groups=12/19)
+[split]   workspace   head=  38  eval=  59  (head_groups=9/22)
+[split] 합계 head=154 eval=140  head turn_idx={0: 95, 1: 32, 2: 15, 3: 6, 4: 6}
+[discover-parallel:agentdojo] 154 head_pairs total, batch_size=5
+[discover-parallel:agentdojo] batch [0:5]/154 -> new subprocess ...
+Sliding Window Attention is enabled but not implemented for `eager`; unexpected results may be encountered.
+  [agentdojo] filtered by max_seq_len=2000: 307 -> 294 pairs
+  [agentdojo] 294 total pairs
+[split] head_n=150 seed=42 group_key=user_task stratify_key=suite quota/stratum=37
+[split]   banking     head=  37  eval=  27  (head_groups=6/12)
+[split]   slack       head=  41  eval=  33  (head_groups=11/20)
+[split]   travel      head=  38  eval=  21  (head_groups=12/19)
+[split]   workspace   head=  38  eval=  59  (head_groups=9/22)
+[split] 합계 head=154 eval=140  head turn_idx={0: 95, 1: 32, 2: 15, 3: 6, 4: 6}
+[discover-batch:agentdojo] loading Qwen/Qwen2.5-7B-Instruct for batch [0:5] ...
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:01<00:05,  1.91s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:03<00:03,  1.83s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:05<00:01,  1.77s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:06<00:00,  1.71s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:06<00:00,  1.75s/it]
+[env] commit=d95d45a8 dtype=fp16 gpu=NVIDIA TITAN RTX torch=2.13.0+cu126
+  [discover-batch:agentdojo] non-finite at local idx 0 (global 0, suite=banking), skipping
+  [discover-batch:agentdojo] non-finite at local idx 1 (global 1, suite=banking), skipping
+  [discover-batch:agentdojo] non-finite at local idx 2 (global 2, suite=banking), skipping
+  [discover-batch:agentdojo] non-finite at local idx 3 (global 3, suite=banking), skipping
+  [discover-batch:agentdojo] non-finite at local idx 4 (global 4, suite=banking), skipping
+[discover-batch:agentdojo] batch [0:5] done: 0 ok, 0 oom, 5 nan -> /tmp/compare_head_sources_ity8j9dt/batch_0_5.pt
+[discover-parallel:agentdojo] batch [5:10]/154 -> new subprocess ...
+Sliding Window Attention is enabled but not implemented for `eager`; unexpected results may be encountered.
+  [agentdojo] filtered by max_seq_len=2000: 307 -> 294 pairs
+  [agentdojo] 294 total pairs
+[split] head_n=150 seed=42 group_key=user_task stratify_key=suite quota/stratum=37
+[split]   banking     head=  37  eval=  27  (head_groups=6/12)
+[split]   slack       head=  41  eval=  33  (head_groups=11/20)
+[split]   travel      head=  38  eval=  21  (head_groups=12/19)
+[split]   workspace   head=  38  eval=  59  (head_groups=9/22)
+[split] 합계 head=154 eval=140  head turn_idx={0: 95, 1: 32, 2: 15, 3: 6, 4: 6}
+[discover-batch:agentdojo] loading Qwen/Qwen2.5-7B-Instruct for batch [5:10] ...
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:01<00:05,  1.80s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:03<00:03,  1.74s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:05<00:01,  1.70s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:06<00:00,  1.61s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:06<00:00,  1.65s/it]
+[env] commit=d95d45a8 dtype=fp16 gpu=NVIDIA TITAN RTX torch=2.13.0+cu126
+  [discover-batch:agentdojo] non-finite at local idx 0 (global 5, suite=banking), skipping
+  [discover-batch:agentdojo] non-finite at local idx 1 (global 6, suite=banking), skipping
+  [discover-batch:agentdojo] non-finite at local idx 2 (global 7, suite=banking), skipping
+  [discover-batch:agentdojo] non-finite at local idx 3 (global 8, suite=banking), skipping
+  [discover-batch:agentdojo] non-finite at local idx 4 (global 9, suite=banking), skipping
+[discover-batch:agentdojo] batch [5:10] done: 0 ok, 0 oom, 5 nan -> /tmp/compare_head_sources_ity8j9dt/batch_5_10.pt
+[discover-parallel:agentdojo] batch [10:15]/154 -> new subprocess ...
+Sliding Window Attention is enabled but not implemented for `eager`; unexpected results may be encountered.
+  [agentdojo] filtered by max_seq_len=2000: 307 -> 294 pairs
+  [agentdojo] 294 total pairs
+[split] head_n=150 seed=42 group_key=user_task stratify_key=suite quota/stratum=37
+[split]   banking     head=  37  eval=  27  (head_groups=6/12)
+[split]   slack       head=  41  eval=  33  (head_groups=11/20)
+[split]   travel      head=  38  eval=  21  (head_groups=12/19)
+[split]   workspace   head=  38  eval=  59  (head_groups=9/22)
+[split] 합계 head=154 eval=140  head turn_idx={0: 95, 1: 32, 2: 15, 3: 6, 4: 6}
+[discover-batch:agentdojo] loading Qwen/Qwen2.5-7B-Instruct for batch [10:15] ...
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:01<00:05,  1.74s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:03<00:03,  1.71s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:05<00:01,  1.77s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:06<00:00,  1.66s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:06<00:00,  1.69s/it]
+[env] commit=d95d45a8 dtype=fp16 gpu=NVIDIA TITAN RTX torch=2.13.0+cu126
+  [discover-batch:agentdojo] non-finite at local idx 0 (global 10, suite=banking), skipping
+  [discover-batch:agentdojo] non-finite at local idx 1 (global 11, suite=banking), skipping
+  [discover-batch:agentdojo] non-finite at local idx 2 (global 12, suite=banking), skipping
+  [discover-batch:agentdojo] non-finite at local idx 3 (global 13, suite=banking), skipping
+  [discover-batch:agentdojo] non-finite at local idx 4 (global 14, suite=banking), skipping
+[discover-batch:agentdojo] batch [10:15] done: 0 ok, 0 oom, 5 nan -> /tmp/compare_head_sources_ity8j9dt/batch_10_15.pt
+[discover-parallel:agentdojo] batch [15:20]/154 -> new subprocess ...
+Sliding Window Attention is enabled but not implemented for `eager`; unexpected results may be encountered.
+  [agentdojo] filtered by max_seq_len=2000: 307 -> 294 pairs
+  [agentdojo] 294 total pairs
+[split] head_n=150 seed=42 group_key=user_task stratify_key=suite quota/stratum=37
+[split]   banking     head=  37  eval=  27  (head_groups=6/12)
+[split]   slack       head=  41  eval=  33  (head_groups=11/20)
+[split]   travel      head=  38  eval=  21  (head_groups=12/19)
+[split]   workspace   head=  38  eval=  59  (head_groups=9/22)
+[split] 합계 head=154 eval=140  head turn_idx={0: 95, 1: 32, 2: 15, 3: 6, 4: 6}
+[discover-batch:agentdojo] loading Qwen/Qwen2.5-7B-Instruct for batch [15:20] ...
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:01<00:05,  1.74s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:03<00:03,  1.68s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:04<00:01,  1.65s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:06<00:00,  1.62s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:06<00:00,  1.64s/it]
+[env] commit=d95d45a8 dtype=fp16 gpu=NVIDIA TITAN RTX torch=2.13.0+cu126
+  [discover-batch:agentdojo] non-finite at local idx 0 (global 15, suite=banking), skipping
+  [discover-batch:agentdojo] non-finite at local idx 1 (global 16, suite=banking), skipping
+  [discover-batch:agentdojo] non-finite at local idx 2 (global 17, suite=banking), skipping
+  [discover-batch:agentdojo] non-finite at local idx 3 (global 18, suite=banking), skipping
+  [discover-batch:agentdojo] non-finite at local idx 4 (global 19, suite=banking), skipping
+[discover-batch:agentdojo] batch [15:20] done: 0 ok, 0 oom, 5 nan -> /tmp/compare_head_sources_ity8j9dt/batch_15_20.pt
+[discover-parallel:agentdojo] batch [20:25]/154 -> new subprocess ...
+Sliding Window Attention is enabled but not implemented for `eager`; unexpected results may be encountered.
+  [agentdojo] filtered by max_seq_len=2000: 307 -> 294 pairs
+  [agentdojo] 294 total pairs
+[split] head_n=150 seed=42 group_key=user_task stratify_key=suite quota/stratum=37
+[split]   banking     head=  37  eval=  27  (head_groups=6/12)
+[split]   slack       head=  41  eval=  33  (head_groups=11/20)
+[split]   travel      head=  38  eval=  21  (head_groups=12/19)
+[split]   workspace   head=  38  eval=  59  (head_groups=9/22)
+[split] 합계 head=154 eval=140  head turn_idx={0: 95, 1: 32, 2: 15, 3: 6, 4: 6}
+[discover-batch:agentdojo] loading Qwen/Qwen2.5-7B-Instruct for batch [20:25] ...
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:01<00:05,  1.85s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:03<00:03,  1.78s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:05<00:01,  1.74s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:06<00:00,  1.64s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:06<00:00,  1.69s/it]
+[env] commit=d95d45a8 dtype=fp16 gpu=NVIDIA TITAN RTX torch=2.13.0+cu126
+  [discover-batch:agentdojo] non-finite at local idx 0 (global 20, suite=banking), skipping
+  [discover-batch:agentdojo] non-finite at local idx 1 (global 21, suite=banking), skipping
+  [discover-batch:agentdojo] non-finite at local idx 2 (global 22, suite=banking), skipping
+  [discover-batch:agentdojo] non-finite at local idx 3 (global 23, suite=banking), skipping
+  [discover-batch:agentdojo] non-finite at local idx 4 (global 24, suite=banking), skipping
+[discover-batch:agentdojo] batch [20:25] done: 0 ok, 0 oom, 5 nan -> /tmp/compare_head_sources_ity8j9dt/batch_20_25.pt
+[discover-parallel:agentdojo] batch [25:30]/154 -> new subprocess ...

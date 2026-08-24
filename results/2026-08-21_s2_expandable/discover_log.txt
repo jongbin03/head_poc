@@ -1,0 +1,741 @@
+  [agentdojo] filtered by max_seq_len=2000: 307 -> 294 pairs
+  [agentdojo] 294 total pairs
+[split] head_n=150 seed=42 group_key=user_task stratify_key=suite quota/stratum=37
+[split]   banking     head=  37  eval=  27  (head_groups=6/12)
+[split]   slack       head=  41  eval=  33  (head_groups=11/20)
+[split]   travel      head=  38  eval=  21  (head_groups=12/19)
+[split]   workspace   head=  38  eval=  59  (head_groups=9/22)
+[split] 합계 head=154 eval=140  head turn_idx={0: 95, 1: 32, 2: 15, 3: 6, 4: 6}
+[discover-parallel:agentdojo] 154 head_pairs total, batch_size=5
+[discover-parallel:agentdojo] batch [0:5]/154 -> new subprocess ...
+Sliding Window Attention is enabled but not implemented for `eager`; unexpected results may be encountered.
+  [agentdojo] filtered by max_seq_len=2000: 307 -> 294 pairs
+  [agentdojo] 294 total pairs
+[split] head_n=150 seed=42 group_key=user_task stratify_key=suite quota/stratum=37
+[split]   banking     head=  37  eval=  27  (head_groups=6/12)
+[split]   slack       head=  41  eval=  33  (head_groups=11/20)
+[split]   travel      head=  38  eval=  21  (head_groups=12/19)
+[split]   workspace   head=  38  eval=  59  (head_groups=9/22)
+[split] 합계 head=154 eval=140  head turn_idx={0: 95, 1: 32, 2: 15, 3: 6, 4: 6}
+[discover-batch:agentdojo] loading Qwen/Qwen2.5-7B-Instruct for batch [0:5] ...
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:01<00:04,  1.35s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:02<00:02,  1.30s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:03<00:01,  1.29s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:05<00:00,  1.23s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:05<00:00,  1.26s/it]
+[W821 06:38:55.883104015 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 18219008, total: 25388515328).
+[W821 06:38:55.890710907 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 1441792, total: 25388515328).
+[W821 06:38:55.896137436 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 1441792, total: 25388515328).
+[W821 06:38:59.711500543 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 16121856, total: 25388515328).
+[W821 06:38:59.728883549 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 1441792, total: 25388515328).
+[W821 06:38:59.736334654 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 1441792, total: 25388515328).
+[env] commit=d95d45a8 dtype=bf16 gpu=NVIDIA TITAN RTX torch=2.13.0+cu126
+  [discover-batch:agentdojo] OOM at local idx 3 (global 3, suite=banking), skipping
+  [discover-batch:agentdojo] OOM at local idx 4 (global 4, suite=banking), skipping
+[discover-batch:agentdojo] batch [0:5] done: 3 ok, 2 oom, 0 nan -> /tmp/compare_head_sources_vmxjq6x6/batch_0_5.pt
+[discover-parallel:agentdojo] batch [5:10]/154 -> new subprocess ...
+Sliding Window Attention is enabled but not implemented for `eager`; unexpected results may be encountered.
+  [agentdojo] filtered by max_seq_len=2000: 307 -> 294 pairs
+  [agentdojo] 294 total pairs
+[split] head_n=150 seed=42 group_key=user_task stratify_key=suite quota/stratum=37
+[split]   banking     head=  37  eval=  27  (head_groups=6/12)
+[split]   slack       head=  41  eval=  33  (head_groups=11/20)
+[split]   travel      head=  38  eval=  21  (head_groups=12/19)
+[split]   workspace   head=  38  eval=  59  (head_groups=9/22)
+[split] 합계 head=154 eval=140  head turn_idx={0: 95, 1: 32, 2: 15, 3: 6, 4: 6}
+[discover-batch:agentdojo] loading Qwen/Qwen2.5-7B-Instruct for batch [5:10] ...
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:01<00:04,  1.34s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:02<00:02,  1.28s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:03<00:01,  1.27s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:04<00:00,  1.22s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:04<00:00,  1.24s/it]
+[W821 06:41:03.151487296 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 16121856, total: 25388515328).
+[W821 06:41:04.167656518 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 1441792, total: 25388515328).
+[W821 06:41:04.172208234 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 1441792, total: 25388515328).
+[W821 06:41:04.121095467 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 16121856, total: 25388515328).
+[W821 06:41:06.271535313 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 20316160, total: 25388515328).
+[env] commit=d95d45a8 dtype=bf16 gpu=NVIDIA TITAN RTX torch=2.13.0+cu126
+  [discover-batch:agentdojo] OOM at local idx 3 (global 8, suite=banking), skipping
+  [discover-batch:agentdojo] OOM at local idx 4 (global 9, suite=banking), skipping
+[discover-batch:agentdojo] batch [5:10] done: 3 ok, 2 oom, 0 nan -> /tmp/compare_head_sources_vmxjq6x6/batch_5_10.pt
+[discover-parallel:agentdojo] batch [10:15]/154 -> new subprocess ...
+Sliding Window Attention is enabled but not implemented for `eager`; unexpected results may be encountered.
+  [agentdojo] filtered by max_seq_len=2000: 307 -> 294 pairs
+  [agentdojo] 294 total pairs
+[split] head_n=150 seed=42 group_key=user_task stratify_key=suite quota/stratum=37
+[split]   banking     head=  37  eval=  27  (head_groups=6/12)
+[split]   slack       head=  41  eval=  33  (head_groups=11/20)
+[split]   travel      head=  38  eval=  21  (head_groups=12/19)
+[split]   workspace   head=  38  eval=  59  (head_groups=9/22)
+[split] 합계 head=154 eval=140  head turn_idx={0: 95, 1: 32, 2: 15, 3: 6, 4: 6}
+[discover-batch:agentdojo] loading Qwen/Qwen2.5-7B-Instruct for batch [10:15] ...
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:01<00:04,  1.34s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:02<00:02,  1.29s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:03<00:01,  1.28s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:04<00:00,  1.22s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:04<00:00,  1.25s/it]
+[W821 06:43:10.426703186 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 16121856, total: 25388515328).
+[W821 06:43:10.129055927 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 20316160, total: 25388515328).
+[W821 06:43:10.152190002 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 20316160, total: 25388515328).
+[env] commit=d95d45a8 dtype=bf16 gpu=NVIDIA TITAN RTX torch=2.13.0+cu126
+  [discover-batch:agentdojo] OOM at local idx 4 (global 14, suite=banking), skipping
+[discover-batch:agentdojo] batch [10:15] done: 4 ok, 1 oom, 0 nan -> /tmp/compare_head_sources_vmxjq6x6/batch_10_15.pt
+[discover-parallel:agentdojo] batch [15:20]/154 -> new subprocess ...
+Sliding Window Attention is enabled but not implemented for `eager`; unexpected results may be encountered.
+  [agentdojo] filtered by max_seq_len=2000: 307 -> 294 pairs
+  [agentdojo] 294 total pairs
+[split] head_n=150 seed=42 group_key=user_task stratify_key=suite quota/stratum=37
+[split]   banking     head=  37  eval=  27  (head_groups=6/12)
+[split]   slack       head=  41  eval=  33  (head_groups=11/20)
+[split]   travel      head=  38  eval=  21  (head_groups=12/19)
+[split]   workspace   head=  38  eval=  59  (head_groups=9/22)
+[split] 합계 head=154 eval=140  head turn_idx={0: 95, 1: 32, 2: 15, 3: 6, 4: 6}
+[discover-batch:agentdojo] loading Qwen/Qwen2.5-7B-Instruct for batch [15:20] ...
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:01<00:04,  1.36s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:02<00:02,  1.30s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:03<00:01,  1.29s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:05<00:00,  1.23s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:05<00:00,  1.26s/it]
+[env] commit=d95d45a8 dtype=bf16 gpu=NVIDIA TITAN RTX torch=2.13.0+cu126
+[discover-batch:agentdojo] batch [15:20] done: 5 ok, 0 oom, 0 nan -> /tmp/compare_head_sources_vmxjq6x6/batch_15_20.pt
+[discover-parallel:agentdojo] batch [20:25]/154 -> new subprocess ...
+Sliding Window Attention is enabled but not implemented for `eager`; unexpected results may be encountered.
+  [agentdojo] filtered by max_seq_len=2000: 307 -> 294 pairs
+  [agentdojo] 294 total pairs
+[split] head_n=150 seed=42 group_key=user_task stratify_key=suite quota/stratum=37
+[split]   banking     head=  37  eval=  27  (head_groups=6/12)
+[split]   slack       head=  41  eval=  33  (head_groups=11/20)
+[split]   travel      head=  38  eval=  21  (head_groups=12/19)
+[split]   workspace   head=  38  eval=  59  (head_groups=9/22)
+[split] 합계 head=154 eval=140  head turn_idx={0: 95, 1: 32, 2: 15, 3: 6, 4: 6}
+[discover-batch:agentdojo] loading Qwen/Qwen2.5-7B-Instruct for batch [20:25] ...
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:01<00:04,  1.34s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:02<00:02,  1.29s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:03<00:01,  1.28s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:04<00:00,  1.22s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:04<00:00,  1.25s/it]
+[env] commit=d95d45a8 dtype=bf16 gpu=NVIDIA TITAN RTX torch=2.13.0+cu126
+[discover-batch:agentdojo] batch [20:25] done: 5 ok, 0 oom, 0 nan -> /tmp/compare_head_sources_vmxjq6x6/batch_20_25.pt
+[discover-parallel:agentdojo] batch [25:30]/154 -> new subprocess ...
+Sliding Window Attention is enabled but not implemented for `eager`; unexpected results may be encountered.
+  [agentdojo] filtered by max_seq_len=2000: 307 -> 294 pairs
+  [agentdojo] 294 total pairs
+[split] head_n=150 seed=42 group_key=user_task stratify_key=suite quota/stratum=37
+[split]   banking     head=  37  eval=  27  (head_groups=6/12)
+[split]   slack       head=  41  eval=  33  (head_groups=11/20)
+[split]   travel      head=  38  eval=  21  (head_groups=12/19)
+[split]   workspace   head=  38  eval=  59  (head_groups=9/22)
+[split] 합계 head=154 eval=140  head turn_idx={0: 95, 1: 32, 2: 15, 3: 6, 4: 6}
+[discover-batch:agentdojo] loading Qwen/Qwen2.5-7B-Instruct for batch [25:30] ...
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:01<00:04,  1.34s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:02<00:02,  1.29s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:03<00:01,  1.28s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:04<00:00,  1.22s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:04<00:00,  1.25s/it]
+[env] commit=d95d45a8 dtype=bf16 gpu=NVIDIA TITAN RTX torch=2.13.0+cu126
+[discover-batch:agentdojo] batch [25:30] done: 5 ok, 0 oom, 0 nan -> /tmp/compare_head_sources_vmxjq6x6/batch_25_30.pt
+[discover-parallel:agentdojo] batch [30:35]/154 -> new subprocess ...
+Sliding Window Attention is enabled but not implemented for `eager`; unexpected results may be encountered.
+  [agentdojo] filtered by max_seq_len=2000: 307 -> 294 pairs
+  [agentdojo] 294 total pairs
+[split] head_n=150 seed=42 group_key=user_task stratify_key=suite quota/stratum=37
+[split]   banking     head=  37  eval=  27  (head_groups=6/12)
+[split]   slack       head=  41  eval=  33  (head_groups=11/20)
+[split]   travel      head=  38  eval=  21  (head_groups=12/19)
+[split]   workspace   head=  38  eval=  59  (head_groups=9/22)
+[split] 합계 head=154 eval=140  head turn_idx={0: 95, 1: 32, 2: 15, 3: 6, 4: 6}
+[discover-batch:agentdojo] loading Qwen/Qwen2.5-7B-Instruct for batch [30:35] ...
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:01<00:04,  1.37s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:02<00:02,  1.31s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:03<00:01,  1.30s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:05<00:00,  1.24s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:05<00:00,  1.27s/it]
+[W821 06:51:15.855953446 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 18219008, total: 25388515328).
+[W821 06:51:16.748187596 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 18219008, total: 25388515328).
+[W821 06:51:16.784637260 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 20316160, total: 25388515328).
+[env] commit=d95d45a8 dtype=bf16 gpu=NVIDIA TITAN RTX torch=2.13.0+cu126
+  [discover-batch:agentdojo] OOM at local idx 4 (global 34, suite=banking), skipping
+[discover-batch:agentdojo] batch [30:35] done: 4 ok, 1 oom, 0 nan -> /tmp/compare_head_sources_vmxjq6x6/batch_30_35.pt
+[discover-parallel:agentdojo] batch [35:40]/154 -> new subprocess ...
+Sliding Window Attention is enabled but not implemented for `eager`; unexpected results may be encountered.
+  [agentdojo] filtered by max_seq_len=2000: 307 -> 294 pairs
+  [agentdojo] 294 total pairs
+[split] head_n=150 seed=42 group_key=user_task stratify_key=suite quota/stratum=37
+[split]   banking     head=  37  eval=  27  (head_groups=6/12)
+[split]   slack       head=  41  eval=  33  (head_groups=11/20)
+[split]   travel      head=  38  eval=  21  (head_groups=12/19)
+[split]   workspace   head=  38  eval=  59  (head_groups=9/22)
+[split] 합계 head=154 eval=140  head turn_idx={0: 95, 1: 32, 2: 15, 3: 6, 4: 6}
+[discover-batch:agentdojo] loading Qwen/Qwen2.5-7B-Instruct for batch [35:40] ...
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:01<00:04,  1.36s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:02<00:02,  1.31s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:03<00:01,  1.30s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:05<00:00,  1.24s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:05<00:00,  1.27s/it]
+[env] commit=d95d45a8 dtype=bf16 gpu=NVIDIA TITAN RTX torch=2.13.0+cu126
+[discover-batch:agentdojo] batch [35:40] done: 5 ok, 0 oom, 0 nan -> /tmp/compare_head_sources_vmxjq6x6/batch_35_40.pt
+[discover-parallel:agentdojo] batch [40:45]/154 -> new subprocess ...
+Sliding Window Attention is enabled but not implemented for `eager`; unexpected results may be encountered.
+  [agentdojo] filtered by max_seq_len=2000: 307 -> 294 pairs
+  [agentdojo] 294 total pairs
+[split] head_n=150 seed=42 group_key=user_task stratify_key=suite quota/stratum=37
+[split]   banking     head=  37  eval=  27  (head_groups=6/12)
+[split]   slack       head=  41  eval=  33  (head_groups=11/20)
+[split]   travel      head=  38  eval=  21  (head_groups=12/19)
+[split]   workspace   head=  38  eval=  59  (head_groups=9/22)
+[split] 합계 head=154 eval=140  head turn_idx={0: 95, 1: 32, 2: 15, 3: 6, 4: 6}
+[discover-batch:agentdojo] loading Qwen/Qwen2.5-7B-Instruct for batch [40:45] ...
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:01<00:04,  1.37s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:02<00:02,  1.32s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:03<00:01,  1.31s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:05<00:00,  1.25s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:05<00:00,  1.28s/it]
+[env] commit=d95d45a8 dtype=bf16 gpu=NVIDIA TITAN RTX torch=2.13.0+cu126
+[discover-batch:agentdojo] batch [40:45] done: 5 ok, 0 oom, 0 nan -> /tmp/compare_head_sources_vmxjq6x6/batch_40_45.pt
+[discover-parallel:agentdojo] batch [45:50]/154 -> new subprocess ...
+Sliding Window Attention is enabled but not implemented for `eager`; unexpected results may be encountered.
+  [agentdojo] filtered by max_seq_len=2000: 307 -> 294 pairs
+  [agentdojo] 294 total pairs
+[split] head_n=150 seed=42 group_key=user_task stratify_key=suite quota/stratum=37
+[split]   banking     head=  37  eval=  27  (head_groups=6/12)
+[split]   slack       head=  41  eval=  33  (head_groups=11/20)
+[split]   travel      head=  38  eval=  21  (head_groups=12/19)
+[split]   workspace   head=  38  eval=  59  (head_groups=9/22)
+[split] 합계 head=154 eval=140  head turn_idx={0: 95, 1: 32, 2: 15, 3: 6, 4: 6}
+[discover-batch:agentdojo] loading Qwen/Qwen2.5-7B-Instruct for batch [45:50] ...
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:01<00:04,  1.38s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:02<00:02,  1.33s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:04<00:01,  1.33s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:05<00:00,  1.28s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:05<00:00,  1.30s/it]
+[env] commit=d95d45a8 dtype=bf16 gpu=NVIDIA TITAN RTX torch=2.13.0+cu126
+[discover-batch:agentdojo] batch [45:50] done: 5 ok, 0 oom, 0 nan -> /tmp/compare_head_sources_vmxjq6x6/batch_45_50.pt
+[discover-parallel:agentdojo] batch [50:55]/154 -> new subprocess ...
+Sliding Window Attention is enabled but not implemented for `eager`; unexpected results may be encountered.
+  [agentdojo] filtered by max_seq_len=2000: 307 -> 294 pairs
+  [agentdojo] 294 total pairs
+[split] head_n=150 seed=42 group_key=user_task stratify_key=suite quota/stratum=37
+[split]   banking     head=  37  eval=  27  (head_groups=6/12)
+[split]   slack       head=  41  eval=  33  (head_groups=11/20)
+[split]   travel      head=  38  eval=  21  (head_groups=12/19)
+[split]   workspace   head=  38  eval=  59  (head_groups=9/22)
+[split] 합계 head=154 eval=140  head turn_idx={0: 95, 1: 32, 2: 15, 3: 6, 4: 6}
+[discover-batch:agentdojo] loading Qwen/Qwen2.5-7B-Instruct for batch [50:55] ...
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:01<00:04,  1.36s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:02<00:02,  1.31s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:03<00:01,  1.33s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:05<00:00,  1.30s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:05<00:00,  1.31s/it]
+[env] commit=d95d45a8 dtype=bf16 gpu=NVIDIA TITAN RTX torch=2.13.0+cu126
+[discover-batch:agentdojo] batch [50:55] done: 5 ok, 0 oom, 0 nan -> /tmp/compare_head_sources_vmxjq6x6/batch_50_55.pt
+[discover-parallel:agentdojo] batch [55:60]/154 -> new subprocess ...
+Sliding Window Attention is enabled but not implemented for `eager`; unexpected results may be encountered.
+  [agentdojo] filtered by max_seq_len=2000: 307 -> 294 pairs
+  [agentdojo] 294 total pairs
+[split] head_n=150 seed=42 group_key=user_task stratify_key=suite quota/stratum=37
+[split]   banking     head=  37  eval=  27  (head_groups=6/12)
+[split]   slack       head=  41  eval=  33  (head_groups=11/20)
+[split]   travel      head=  38  eval=  21  (head_groups=12/19)
+[split]   workspace   head=  38  eval=  59  (head_groups=9/22)
+[split] 합계 head=154 eval=140  head turn_idx={0: 95, 1: 32, 2: 15, 3: 6, 4: 6}
+[discover-batch:agentdojo] loading Qwen/Qwen2.5-7B-Instruct for batch [55:60] ...
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:01<00:04,  1.37s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:02<00:02,  1.32s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:03<00:01,  1.31s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:05<00:00,  1.26s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:05<00:00,  1.28s/it]
+[env] commit=d95d45a8 dtype=bf16 gpu=NVIDIA TITAN RTX torch=2.13.0+cu126
+[discover-batch:agentdojo] batch [55:60] done: 5 ok, 0 oom, 0 nan -> /tmp/compare_head_sources_vmxjq6x6/batch_55_60.pt
+[discover-parallel:agentdojo] batch [60:65]/154 -> new subprocess ...
+Sliding Window Attention is enabled but not implemented for `eager`; unexpected results may be encountered.
+  [agentdojo] filtered by max_seq_len=2000: 307 -> 294 pairs
+  [agentdojo] 294 total pairs
+[split] head_n=150 seed=42 group_key=user_task stratify_key=suite quota/stratum=37
+[split]   banking     head=  37  eval=  27  (head_groups=6/12)
+[split]   slack       head=  41  eval=  33  (head_groups=11/20)
+[split]   travel      head=  38  eval=  21  (head_groups=12/19)
+[split]   workspace   head=  38  eval=  59  (head_groups=9/22)
+[split] 합계 head=154 eval=140  head turn_idx={0: 95, 1: 32, 2: 15, 3: 6, 4: 6}
+[discover-batch:agentdojo] loading Qwen/Qwen2.5-7B-Instruct for batch [60:65] ...
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:01<00:04,  1.35s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:02<00:02,  1.29s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:03<00:01,  1.28s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:04<00:00,  1.22s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:04<00:00,  1.25s/it]
+[env] commit=d95d45a8 dtype=bf16 gpu=NVIDIA TITAN RTX torch=2.13.0+cu126
+[discover-batch:agentdojo] batch [60:65] done: 5 ok, 0 oom, 0 nan -> /tmp/compare_head_sources_vmxjq6x6/batch_60_65.pt
+[discover-parallel:agentdojo] batch [65:70]/154 -> new subprocess ...
+Sliding Window Attention is enabled but not implemented for `eager`; unexpected results may be encountered.
+  [agentdojo] filtered by max_seq_len=2000: 307 -> 294 pairs
+  [agentdojo] 294 total pairs
+[split] head_n=150 seed=42 group_key=user_task stratify_key=suite quota/stratum=37
+[split]   banking     head=  37  eval=  27  (head_groups=6/12)
+[split]   slack       head=  41  eval=  33  (head_groups=11/20)
+[split]   travel      head=  38  eval=  21  (head_groups=12/19)
+[split]   workspace   head=  38  eval=  59  (head_groups=9/22)
+[split] 합계 head=154 eval=140  head turn_idx={0: 95, 1: 32, 2: 15, 3: 6, 4: 6}
+[discover-batch:agentdojo] loading Qwen/Qwen2.5-7B-Instruct for batch [65:70] ...
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:01<00:04,  1.35s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:02<00:02,  1.29s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:03<00:01,  1.28s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:05<00:00,  1.23s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:05<00:00,  1.25s/it]
+[env] commit=65bbbeec dtype=bf16 gpu=NVIDIA TITAN RTX torch=2.13.0+cu126
+[discover-batch:agentdojo] batch [65:70] done: 5 ok, 0 oom, 0 nan -> /tmp/compare_head_sources_vmxjq6x6/batch_65_70.pt
+[discover-parallel:agentdojo] batch [70:75]/154 -> new subprocess ...
+Sliding Window Attention is enabled but not implemented for `eager`; unexpected results may be encountered.
+  [agentdojo] filtered by max_seq_len=2000: 307 -> 294 pairs
+  [agentdojo] 294 total pairs
+[split] head_n=150 seed=42 group_key=user_task stratify_key=suite quota/stratum=37
+[split]   banking     head=  37  eval=  27  (head_groups=6/12)
+[split]   slack       head=  41  eval=  33  (head_groups=11/20)
+[split]   travel      head=  38  eval=  21  (head_groups=12/19)
+[split]   workspace   head=  38  eval=  59  (head_groups=9/22)
+[split] 합계 head=154 eval=140  head turn_idx={0: 95, 1: 32, 2: 15, 3: 6, 4: 6}
+[discover-batch:agentdojo] loading Qwen/Qwen2.5-7B-Instruct for batch [70:75] ...
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:01<00:04,  1.36s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:02<00:02,  1.30s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:03<00:01,  1.29s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:05<00:00,  1.24s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:05<00:00,  1.26s/it]
+[env] commit=65bbbeec dtype=bf16 gpu=NVIDIA TITAN RTX torch=2.13.0+cu126
+[discover-batch:agentdojo] batch [70:75] done: 5 ok, 0 oom, 0 nan -> /tmp/compare_head_sources_vmxjq6x6/batch_70_75.pt
+[discover-parallel:agentdojo] batch [75:80]/154 -> new subprocess ...
+Sliding Window Attention is enabled but not implemented for `eager`; unexpected results may be encountered.
+  [agentdojo] filtered by max_seq_len=2000: 307 -> 294 pairs
+  [agentdojo] 294 total pairs
+[split] head_n=150 seed=42 group_key=user_task stratify_key=suite quota/stratum=37
+[split]   banking     head=  37  eval=  27  (head_groups=6/12)
+[split]   slack       head=  41  eval=  33  (head_groups=11/20)
+[split]   travel      head=  38  eval=  21  (head_groups=12/19)
+[split]   workspace   head=  38  eval=  59  (head_groups=9/22)
+[split] 합계 head=154 eval=140  head turn_idx={0: 95, 1: 32, 2: 15, 3: 6, 4: 6}
+[discover-batch:agentdojo] loading Qwen/Qwen2.5-7B-Instruct for batch [75:80] ...
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:01<00:04,  1.36s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:02<00:02,  1.30s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:03<00:01,  1.29s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:05<00:00,  1.23s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:05<00:00,  1.26s/it]
+[W821 07:09:38.795315276 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 18219008, total: 25388515328).
+[W821 07:09:40.599738710 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 18219008, total: 25388515328).
+[W821 07:09:40.608125568 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 18219008, total: 25388515328).
+[W821 07:09:41.972381945 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 18219008, total: 25388515328).
+[W821 07:09:43.783022529 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 20316160, total: 25388515328).
+[W821 07:09:43.794716730 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 20316160, total: 25388515328).
+[W821 07:09:43.800124975 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 20316160, total: 25388515328).
+[env] commit=65bbbeec dtype=bf16 gpu=NVIDIA TITAN RTX torch=2.13.0+cu126
+  [discover-batch:agentdojo] OOM at local idx 3 (global 78, suite=travel), skipping
+  [discover-batch:agentdojo] OOM at local idx 4 (global 79, suite=travel), skipping
+[discover-batch:agentdojo] batch [75:80] done: 3 ok, 2 oom, 0 nan -> /tmp/compare_head_sources_vmxjq6x6/batch_75_80.pt
+[discover-parallel:agentdojo] batch [80:85]/154 -> new subprocess ...
+Sliding Window Attention is enabled but not implemented for `eager`; unexpected results may be encountered.
+  [agentdojo] filtered by max_seq_len=2000: 307 -> 294 pairs
+  [agentdojo] 294 total pairs
+[split] head_n=150 seed=42 group_key=user_task stratify_key=suite quota/stratum=37
+[split]   banking     head=  37  eval=  27  (head_groups=6/12)
+[split]   slack       head=  41  eval=  33  (head_groups=11/20)
+[split]   travel      head=  38  eval=  21  (head_groups=12/19)
+[split]   workspace   head=  38  eval=  59  (head_groups=9/22)
+[split] 합계 head=154 eval=140  head turn_idx={0: 95, 1: 32, 2: 15, 3: 6, 4: 6}
+[discover-batch:agentdojo] loading Qwen/Qwen2.5-7B-Instruct for batch [80:85] ...
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:01<00:04,  1.34s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:02<00:02,  1.29s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:03<00:01,  1.28s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:04<00:00,  1.22s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:04<00:00,  1.25s/it]
+[W821 07:11:39.044768490 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 18219008, total: 25388515328).
+[W821 07:11:39.119598229 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 1441792, total: 25388515328).
+[W821 07:11:39.124081750 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 1441792, total: 25388515328).
+[W821 07:11:51.231827486 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 20316160, total: 25388515328).
+[W821 07:11:51.272924663 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 1441792, total: 25388515328).
+[W821 07:11:51.280175743 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 1441792, total: 25388515328).
+[W821 07:11:56.094293136 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 20316160, total: 25388515328).
+[W821 07:11:56.132846906 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 1441792, total: 25388515328).
+[W821 07:11:56.144214179 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 1441792, total: 25388515328).
+[W821 07:11:58.433693769 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 20316160, total: 25388515328).
+[W821 07:11:59.145910172 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 20316160, total: 25388515328).
+[W821 07:12:00.188517784 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 20316160, total: 25388515328).
+[W821 07:12:00.188575492 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 20316160, total: 25388515328).
+[env] commit=65bbbeec dtype=bf16 gpu=NVIDIA TITAN RTX torch=2.13.0+cu126
+  [discover-batch:agentdojo] OOM at local idx 0 (global 80, suite=travel), skipping
+  [discover-batch:agentdojo] OOM at local idx 2 (global 82, suite=travel), skipping
+  [discover-batch:agentdojo] OOM at local idx 3 (global 83, suite=travel), skipping
+  [discover-batch:agentdojo] OOM at local idx 4 (global 84, suite=travel), skipping
+[discover-batch:agentdojo] batch [80:85] done: 1 ok, 4 oom, 0 nan -> /tmp/compare_head_sources_vmxjq6x6/batch_80_85.pt
+[discover-parallel:agentdojo] batch [85:90]/154 -> new subprocess ...
+Sliding Window Attention is enabled but not implemented for `eager`; unexpected results may be encountered.
+  [agentdojo] filtered by max_seq_len=2000: 307 -> 294 pairs
+  [agentdojo] 294 total pairs
+[split] head_n=150 seed=42 group_key=user_task stratify_key=suite quota/stratum=37
+[split]   banking     head=  37  eval=  27  (head_groups=6/12)
+[split]   slack       head=  41  eval=  33  (head_groups=11/20)
+[split]   travel      head=  38  eval=  21  (head_groups=12/19)
+[split]   workspace   head=  38  eval=  59  (head_groups=9/22)
+[split] 합계 head=154 eval=140  head turn_idx={0: 95, 1: 32, 2: 15, 3: 6, 4: 6}
+[discover-batch:agentdojo] loading Qwen/Qwen2.5-7B-Instruct for batch [85:90] ...
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:01<00:04,  1.34s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:02<00:02,  1.29s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:03<00:01,  1.28s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:04<00:00,  1.22s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:04<00:00,  1.25s/it]
+[W821 07:13:57.217821315 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 20316160, total: 25388515328).
+[W821 07:13:58.818029934 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 20316160, total: 25388515328).
+[W821 07:13:58.904266561 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 20316160, total: 25388515328).
+[W821 07:13:59.470016450 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 18219008, total: 25388515328).
+[W821 07:14:00.869486483 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 20316160, total: 25388515328).
+[W821 07:14:00.988075469 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 20316160, total: 25388515328).
+[W821 07:14:01.535127559 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 18219008, total: 25388515328).
+[W821 07:14:02.072143864 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 20316160, total: 25388515328).
+[W821 07:14:02.113496873 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 20316160, total: 25388515328).
+[W821 07:14:02.148070336 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 20316160, total: 25388515328).
+[W821 07:14:03.700927607 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 18219008, total: 25388515328).
+[W821 07:14:05.251084479 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 20316160, total: 25388515328).
+[W821 07:14:05.256244035 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 20316160, total: 25388515328).
+[env] commit=65bbbeec dtype=bf16 gpu=NVIDIA TITAN RTX torch=2.13.0+cu126
+  [discover-batch:agentdojo] OOM at local idx 1 (global 86, suite=travel), skipping
+  [discover-batch:agentdojo] OOM at local idx 2 (global 87, suite=travel), skipping
+  [discover-batch:agentdojo] OOM at local idx 3 (global 88, suite=travel), skipping
+  [discover-batch:agentdojo] OOM at local idx 4 (global 89, suite=travel), skipping
+[discover-batch:agentdojo] batch [85:90] done: 1 ok, 4 oom, 0 nan -> /tmp/compare_head_sources_vmxjq6x6/batch_85_90.pt
+[discover-parallel:agentdojo] batch [90:95]/154 -> new subprocess ...
+Sliding Window Attention is enabled but not implemented for `eager`; unexpected results may be encountered.
+  [agentdojo] filtered by max_seq_len=2000: 307 -> 294 pairs
+  [agentdojo] 294 total pairs
+[split] head_n=150 seed=42 group_key=user_task stratify_key=suite quota/stratum=37
+[split]   banking     head=  37  eval=  27  (head_groups=6/12)
+[split]   slack       head=  41  eval=  33  (head_groups=11/20)
+[split]   travel      head=  38  eval=  21  (head_groups=12/19)
+[split]   workspace   head=  38  eval=  59  (head_groups=9/22)
+[split] 합계 head=154 eval=140  head turn_idx={0: 95, 1: 32, 2: 15, 3: 6, 4: 6}
+[discover-batch:agentdojo] loading Qwen/Qwen2.5-7B-Instruct for batch [90:95] ...
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:01<00:04,  1.36s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:02<00:02,  1.30s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:03<00:01,  1.29s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:05<00:00,  1.23s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:05<00:00,  1.26s/it]
+[W821 07:16:04.848527518 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 16121856, total: 25388515328).
+[W821 07:16:05.158931086 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 20316160, total: 25388515328).
+[W821 07:16:06.184070726 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 20316160, total: 25388515328).
+[W821 07:16:06.845407938 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 16121856, total: 25388515328).
+[W821 07:16:07.098304874 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 20316160, total: 25388515328).
+[W821 07:16:07.129418086 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 20316160, total: 25388515328).
+[W821 07:16:07.156074372 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 20316160, total: 25388515328).
+[W821 07:16:08.764755727 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 16121856, total: 25388515328).
+[W821 07:16:09.083605125 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 16121856, total: 25388515328).
+[W821 07:16:09.090499584 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 20316160, total: 25388515328).
+[env] commit=65bbbeec dtype=bf16 gpu=NVIDIA TITAN RTX torch=2.13.0+cu126
+  [discover-batch:agentdojo] OOM at local idx 2 (global 92, suite=travel), skipping
+  [discover-batch:agentdojo] OOM at local idx 3 (global 93, suite=travel), skipping
+  [discover-batch:agentdojo] OOM at local idx 4 (global 94, suite=travel), skipping
+[discover-batch:agentdojo] batch [90:95] done: 2 ok, 3 oom, 0 nan -> /tmp/compare_head_sources_vmxjq6x6/batch_90_95.pt
+[discover-parallel:agentdojo] batch [95:100]/154 -> new subprocess ...
+Sliding Window Attention is enabled but not implemented for `eager`; unexpected results may be encountered.
+  [agentdojo] filtered by max_seq_len=2000: 307 -> 294 pairs
+  [agentdojo] 294 total pairs
+[split] head_n=150 seed=42 group_key=user_task stratify_key=suite quota/stratum=37
+[split]   banking     head=  37  eval=  27  (head_groups=6/12)
+[split]   slack       head=  41  eval=  33  (head_groups=11/20)
+[split]   travel      head=  38  eval=  21  (head_groups=12/19)
+[split]   workspace   head=  38  eval=  59  (head_groups=9/22)
+[split] 합계 head=154 eval=140  head turn_idx={0: 95, 1: 32, 2: 15, 3: 6, 4: 6}
+[discover-batch:agentdojo] loading Qwen/Qwen2.5-7B-Instruct for batch [95:100] ...
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:01<00:04,  1.34s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:02<00:02,  1.29s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:03<00:01,  1.28s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:04<00:00,  1.22s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:04<00:00,  1.25s/it]
+[W821 07:18:06.687290171 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 18219008, total: 25388515328).
+[W821 07:18:06.775418584 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 1441792, total: 25388515328).
+[W821 07:18:06.780149481 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 1441792, total: 25388515328).
+[W821 07:18:13.147641018 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 18219008, total: 25388515328).
+[W821 07:18:14.223238641 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 1441792, total: 25388515328).
+[W821 07:18:14.232262898 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 1441792, total: 25388515328).
+[W821 07:18:21.974398412 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 18219008, total: 25388515328).
+[W821 07:18:21.053663777 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 1441792, total: 25388515328).
+[W821 07:18:21.060107191 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 1441792, total: 25388515328).
+[W821 07:18:23.309254134 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 18219008, total: 25388515328).
+[W821 07:18:25.878806893 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 20316160, total: 25388515328).
+[W821 07:18:25.928206442 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 20316160, total: 25388515328).
+[W821 07:18:25.972068698 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 20316160, total: 25388515328).
+[W821 07:18:27.367332502 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 18219008, total: 25388515328).
+[W821 07:18:29.849199898 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 20316160, total: 25388515328).
+[W821 07:18:29.901842005 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 20316160, total: 25388515328).
+[W821 07:18:29.944078016 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 20316160, total: 25388515328).
+[env] commit=65bbbeec dtype=bf16 gpu=NVIDIA TITAN RTX torch=2.13.0+cu126
+  [discover-batch:agentdojo] OOM at local idx 0 (global 95, suite=travel), skipping
+  [discover-batch:agentdojo] OOM at local idx 1 (global 96, suite=travel), skipping
+  [discover-batch:agentdojo] OOM at local idx 2 (global 97, suite=travel), skipping
+  [discover-batch:agentdojo] OOM at local idx 3 (global 98, suite=travel), skipping
+  [discover-batch:agentdojo] OOM at local idx 4 (global 99, suite=travel), skipping
+[discover-batch:agentdojo] batch [95:100] done: 0 ok, 5 oom, 0 nan -> /tmp/compare_head_sources_vmxjq6x6/batch_95_100.pt
+[discover-parallel:agentdojo] batch [100:105]/154 -> new subprocess ...
+Sliding Window Attention is enabled but not implemented for `eager`; unexpected results may be encountered.
+  [agentdojo] filtered by max_seq_len=2000: 307 -> 294 pairs
+  [agentdojo] 294 total pairs
+[split] head_n=150 seed=42 group_key=user_task stratify_key=suite quota/stratum=37
+[split]   banking     head=  37  eval=  27  (head_groups=6/12)
+[split]   slack       head=  41  eval=  33  (head_groups=11/20)
+[split]   travel      head=  38  eval=  21  (head_groups=12/19)
+[split]   workspace   head=  38  eval=  59  (head_groups=9/22)
+[split] 합계 head=154 eval=140  head turn_idx={0: 95, 1: 32, 2: 15, 3: 6, 4: 6}
+[discover-batch:agentdojo] loading Qwen/Qwen2.5-7B-Instruct for batch [100:105] ...
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:01<00:04,  1.36s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:02<00:02,  1.30s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:03<00:01,  1.29s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:05<00:00,  1.23s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:05<00:00,  1.26s/it]
+[W821 07:20:21.519497315 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 5636096, total: 25388515328).
+[W821 07:20:23.815629905 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 7733248, total: 25388515328).
+[W821 07:20:23.925204939 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 7733248, total: 25388515328).
+[W821 07:20:23.932170294 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 7733248, total: 25388515328).
+[W821 07:20:25.239681628 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 5636096, total: 25388515328).
+[W821 07:20:27.486103227 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 7733248, total: 25388515328).
+[W821 07:20:27.531243054 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 7733248, total: 25388515328).
+[W821 07:20:27.572300028 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 7733248, total: 25388515328).
+[W821 07:20:28.889754035 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 5636096, total: 25388515328).
+[W821 07:20:31.247096668 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 5636096, total: 25388515328).
+[W821 07:20:31.380696888 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 5636096, total: 25388515328).
+[W821 07:20:31.392095042 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 5636096, total: 25388515328).
+[W821 07:20:32.737599809 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 5636096, total: 25388515328).
+[W821 07:20:34.130115811 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 7733248, total: 25388515328).
+[W821 07:20:34.136294477 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 7733248, total: 25388515328).
+[env] commit=65bbbeec dtype=bf16 gpu=NVIDIA TITAN RTX torch=2.13.0+cu126
+  [discover-batch:agentdojo] OOM at local idx 0 (global 100, suite=travel), skipping
+  [discover-batch:agentdojo] OOM at local idx 1 (global 101, suite=travel), skipping
+  [discover-batch:agentdojo] OOM at local idx 2 (global 102, suite=travel), skipping
+  [discover-batch:agentdojo] OOM at local idx 3 (global 103, suite=travel), skipping
+[discover-batch:agentdojo] batch [100:105] done: 1 ok, 4 oom, 0 nan -> /tmp/compare_head_sources_vmxjq6x6/batch_100_105.pt
+[discover-parallel:agentdojo] batch [105:110]/154 -> new subprocess ...
+Sliding Window Attention is enabled but not implemented for `eager`; unexpected results may be encountered.
+  [agentdojo] filtered by max_seq_len=2000: 307 -> 294 pairs
+  [agentdojo] 294 total pairs
+[split] head_n=150 seed=42 group_key=user_task stratify_key=suite quota/stratum=37
+[split]   banking     head=  37  eval=  27  (head_groups=6/12)
+[split]   slack       head=  41  eval=  33  (head_groups=11/20)
+[split]   travel      head=  38  eval=  21  (head_groups=12/19)
+[split]   workspace   head=  38  eval=  59  (head_groups=9/22)
+[split] 합계 head=154 eval=140  head turn_idx={0: 95, 1: 32, 2: 15, 3: 6, 4: 6}
+[discover-batch:agentdojo] loading Qwen/Qwen2.5-7B-Instruct for batch [105:110] ...
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:01<00:04,  1.36s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:02<00:02,  1.30s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:03<00:01,  1.29s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:05<00:00,  1.23s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:05<00:00,  1.26s/it]
+[W821 07:22:37.544470283 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 20316160, total: 25388515328).
+[W821 07:22:39.188275993 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 20316160, total: 25388515328).
+[W821 07:22:39.927546435 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 18219008, total: 25388515328).
+[W821 07:22:41.815981142 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 20316160, total: 25388515328).
+[W821 07:22:41.824080283 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 20316160, total: 25388515328).
+[W821 07:22:42.534408694 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 18219008, total: 25388515328).
+[W821 07:22:44.411032577 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 20316160, total: 25388515328).
+[W821 07:22:44.428609609 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 20316160, total: 25388515328).
+[W821 07:22:44.428687718 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 20316160, total: 25388515328).
+[W821 07:22:44.053233827 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 18219008, total: 25388515328).
+[W821 07:22:46.973473080 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 20316160, total: 25388515328).
+[env] commit=65bbbeec dtype=bf16 gpu=NVIDIA TITAN RTX torch=2.13.0+cu126
+  [discover-batch:agentdojo] OOM at local idx 1 (global 106, suite=travel), skipping
+  [discover-batch:agentdojo] OOM at local idx 2 (global 107, suite=travel), skipping
+  [discover-batch:agentdojo] OOM at local idx 3 (global 108, suite=travel), skipping
+  [discover-batch:agentdojo] OOM at local idx 4 (global 109, suite=travel), skipping
+[discover-batch:agentdojo] batch [105:110] done: 1 ok, 4 oom, 0 nan -> /tmp/compare_head_sources_vmxjq6x6/batch_105_110.pt
+[discover-parallel:agentdojo] batch [110:115]/154 -> new subprocess ...
+Sliding Window Attention is enabled but not implemented for `eager`; unexpected results may be encountered.
+  [agentdojo] filtered by max_seq_len=2000: 307 -> 294 pairs
+  [agentdojo] 294 total pairs
+[split] head_n=150 seed=42 group_key=user_task stratify_key=suite quota/stratum=37
+[split]   banking     head=  37  eval=  27  (head_groups=6/12)
+[split]   slack       head=  41  eval=  33  (head_groups=11/20)
+[split]   travel      head=  38  eval=  21  (head_groups=12/19)
+[split]   workspace   head=  38  eval=  59  (head_groups=9/22)
+[split] 합계 head=154 eval=140  head turn_idx={0: 95, 1: 32, 2: 15, 3: 6, 4: 6}
+[discover-batch:agentdojo] loading Qwen/Qwen2.5-7B-Instruct for batch [110:115] ...
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:01<00:04,  1.35s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:02<00:02,  1.30s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:03<00:01,  1.29s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:05<00:00,  1.23s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:05<00:00,  1.26s/it]
+[W821 07:24:42.059010166 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 18219008, total: 25388515328).
+[W821 07:24:43.662447248 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 18219008, total: 25388515328).
+[W821 07:24:44.958432992 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 18219008, total: 25388515328).
+[W821 07:24:44.964181103 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 18219008, total: 25388515328).
+[W821 07:24:45.461800871 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 18219008, total: 25388515328).
+[W821 07:24:46.709404823 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 20316160, total: 25388515328).
+[W821 07:24:46.780782105 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 20316160, total: 25388515328).
+[W821 07:24:46.780905431 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 20316160, total: 25388515328).
+[W821 07:24:47.290502121 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 20316160, total: 25388515328).
+[W821 07:24:48.664833070 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 20316160, total: 25388515328).
+[W821 07:24:48.684069599 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 20316160, total: 25388515328).
+[W821 07:24:49.195850150 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 18219008, total: 25388515328).
+[W821 07:24:50.598090839 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 18219008, total: 25388515328).
+[W821 07:24:50.624161094 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 18219008, total: 25388515328).
+[W821 07:24:50.632095761 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 18219008, total: 25388515328).
+[env] commit=65bbbeec dtype=bf16 gpu=NVIDIA TITAN RTX torch=2.13.0+cu126
+  [discover-batch:agentdojo] OOM at local idx 1 (global 111, suite=travel), skipping
+  [discover-batch:agentdojo] OOM at local idx 2 (global 112, suite=travel), skipping
+  [discover-batch:agentdojo] OOM at local idx 3 (global 113, suite=travel), skipping
+  [discover-batch:agentdojo] OOM at local idx 4 (global 114, suite=travel), skipping
+[discover-batch:agentdojo] batch [110:115] done: 1 ok, 4 oom, 0 nan -> /tmp/compare_head_sources_vmxjq6x6/batch_110_115.pt
+[discover-parallel:agentdojo] batch [115:120]/154 -> new subprocess ...
+Sliding Window Attention is enabled but not implemented for `eager`; unexpected results may be encountered.
+  [agentdojo] filtered by max_seq_len=2000: 307 -> 294 pairs
+  [agentdojo] 294 total pairs
+[split] head_n=150 seed=42 group_key=user_task stratify_key=suite quota/stratum=37
+[split]   banking     head=  37  eval=  27  (head_groups=6/12)
+[split]   slack       head=  41  eval=  33  (head_groups=11/20)
+[split]   travel      head=  38  eval=  21  (head_groups=12/19)
+[split]   workspace   head=  38  eval=  59  (head_groups=9/22)
+[split] 합계 head=154 eval=140  head turn_idx={0: 95, 1: 32, 2: 15, 3: 6, 4: 6}
+[discover-batch:agentdojo] loading Qwen/Qwen2.5-7B-Instruct for batch [115:120] ...
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:01<00:04,  1.36s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:02<00:02,  1.30s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:03<00:01,  1.29s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:05<00:00,  1.24s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:05<00:00,  1.26s/it]
+[W821 07:26:46.727721484 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 18219008, total: 25388515328).
+[W821 07:26:48.236066628 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 20316160, total: 25388515328).
+[W821 07:26:48.272575492 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 20316160, total: 25388515328).
+[W821 07:26:48.340083242 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 20316160, total: 25388515328).
+[W821 07:26:48.882066475 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 18219008, total: 25388515328).
+[W821 07:26:50.496078516 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 18219008, total: 25388515328).
+[W821 07:26:50.051073714 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 18219008, total: 25388515328).
+[W821 07:26:52.681114115 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 20316160, total: 25388515328).
+[W821 07:26:52.693979209 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 20316160, total: 25388515328).
+[W821 07:26:52.728076892 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 20316160, total: 25388515328).
+[W821 07:26:53.277358635 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 18219008, total: 25388515328).
+[W821 07:26:54.814212229 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 18219008, total: 25388515328).
+[W821 07:26:54.827069855 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 18219008, total: 25388515328).
+[W821 07:26:54.860711568 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 18219008, total: 25388515328).
+[W821 07:26:54.868269432 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 18219008, total: 25388515328).
+[env] commit=65bbbeec dtype=bf16 gpu=NVIDIA TITAN RTX torch=2.13.0+cu126
+  [discover-batch:agentdojo] OOM at local idx 1 (global 116, suite=workspace), skipping
+  [discover-batch:agentdojo] OOM at local idx 2 (global 117, suite=workspace), skipping
+  [discover-batch:agentdojo] OOM at local idx 3 (global 118, suite=workspace), skipping
+  [discover-batch:agentdojo] OOM at local idx 4 (global 119, suite=workspace), skipping
+[discover-batch:agentdojo] batch [115:120] done: 1 ok, 4 oom, 0 nan -> /tmp/compare_head_sources_vmxjq6x6/batch_115_120.pt
+[discover-parallel:agentdojo] batch [120:125]/154 -> new subprocess ...
+Sliding Window Attention is enabled but not implemented for `eager`; unexpected results may be encountered.
+  [agentdojo] filtered by max_seq_len=2000: 307 -> 294 pairs
+  [agentdojo] 294 total pairs
+[split] head_n=150 seed=42 group_key=user_task stratify_key=suite quota/stratum=37
+[split]   banking     head=  37  eval=  27  (head_groups=6/12)
+[split]   slack       head=  41  eval=  33  (head_groups=11/20)
+[split]   travel      head=  38  eval=  21  (head_groups=12/19)
+[split]   workspace   head=  38  eval=  59  (head_groups=9/22)
+[split] 합계 head=154 eval=140  head turn_idx={0: 95, 1: 32, 2: 15, 3: 6, 4: 6}
+[discover-batch:agentdojo] loading Qwen/Qwen2.5-7B-Instruct for batch [120:125] ...
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:01<00:04,  1.36s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:02<00:02,  1.30s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:03<00:01,  1.29s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:05<00:00,  1.24s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:05<00:00,  1.26s/it]
+[W821 07:28:51.719275911 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 18219008, total: 25388515328).
+[W821 07:28:52.295037177 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 18219008, total: 25388515328).
+[W821 07:28:53.418645564 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 18219008, total: 25388515328).
+[W821 07:28:53.432128731 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 18219008, total: 25388515328).
+[W821 07:28:53.924666779 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 18219008, total: 25388515328).
+[W821 07:28:54.006967728 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 20316160, total: 25388515328).
+[W821 07:28:54.116077020 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 20316160, total: 25388515328).
+[W821 07:28:55.620575663 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 18219008, total: 25388515328).
+[W821 07:28:56.780119668 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 18219008, total: 25388515328).
+[W821 07:28:57.294649297 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 20316160, total: 25388515328).
+[W821 07:28:58.694573054 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 20316160, total: 25388515328).
+[W821 07:28:58.720772554 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 20316160, total: 25388515328).
+[W821 07:28:58.756178079 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 20316160, total: 25388515328).
+[env] commit=65bbbeec dtype=bf16 gpu=NVIDIA TITAN RTX torch=2.13.0+cu126
+  [discover-batch:agentdojo] OOM at local idx 1 (global 121, suite=workspace), skipping
+  [discover-batch:agentdojo] OOM at local idx 2 (global 122, suite=workspace), skipping
+  [discover-batch:agentdojo] OOM at local idx 3 (global 123, suite=workspace), skipping
+  [discover-batch:agentdojo] OOM at local idx 4 (global 124, suite=workspace), skipping
+[discover-batch:agentdojo] batch [120:125] done: 1 ok, 4 oom, 0 nan -> /tmp/compare_head_sources_vmxjq6x6/batch_120_125.pt
+[discover-parallel:agentdojo] batch [125:130]/154 -> new subprocess ...
+Sliding Window Attention is enabled but not implemented for `eager`; unexpected results may be encountered.
+  [agentdojo] filtered by max_seq_len=2000: 307 -> 294 pairs
+  [agentdojo] 294 total pairs
+[split] head_n=150 seed=42 group_key=user_task stratify_key=suite quota/stratum=37
+[split]   banking     head=  37  eval=  27  (head_groups=6/12)
+[split]   slack       head=  41  eval=  33  (head_groups=11/20)
+[split]   travel      head=  38  eval=  21  (head_groups=12/19)
+[split]   workspace   head=  38  eval=  59  (head_groups=9/22)
+[split] 합계 head=154 eval=140  head turn_idx={0: 95, 1: 32, 2: 15, 3: 6, 4: 6}
+[discover-batch:agentdojo] loading Qwen/Qwen2.5-7B-Instruct for batch [125:130] ...
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:01<00:04,  1.34s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:02<00:02,  1.29s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:03<00:01,  1.28s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:05<00:00,  1.23s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:05<00:00,  1.25s/it]
+[W821 07:30:54.677326660 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 20316160, total: 25388515328).
+[W821 07:30:56.268642853 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 20316160, total: 25388515328).
+[W821 07:30:56.300676538 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 20316160, total: 25388515328).
+[W821 07:30:56.300738697 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 20316160, total: 25388515328).
+[W821 07:30:56.881023739 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 18219008, total: 25388515328).
+[W821 07:30:58.384202216 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 18219008, total: 25388515328).
+[W821 07:30:58.925918723 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 18219008, total: 25388515328).
+[W821 07:31:00.456258025 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 20316160, total: 25388515328).
+[W821 07:31:00.572081152 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 20316160, total: 25388515328).
+[W821 07:31:00.135437127 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 18219008, total: 25388515328).
+[W821 07:31:02.682606939 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 20316160, total: 25388515328).
+[W821 07:31:02.692067356 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 20316160, total: 25388515328).
+[env] commit=65bbbeec dtype=bf16 gpu=NVIDIA TITAN RTX torch=2.13.0+cu126
+  [discover-batch:agentdojo] OOM at local idx 1 (global 126, suite=workspace), skipping
+  [discover-batch:agentdojo] OOM at local idx 2 (global 127, suite=workspace), skipping
+  [discover-batch:agentdojo] OOM at local idx 3 (global 128, suite=workspace), skipping
+  [discover-batch:agentdojo] OOM at local idx 4 (global 129, suite=workspace), skipping
+[discover-batch:agentdojo] batch [125:130] done: 1 ok, 4 oom, 0 nan -> /tmp/compare_head_sources_vmxjq6x6/batch_125_130.pt
+[discover-parallel:agentdojo] batch [130:135]/154 -> new subprocess ...
+Sliding Window Attention is enabled but not implemented for `eager`; unexpected results may be encountered.
+  [agentdojo] filtered by max_seq_len=2000: 307 -> 294 pairs
+  [agentdojo] 294 total pairs
+[split] head_n=150 seed=42 group_key=user_task stratify_key=suite quota/stratum=37
+[split]   banking     head=  37  eval=  27  (head_groups=6/12)
+[split]   slack       head=  41  eval=  33  (head_groups=11/20)
+[split]   travel      head=  38  eval=  21  (head_groups=12/19)
+[split]   workspace   head=  38  eval=  59  (head_groups=9/22)
+[split] 합계 head=154 eval=140  head turn_idx={0: 95, 1: 32, 2: 15, 3: 6, 4: 6}
+[discover-batch:agentdojo] loading Qwen/Qwen2.5-7B-Instruct for batch [130:135] ...
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:01<00:04,  1.37s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:02<00:02,  1.31s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:03<00:01,  1.30s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:05<00:00,  1.25s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:05<00:00,  1.28s/it]
+[W821 07:32:53.988831527 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 5636096, total: 25388515328).
+[W821 07:32:55.998840651 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 5636096, total: 25388515328).
+[W821 07:32:55.008483332 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 5636096, total: 25388515328).
+[W821 07:32:57.785050678 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 5636096, total: 25388515328).
+[W821 07:32:59.022537140 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 7733248, total: 25388515328).
+[W821 07:33:01.824307232 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 5636096, total: 25388515328).
+[W821 07:33:03.152638118 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 7733248, total: 25388515328).
+[W821 07:33:12.337371618 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 18219008, total: 25388515328).
+[W821 07:33:12.441207241 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 1441792, total: 25388515328).
+[W821 07:33:12.448174131 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 1441792, total: 25388515328).
+[W821 07:33:14.299585655 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 18219008, total: 25388515328).
+[W821 07:33:16.724226481 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 18219008, total: 25388515328).
+[env] commit=65bbbeec dtype=bf16 gpu=NVIDIA TITAN RTX torch=2.13.0+cu126
+  [discover-batch:agentdojo] OOM at local idx 0 (global 130, suite=workspace), skipping
+  [discover-batch:agentdojo] OOM at local idx 1 (global 131, suite=workspace), skipping
+  [discover-batch:agentdojo] OOM at local idx 2 (global 132, suite=workspace), skipping
+  [discover-batch:agentdojo] OOM at local idx 3 (global 133, suite=workspace), skipping
+  [discover-batch:agentdojo] OOM at local idx 4 (global 134, suite=workspace), skipping
+[discover-batch:agentdojo] batch [130:135] done: 0 ok, 5 oom, 0 nan -> /tmp/compare_head_sources_vmxjq6x6/batch_130_135.pt
+[discover-parallel:agentdojo] batch [135:140]/154 -> new subprocess ...
+Sliding Window Attention is enabled but not implemented for `eager`; unexpected results may be encountered.
+  [agentdojo] filtered by max_seq_len=2000: 307 -> 294 pairs
+  [agentdojo] 294 total pairs
+[split] head_n=150 seed=42 group_key=user_task stratify_key=suite quota/stratum=37
+[split]   banking     head=  37  eval=  27  (head_groups=6/12)
+[split]   slack       head=  41  eval=  33  (head_groups=11/20)
+[split]   travel      head=  38  eval=  21  (head_groups=12/19)
+[split]   workspace   head=  38  eval=  59  (head_groups=9/22)
+[split] 합계 head=154 eval=140  head turn_idx={0: 95, 1: 32, 2: 15, 3: 6, 4: 6}
+[discover-batch:agentdojo] loading Qwen/Qwen2.5-7B-Instruct for batch [135:140] ...
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:01<00:04,  1.36s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:02<00:02,  1.30s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:03<00:01,  1.29s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:05<00:00,  1.23s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:05<00:00,  1.26s/it]
+[W821 07:35:07.018145031 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 5636096, total: 25388515328).
+[W821 07:35:09.023546060 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 7733248, total: 25388515328).
+[W821 07:35:11.746979811 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 5636096, total: 25388515328).
+[W821 07:35:13.012116462 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 5636096, total: 25388515328).
+[W821 07:35:21.213903953 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 18219008, total: 25388515328).
+[W821 07:35:21.864328976 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 18219008, total: 25388515328).
+[W821 07:35:23.176026504 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 18219008, total: 25388515328).
+[W821 07:35:23.271909130 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 18219008, total: 25388515328).
+[W821 07:35:23.284073646 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 18219008, total: 25388515328).
+[W821 07:35:23.787975637 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 18219008, total: 25388515328).
+[W821 07:35:25.175417021 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 20316160, total: 25388515328).
+[W821 07:35:25.188416477 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 20316160, total: 25388515328).
+[W821 07:35:25.220077289 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 20316160, total: 25388515328).
+[env] commit=65bbbeec dtype=bf16 gpu=NVIDIA TITAN RTX torch=2.13.0+cu126
+  [discover-batch:agentdojo] OOM at local idx 0 (global 135, suite=workspace), skipping
+  [discover-batch:agentdojo] OOM at local idx 1 (global 136, suite=workspace), skipping
+  [discover-batch:agentdojo] OOM at local idx 3 (global 138, suite=workspace), skipping
+  [discover-batch:agentdojo] OOM at local idx 4 (global 139, suite=workspace), skipping
+[discover-batch:agentdojo] batch [135:140] done: 1 ok, 4 oom, 0 nan -> /tmp/compare_head_sources_vmxjq6x6/batch_135_140.pt
+[discover-parallel:agentdojo] batch [140:145]/154 -> new subprocess ...
+Sliding Window Attention is enabled but not implemented for `eager`; unexpected results may be encountered.
+  [agentdojo] filtered by max_seq_len=2000: 307 -> 294 pairs
+  [agentdojo] 294 total pairs
+[split] head_n=150 seed=42 group_key=user_task stratify_key=suite quota/stratum=37
+[split]   banking     head=  37  eval=  27  (head_groups=6/12)
+[split]   slack       head=  41  eval=  33  (head_groups=11/20)
+[split]   travel      head=  38  eval=  21  (head_groups=12/19)
+[split]   workspace   head=  38  eval=  59  (head_groups=9/22)
+[split] 합계 head=154 eval=140  head turn_idx={0: 95, 1: 32, 2: 15, 3: 6, 4: 6}
+[discover-batch:agentdojo] loading Qwen/Qwen2.5-7B-Instruct for batch [140:145] ...
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:01<00:04,  1.35s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:02<00:02,  1.29s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:03<00:01,  1.28s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:04<00:00,  1.22s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:04<00:00,  1.25s/it]
+[W821 07:37:14.120623793 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 5636096, total: 25388515328).
+[W821 07:37:17.405222702 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 7733248, total: 25388515328).
+[W821 07:37:17.540079865 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 7733248, total: 25388515328).
+[W821 07:37:18.662567710 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 5636096, total: 25388515328).
+[W821 07:37:20.059910505 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 5636096, total: 25388515328).
+[W821 07:37:20.108651908 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 5636096, total: 25388515328).
+[W821 07:37:20.116073651 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 5636096, total: 25388515328).
+[W821 07:37:21.069740065 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 5636096, total: 25388515328).
+[W821 07:37:24.601132721 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 7733248, total: 25388515328).
+[W821 07:37:24.737731891 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 7733248, total: 25388515328).
+[W821 07:37:24.744130017 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 7733248, total: 25388515328).
+[W821 07:37:25.697940757 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 5636096, total: 25388515328).
+[W821 07:37:28.247177046 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 5636096, total: 25388515328).
+[W821 07:37:28.400071984 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 5636096, total: 25388515328).
+[W821 07:37:29.233783398 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 5636096, total: 25388515328).
+[W821 07:37:31.905587297 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 5636096, total: 25388515328).
+[W821 07:37:31.068187828 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 5636096, total: 25388515328).
+[W821 07:37:31.080218389 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 5636096, total: 25388515328).
+[env] commit=65bbbeec dtype=bf16 gpu=NVIDIA TITAN RTX torch=2.13.0+cu126
+  [discover-batch:agentdojo] OOM at local idx 0 (global 140, suite=workspace), skipping
+  [discover-batch:agentdojo] OOM at local idx 1 (global 141, suite=workspace), skipping
+  [discover-batch:agentdojo] OOM at local idx 2 (global 142, suite=workspace), skipping
+  [discover-batch:agentdojo] OOM at local idx 3 (global 143, suite=workspace), skipping
+  [discover-batch:agentdojo] OOM at local idx 4 (global 144, suite=workspace), skipping
+[discover-batch:agentdojo] batch [140:145] done: 0 ok, 5 oom, 0 nan -> /tmp/compare_head_sources_vmxjq6x6/batch_140_145.pt
+[discover-parallel:agentdojo] batch [145:150]/154 -> new subprocess ...
+Sliding Window Attention is enabled but not implemented for `eager`; unexpected results may be encountered.
+  [agentdojo] filtered by max_seq_len=2000: 307 -> 294 pairs
+  [agentdojo] 294 total pairs
+[split] head_n=150 seed=42 group_key=user_task stratify_key=suite quota/stratum=37
+[split]   banking     head=  37  eval=  27  (head_groups=6/12)
+[split]   slack       head=  41  eval=  33  (head_groups=11/20)
+[split]   travel      head=  38  eval=  21  (head_groups=12/19)
+[split]   workspace   head=  38  eval=  59  (head_groups=9/22)
+[split] 합계 head=154 eval=140  head turn_idx={0: 95, 1: 32, 2: 15, 3: 6, 4: 6}
+[discover-batch:agentdojo] loading Qwen/Qwen2.5-7B-Instruct for batch [145:150] ...
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:01<00:04,  1.36s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:02<00:02,  1.31s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:03<00:01,  1.30s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:05<00:00,  1.23s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:05<00:00,  1.26s/it]
+[W821 07:39:22.728653266 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 5636096, total: 25388515328).
+[W821 07:39:24.016664604 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 5636096, total: 25388515328).
+[W821 07:39:24.138391327 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 5636096, total: 25388515328).
+[W821 07:39:24.152079313 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 5636096, total: 25388515328).
+[W821 07:39:31.918622529 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 18219008, total: 25388515328).
+[W821 07:39:32.489541315 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 18219008, total: 25388515328).
+[W821 07:39:33.867787823 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 18219008, total: 25388515328).
+[W821 07:39:33.896493701 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 18219008, total: 25388515328).
+[W821 07:39:33.904086495 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 18219008, total: 25388515328).
+[W821 07:39:34.403176780 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 18219008, total: 25388515328).
+[W821 07:39:35.751979894 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 20316160, total: 25388515328).
+[W821 07:39:35.787986682 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 20316160, total: 25388515328).
+[W821 07:39:35.796070702 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 20316160, total: 25388515328).
+[W821 07:39:36.304538207 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 18219008, total: 25388515328).
+[W821 07:39:37.737656058 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 18219008, total: 25388515328).
+[W821 07:39:37.744391202 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 18219008, total: 25388515328).
+[env] commit=65bbbeec dtype=bf16 gpu=NVIDIA TITAN RTX torch=2.13.0+cu126
+  [discover-batch:agentdojo] OOM at local idx 0 (global 145, suite=workspace), skipping
+  [discover-batch:agentdojo] OOM at local idx 2 (global 147, suite=workspace), skipping
+  [discover-batch:agentdojo] OOM at local idx 3 (global 148, suite=workspace), skipping
+  [discover-batch:agentdojo] OOM at local idx 4 (global 149, suite=workspace), skipping
+[discover-batch:agentdojo] batch [145:150] done: 1 ok, 4 oom, 0 nan -> /tmp/compare_head_sources_vmxjq6x6/batch_145_150.pt
+[discover-parallel:agentdojo] batch [150:154]/154 -> new subprocess ...
+Sliding Window Attention is enabled but not implemented for `eager`; unexpected results may be encountered.
+  [agentdojo] filtered by max_seq_len=2000: 307 -> 294 pairs
+  [agentdojo] 294 total pairs
+[split] head_n=150 seed=42 group_key=user_task stratify_key=suite quota/stratum=37
+[split]   banking     head=  37  eval=  27  (head_groups=6/12)
+[split]   slack       head=  41  eval=  33  (head_groups=11/20)
+[split]   travel      head=  38  eval=  21  (head_groups=12/19)
+[split]   workspace   head=  38  eval=  59  (head_groups=9/22)
+[split] 합계 head=154 eval=140  head turn_idx={0: 95, 1: 32, 2: 15, 3: 6, 4: 6}
+[discover-batch:agentdojo] loading Qwen/Qwen2.5-7B-Instruct for batch [150:154] ...
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:01<00:04,  1.35s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:02<00:02,  1.30s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:03<00:01,  1.29s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:05<00:00,  1.23s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:05<00:00,  1.26s/it]
+[W821 07:41:34.363581118 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 20316160, total: 25388515328).
+[W821 07:41:34.931498923 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 18219008, total: 25388515328).
+[W821 07:41:36.352077243 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 18219008, total: 25388515328).
+[W821 07:41:36.869974333 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 18219008, total: 25388515328).
+[W821 07:41:38.219229686 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 20316160, total: 25388515328).
+[W821 07:41:38.288081707 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 20316160, total: 25388515328).
+[W821 07:41:38.799305994 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 18219008, total: 25388515328).
+[W821 07:41:40.178030241 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 18219008, total: 25388515328).
+[W821 07:41:40.211987394 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 18219008, total: 25388515328).
+[W821 07:41:40.220097333 CUDACachingAllocator.cpp:508] expandable_segments: memory mapping failed with OOM on device 0 while trying to map 20971520 bytes (free: 18219008, total: 25388515328).
+[env] commit=65bbbeec dtype=bf16 gpu=NVIDIA TITAN RTX torch=2.13.0+cu126
+  [discover-batch:agentdojo] OOM at local idx 1 (global 151, suite=workspace), skipping
+  [discover-batch:agentdojo] OOM at local idx 2 (global 152, suite=workspace), skipping
+  [discover-batch:agentdojo] OOM at local idx 3 (global 153, suite=workspace), skipping
+[discover-batch:agentdojo] batch [150:154] done: 1 ok, 3 oom, 0 nan -> /tmp/compare_head_sources_vmxjq6x6/batch_150_154.pt
+[discover-parallel:agentdojo] 20 heads (from 85/154 examples, 69 oom, 0 nan) -> saved to results/2026-08-21_s2_expandable/heads_agentdojo_7b.json
+  heads = [(19, 23), (18, 24), (20, 27), (0, 10), (21, 24), (19, 17), (19, 24), (0, 3), (15, 23), (18, 15), (18, 21), (17, 23), (0, 15), (19, 19), (20, 23), (19, 22), (18, 27), (23, 15), (18, 16), (15, 27)]

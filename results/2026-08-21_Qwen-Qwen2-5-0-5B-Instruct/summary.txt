@@ -1,0 +1,47 @@
+model=Qwen/Qwen2.5-0.5B-Instruct family=qwen2 four_bit=False dtype=fp16 topk=20 dataset_limit=3 heldout_style_idx=None
+(전체 실행 환경: 같은 폴더의 env.json — commit/dtype/GPU/패키지 버전)
+
+jaccard(read,internal)   = 0.212
+jaccard(read,external)   = 0.000
+jaccard(internal,external)= 0.000
+jaccard_chance_at_k=20  = 0.031
+control_heads_both = []
+dual_use_candidates = [(1, 9), (15, 2), (15, 12), (15, 13), (16, 3), (16, 7), (20, 12)]
+
+k=  0  malicious_token_prob=0.9308  read_token_prob=0.5549  (n=3)
+k=  5  malicious_token_prob=0.9209  read_token_prob=0.5514  (n=3)
+k= 10  malicious_token_prob=0.9373  read_token_prob=0.5542  (n=3)
+k= 20  malicious_token_prob=0.9183  read_token_prob=0.5505  (n=3)
+k= 40  malicious_token_prob=0.2685  read_token_prob=0.5474  (n=3)
+
+-- [P7] random-head baseline (n=40, same size as control_ranking) --
+k=  0  malicious_token_prob=0.9308  read_token_prob=0.5549  (n=3)
+k=  5  malicious_token_prob=0.9369  read_token_prob=0.5539  (n=3)
+k= 10  malicious_token_prob=0.9471  read_token_prob=0.5446  (n=3)
+k= 20  malicious_token_prob=0.9622  read_token_prob=0.5546  (n=3)
+k= 40  malicious_token_prob=0.9331  read_token_prob=0.5913  (n=3)
+
+-- [P7] control_heads_both intersection sweep (n=0) --
+heads = []
+k=  0  malicious_token_prob=0.9308  read_token_prob=0.5549  (n=3)
+
+-- [P7] control_heads_both intersection sweep - random baseline (n=0) --
+k=  0  malicious_token_prob=0.9308  read_token_prob=0.5549  (n=3)
+
+-- [P7] top-K sensitivity sweep (K=5/10/20/40) --
+K=  5  |intersection|=  0  jaccard=0.000  jaccard_chance=0.007
+  heads = []
+  real:   k=0 malicious=0.9308 read=0.5549  ->  k=0 malicious=0.9308 read=0.5549
+  random: k=0 malicious=0.9308 read=0.5549  ->  k=0 malicious=0.9308 read=0.5549
+K= 10  |intersection|=  0  jaccard=0.000  jaccard_chance=0.015
+  heads = []
+  real:   k=0 malicious=0.9308 read=0.5549  ->  k=0 malicious=0.9308 read=0.5549
+  random: k=0 malicious=0.9308 read=0.5549  ->  k=0 malicious=0.9308 read=0.5549
+K= 20  |intersection|=  0  jaccard=0.000  jaccard_chance=0.031
+  heads = []
+  real:   k=0 malicious=0.9308 read=0.5549  ->  k=0 malicious=0.9308 read=0.5549
+  random: k=0 malicious=0.9308 read=0.5549  ->  k=0 malicious=0.9308 read=0.5549
+K= 40  |intersection|=  0  jaccard=0.000  jaccard_chance=0.063
+  heads = []
+  real:   k=0 malicious=0.9308 read=0.5549  ->  k=0 malicious=0.9308 read=0.5549
+  random: k=0 malicious=0.9308 read=0.5549  ->  k=0 malicious=0.9308 read=0.5549

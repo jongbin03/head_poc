@@ -1,0 +1,54 @@
+model=Qwen/Qwen2.5-0.5B-Instruct family=qwen2 four_bit=False dtype=bf16 topk=20 dataset_limit=3 heldout_style_idx=None
+n_templates_used=3/3 nan_excluded=0
+(전체 실행 환경: 같은 폴더의 env.json — commit/dtype/GPU/패키지 버전)
+
+jaccard(read,internal)   = 0.212
+jaccard(read,external)   = 0.250
+jaccard(internal,external)= 0.481
+jaccard_chance_at_k=20  = 0.031
+control_heads_both = [(0, 1), (1, 8), (1, 9), (15, 2), (15, 9), (15, 12), (16, 7), (20, 12), (21, 2), (21, 3), (21, 11), (22, 5), (23, 10)]
+dual_use_candidates = [(15, 2), (15, 9), (15, 12), (15, 13), (16, 0), (16, 3), (16, 7), (20, 7), (20, 11), (20, 12)]
+
+k=  0  malicious_token_prob=0.9216  read_token_prob=0.5501  (n=3)
+k=  5  malicious_token_prob=0.1521  read_token_prob=0.5710  (n=3)
+k= 10  malicious_token_prob=0.0098  read_token_prob=0.5719  (n=3)
+k= 20  malicious_token_prob=0.0000  read_token_prob=0.5458  (n=3)
+k= 40  malicious_token_prob=0.0000  read_token_prob=0.5593  (n=3)
+
+-- [P7] random-head baseline (n=40, same size as control_ranking) --
+k=  0  malicious_token_prob=0.9216  read_token_prob=0.5501  (n=3)
+k=  5  malicious_token_prob=0.9314  read_token_prob=0.5343  (n=3)
+k= 10  malicious_token_prob=0.9422  read_token_prob=0.5233  (n=3)
+k= 20  malicious_token_prob=0.9628  read_token_prob=0.5528  (n=3)
+k= 40  malicious_token_prob=0.9386  read_token_prob=0.5807  (n=3)
+
+-- [P7] control_heads_both intersection sweep (n=13) --
+heads = [(0, 1), (1, 8), (1, 9), (15, 2), (15, 9), (15, 12), (16, 7), (20, 12), (21, 2), (21, 3), (21, 11), (22, 5), (23, 10)]
+k=  0  malicious_token_prob=0.9216  read_token_prob=0.5501  (n=3)
+k=  5  malicious_token_prob=0.6362  read_token_prob=0.5560  (n=3)
+k= 10  malicious_token_prob=0.1374  read_token_prob=0.5550  (n=3)
+k= 13  malicious_token_prob=0.0016  read_token_prob=0.5643  (n=3)
+
+-- [P7] control_heads_both intersection sweep - random baseline (n=13) --
+k=  0  malicious_token_prob=0.9216  read_token_prob=0.5501  (n=3)
+k=  5  malicious_token_prob=0.9314  read_token_prob=0.5343  (n=3)
+k= 10  malicious_token_prob=0.9422  read_token_prob=0.5233  (n=3)
+k= 13  malicious_token_prob=0.9383  read_token_prob=0.5361  (n=3)
+
+-- [P7] top-K sensitivity sweep (K=5/10/20/40) --
+K=  5  |intersection|=  1  jaccard=0.111  jaccard_chance=0.007
+  heads = [(22, 5)]
+  real:   k=0 malicious=0.9216 read=0.5501  ->  k=1 malicious=0.3970 read=0.5632
+  random: k=0 malicious=0.9216 read=0.5501  ->  k=1 malicious=0.9255 read=0.5585
+K= 10  |intersection|=  6  jaccard=0.429  jaccard_chance=0.015
+  heads = [(16, 7), (20, 12), (21, 2), (21, 3), (21, 11), (22, 5)]
+  real:   k=0 malicious=0.9216 read=0.5501  ->  k=6 malicious=0.0595 read=0.5590
+  random: k=0 malicious=0.9216 read=0.5501  ->  k=6 malicious=0.9369 read=0.5510
+K= 20  |intersection|= 13  jaccard=0.481  jaccard_chance=0.031
+  heads = [(0, 1), (1, 8), (1, 9), (15, 2), (15, 9), (15, 12), (16, 7), (20, 12), (21, 2), (21, 3), (21, 11), (22, 5), (23, 10)]
+  real:   k=0 malicious=0.9216 read=0.5501  ->  k=13 malicious=0.0016 read=0.5643
+  random: k=0 malicious=0.9216 read=0.5501  ->  k=13 malicious=0.9383 read=0.5361
+K= 40  |intersection|= 31  jaccard=0.633  jaccard_chance=0.063
+  heads = [(0, 0), (0, 1), (0, 6), (1, 8), (1, 9), (1, 10), (1, 11), (1, 13), (2, 8), (14, 9), (15, 2), (15, 9), (15, 12), (15, 13), (16, 0), (16, 3), (16, 7), (16, 12), (19, 2), (20, 6), (20, 7), (20, 12), (21, 2), (21, 3), (21, 4), (21, 11), (21, 13), (22, 5), (22, 6), (23, 7), (23, 10)]
+  real:   k=0 malicious=0.9216 read=0.5501  ->  k=31 malicious=0.0002 read=0.5473
+  random: k=0 malicious=0.9216 read=0.5501  ->  k=31 malicious=0.8781 read=0.5341
