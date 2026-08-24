@@ -9,10 +9,15 @@ Atlas (NeurIPS'25) 의 AttnLRP 기반 head relevance 산출 방식을 lxt(pip in
     score(J) = Σ_{j in J} ρ^h_j                 # Eq. 8, J = 관심있는 key-token 그룹
 
 를 그대로 따르되, `self_attn.softmax`라는 커스텀 서브모듈을 만들 필요 없이
-`output_attentions=True` (+ `attn_implementation="eager"`) 로 얻은 attention tensor에
-backward 훅을 걸어서 구현한다. (이전 판은 `retain_grad()`로 모든 레이어의 gradient를
-backward가 끝날 때까지 통째로 들고 있었다 — 훅으로 바꿔 gradient가 계산되는 즉시
-축약·전송하고 버림으로써 peak 메모리를 절반으로 줄인다. 2026-08-21 status 문서 참고.)
+`attn_implementation="eager"`로 얻은 attention tensor에 backward 훅을 걸어서 구현한다.
+
+훅 방식의 변천 (둘 다 실측으로 확인된 문제를 고친 것):
+  1. `retain_grad()` -> **backward 훅** (2026-08-21) — 모든 레이어의 gradient를 backward가
+     끝날 때까지 들고 있던 것을, 계산되는 즉시 축약·전송하고 버리도록 바꿔 peak 메모리를
+     절반으로 줄였다. 7B T=1500에서 구버전은 OOM, 훅 버전은 통과.
+  2. `out.attentions` -> **self_attn 모듈의 forward 훅** (2026-08-24) — device_map="auto"
+     분산 시 `out.attentions`가 원본이 아닌 복사본이라 backward가 지나가지 않는다.
+     모듈이 방금 만든 원본 텐서를 잡도록 바꿨다. 자세한 내용은 compute_head_relevance 주석.
 
 ⚠️ gradient checkpointing을 켜면 (`model.gradient_checkpointing_enable()`) 이 함수의
 attention tensor는 backward 시점에 재계산된 별개의 tensor가 되어 `.grad`가 채워지지
@@ -109,45 +114,74 @@ def compute_head_relevance(
         base_embeds = embed(input_ids)
     inputs_embeds = base_embeds.clone().detach().requires_grad_(True)
 
-    out = model(inputs_embeds=inputs_embeds, output_attentions=True, use_cache=False)
-    attn_maps = out.attentions  # tuple(num_layers) of [batch, heads, seq_i, seq_j]
-
-    num_layers = len(attn_maps)
-    num_heads = attn_maps[0].shape[1]
+    # ⚠️ **out.attentions에 훅을 걸면 안 된다** (2026-08-24 실측으로 확인).
+    # device_map="auto"로 모델을 여러 GPU에 쪼개면 accelerate가 모델 출력을 메인
+    # device로 모으는데, 그때 out.attentions[l]은 **원본이 아니라 복사본**이다.
+    # 복사본은 target_logit -> inputs_embeds 경로 밖의 막다른 가지라서 backward가
+    # 지나가지 않고, 훅도 안 불린다. 실측(7B, 3 GPU): layer 0(=유일하게 이동이 없던
+    # 레이어)만 점수가 남고 나머지 27개가 전부 0이었다.
+    # 구버전 retain_grad()도 같은 이유로 `.grad is None`이 되어 **조용히** 스킵됐다 —
+    # 이건 태스크 A가 만든 문제가 아니라 원래 있던 버그다.
+    # 그래서 self_attn 모듈에 forward 훅을 걸어 **모듈이 방금 만든 원본 텐서**를 잡는다.
+    layers = model.model.layers  # qwen2/llama 공통 구조
+    num_layers = len(layers)
+    num_heads = model.config.num_attention_heads
     group_scores = {g: torch.zeros(num_layers, num_heads) for g in key_spans}
     hooked = [False] * num_layers
 
-    def _make_hook(l, a):
-        def _hook(grad):
-            # a는 어차피 autograd가 그래프 안에 들고 있으므로 detach가 메모리를 더 쓰지 않음.
-            # rel을 [heads] 그룹 스칼라로 즉시 축약해 CPU로 보내고, grad 자체는 리턴 없이 버림
-            # (return None -> 훅이 끝나면 이 grad 텐서는 즉시 해제됨).
-            rel = (a[0].detach().float() * grad[0].float()).clamp(min=0)  # [heads, seq_i, seq_j]
-            for g, positions in key_spans.items():
-                if len(positions) == 0:
-                    continue
-                group_scores[g][l] = rel[:, :, positions].sum(dim=(1, 2)).cpu()
-            hooked[l] = True
-            return None
-        return _hook
+    fwd_handles, bwd_handles = [], []
 
-    handles = []
-    for l, a in enumerate(attn_maps):
-        if a.requires_grad:
-            handles.append(a.register_hook(_make_hook(l, a)))
+    def _make_fwd_hook(l):
+        def _fwd(module, args, output):
+            # Qwen2Attention/LlamaAttention은 (attn_output, attn_weights)를 반환한다.
+            a = output[1] if isinstance(output, tuple) and len(output) > 1 else None
+            if a is None or not a.requires_grad:
+                return
 
-    target_logit = out.logits[0, -1, target_token_id]
+            def _bwd(grad):
+                # a는 어차피 autograd가 그래프 안에 들고 있으므로 detach가 메모리를 더 쓰지 않음.
+                # rel을 [heads] 그룹 스칼라로 즉시 축약해 CPU로 보내고, grad는 리턴 없이 버린다
+                # (return None -> 훅이 끝나면 이 grad 텐서는 즉시 해제됨).
+                rel = (a[0].detach().float() * grad[0].float()).clamp(min=0)
+                for g, positions in key_spans.items():
+                    if len(positions) == 0:
+                        continue
+                    group_scores[g][l] = rel[:, :, positions].sum(dim=(1, 2)).cpu()
+                hooked[l] = True
+                return None
 
-    model.zero_grad(set_to_none=True)
-    if inputs_embeds.grad is not None:
-        inputs_embeds.grad = None
-    target_logit.backward()
+            bwd_handles.append(a.register_hook(_bwd))
+        return _fwd
 
-    for h in handles:
-        h.remove()
+    for l, layer in enumerate(layers):
+        fwd_handles.append(layer.self_attn.register_forward_hook(_make_fwd_hook(l)))
 
-    # hooked[l] == False인 레이어는 checkpointing이 켜져 있거나 그래프가 끊긴 경우 —
-    # 여기 걸리면 설정을 점검할 것 (group_scores는 0으로 남아 조용히 통과한다).
+    try:
+        out = model(inputs_embeds=inputs_embeds, output_attentions=True, use_cache=False)
+        target_logit = out.logits[0, -1, target_token_id]
+
+        model.zero_grad(set_to_none=True)
+        if inputs_embeds.grad is not None:
+            inputs_embeds.grad = None
+        target_logit.backward()
+    finally:
+        for h in fwd_handles:
+            h.remove()
+        for h in bwd_handles:
+            h.remove()
+
+    # 일부 레이어만 계산됐으면 **조용히 넘어가지 않는다.** 0으로 남은 레이어가 있는 채로
+    # aggregate되면 topk_heads가 그 레이어를 전부 하위로 밀어내, 에러 없이 "그럴듯하지만
+    # 틀린" head 집합이 나온다 (실제로 8/24 분산 스모크에서 상위 20개가 전부 layer 0이었다).
+    n_hooked = sum(hooked)
+    if n_hooked != num_layers:
+        missing = [i for i, v in enumerate(hooked) if not v]
+        raise RuntimeError(
+            f"attention relevance가 {n_hooked}/{num_layers} 레이어에서만 계산됐다 "
+            f"(누락 레이어: {missing[:10]}{'...' if len(missing) > 10 else ''}). "
+            f"gradient checkpointing이 켜져 있거나, 그래프가 끊긴 경로에 훅이 걸린 경우다. "
+            f"이대로 진행하면 누락 레이어가 0점으로 남아 head 순위가 조용히 망가진다."
+        )
 
     return group_scores
 
