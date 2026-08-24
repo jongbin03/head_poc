@@ -37,7 +37,8 @@ from adapters.agentdojo_pipeline import KnockoutLocalLLM
 from runtime_env import add_runtime_args, collect_env_meta, describe
 
 
-def _load_model(model_path: str, family: str, four_bit: bool, device: str, dtype: str = "auto"):
+def _load_model(model_path: str, family: str, four_bit: bool, device: str, dtype: str = "auto",
+                 device_map: str = None):
     # Track B는 forward-only(edge_knockout)라 attn_relevance.load_model_for_relevance의
     # lxt monkey-patch(backward 전용)가 필요 없다 — 그냥 eager attention으로만 로드한다.
     from runtime_env import resolve_dtype
@@ -47,9 +48,12 @@ def _load_model(model_path: str, family: str, four_bit: bool, device: str, dtype
     else:
         from transformers.models.llama import modeling_llama as modeling_mod
 
-    torch_dtype, dtype_name = resolve_dtype(dtype, device)
+    resolved_device_map = device_map or device
+    # dtype 판정에는 device가 아니라 device_map을 넘긴다 — "auto"를 device처럼 취급해
+    # fp32로 떨어지면 분산 로드의 목적(메모리 절감)이 무너진다 (attn_relevance.py와 동일 이유).
+    torch_dtype, dtype_name = resolve_dtype(dtype, resolved_device_map)
 
-    kwargs = dict(torch_dtype=torch_dtype, device_map=device, attn_implementation="eager")
+    kwargs = dict(torch_dtype=torch_dtype, device_map=resolved_device_map, attn_implementation="eager")
     if four_bit:
         from transformers import BitsAndBytesConfig
 
@@ -103,7 +107,14 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", default="Qwen/Qwen2.5-1.5B-Instruct")
     parser.add_argument("--family", default="qwen2", choices=["qwen2", "llama"])
-    parser.add_argument("--device", default="cuda")
+    parser.add_argument("--device", default="cuda", help="입력 텐서를 올릴 device. "
+                         "--device_map auto로 모델을 쪼개도 입력은 첫 device에 있어야 하므로 "
+                         "그 경우 'cuda:0'으로 둘 것.")
+    parser.add_argument(
+        "--device_map", default=None,
+        help="모델 가중치 배치. 미지정이면 --device를 그대로 쓴다(단일 GPU, 기존 동작). "
+        "'auto'면 여러 GPU에 레이어를 분산한다 — 32B처럼 단일 24GB에 안 들어가는 모델용.",
+    )
     parser.add_argument("--four_bit", action="store_true")
     parser.add_argument("--heads_json", required=True, help="compare_head_sources.py discover(-parallel) 결과 JSON")
     parser.add_argument(
@@ -163,7 +174,7 @@ def main():
 
     print(f"[run_agentdojo_eval] loading {args.model} ...")
     model, tok, modeling_mod, dtype_name = _load_model(
-        args.model, args.family, args.four_bit, args.device, args.dtype
+        args.model, args.family, args.four_bit, args.device, args.dtype, args.device_map
     )
     print(describe(dtype_name))
 
