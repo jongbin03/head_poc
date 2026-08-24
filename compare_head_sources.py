@@ -237,7 +237,11 @@ def _discover_single_channel(args, model, tok, source_name):
         gc.collect()
         torch.cuda.empty_cache()
         if (i + 1) % 20 == 0:
-            alloc = torch.cuda.memory_allocated() / (1024**3)
+            # device_map="auto"로 여러 GPU에 쪼갠 경우 device 0만 보면 실제 사용량을
+            # 크게 과소보고한다 — 전 device를 합산한다 (표시 전용).
+            alloc = sum(
+                torch.cuda.memory_allocated(d) for d in range(torch.cuda.device_count())
+            ) / (1024**3)
             print(
                 f"  [{source_name}] {i + 1}/{len(head_pairs)} (cuda allocated={alloc:.2f}GiB, "
                 f"oom_skipped={n_skipped_oom}, nan_skipped={n_skipped_nan})"
@@ -287,7 +291,7 @@ def cmd_discover(args):
     print(f"[discover:{args.source}] loading {args.model} (family={args.family}, four_bit={args.four_bit}) ...")
     model, tok, dtype_name = load_model_for_relevance(
         model_path=args.model, four_bit=args.four_bit, device=args.device,
-        model_family=args.family, dtype=args.dtype,
+        model_family=args.family, dtype=args.dtype, device_map=args.device_map,
     )
     print(describe(dtype_name))
     result = _DISCOVER_FNS[args.source](args, model, tok)
@@ -313,7 +317,7 @@ def cmd_discover_batch(args):
     print(f"[discover-batch:{args.source}] loading {args.model} for batch [{args.start}:{args.end}] ...")
     model, _, dtype_name = load_model_for_relevance(
         model_path=args.model, four_bit=args.four_bit, device=args.device,
-        model_family=args.family, dtype=args.dtype,
+        model_family=args.family, dtype=args.dtype, device_map=args.device_map,
     )
     print(describe(dtype_name))
     num_layers = model.config.num_hidden_layers
@@ -399,6 +403,10 @@ def cmd_discover_parallel(args):
             ]
             if args.four_bit:
                 cmd.append("--four_bit")
+            # device_map을 안 넘기면 자식이 단일 GPU로 로드해 32B는 그대로 OOM이다
+            # (dtype/split 인자와 같은 이유 — 자식이 부모와 다른 설정으로 계산하면 안 된다).
+            if args.device_map is not None:
+                cmd += ["--device_map", args.device_map]
             if args.max_seq_len is not None:
                 cmd += ["--max_seq_len", str(args.max_seq_len)]
             if args.agentdojo_suites:
@@ -562,7 +570,16 @@ def cmd_compare(args):
 def _add_common_discover_args(p):
     p.add_argument("--model", default="Qwen/Qwen2.5-1.5B-Instruct")
     p.add_argument("--family", default="qwen2", choices=["qwen2", "llama"])
-    p.add_argument("--device", default="cuda")
+    p.add_argument("--device", default="cuda", help="입력 텐서를 올릴 device. "
+                   "--device_map auto로 모델을 쪼개도 입력은 첫 device에 있어야 하므로 "
+                   "그 경우 'cuda:0'으로 둘 것.")
+    p.add_argument(
+        "--device_map", default=None,
+        help="모델 가중치 배치. 미지정이면 --device를 그대로 쓴다(단일 GPU, 기존 동작). "
+        "'auto'면 여러 GPU에 레이어를 분산한다 — 32B처럼 단일 24GB에 안 들어가는 모델용 "
+        "(4bit 가중치 18GB + attention 텐서가 카드 하나를 넘김, docs/status-2026-08-21.md 1.2절). "
+        "⚠️ 3장을 다 쓰면 공용 서버에서 남이 못 쓰므로 gpu_free로 먼저 확인할 것.",
+    )
     p.add_argument("--four_bit", action="store_true")
     add_runtime_args(p)
     p.add_argument("--topk", type=int, default=20)

@@ -30,13 +30,17 @@ def load_model_for_relevance(
     device: str = "cuda",
     model_family: str = "qwen2",
     dtype: str = "auto",
+    device_map: Optional[str] = None,
 ):
     """
     model_family: "qwen2" | "llama"  (lxt가 공식 지원하는 아키텍처만)
     dtype: "auto" | "bf16" | "fp16" | "fp32" — runtime_env.resolve_dtype 참고.
-           Turing(Titan RTX 등)에는 bf16이 없어 auto가 fp16으로 내려간다.
-           ⚠️ fp16은 loss scaling이 없어 아래 backward에서 relevance가 NaN이 될 수 있다.
-           호출자는 `runtime_env.has_nonfinite`로 검사하고 OOM 스킵과 구분해 카운트할 것.
+           실측으로 CUDA에서는 항상 bf16이 선택된다(fp16은 NaN으로 배제, 1.3절).
+    device: **입력 텐서를 올릴 device.** device_map="auto"로 모델을 쪼개도 입력은
+           첫 device(보통 cuda:0)에 있어야 하므로, 모델 배치와 분리해서 받는다.
+    device_map: 모델 가중치 배치. None이면 `device`를 그대로 쓴다(기존 동작).
+           **"auto"를 주면 여러 GPU에 레이어를 분산**한다 — 32B처럼 단일 카드에
+           안 들어가는 모델용. 이때 `device`는 "cuda:0"으로 두는 게 안전하다.
     checkpointing은 여기서 켜지 않는다 — head-level relevance와 상극이기 때문.
 
     반환: (model, tokenizer, dtype_name) — dtype_name은 "auto"가 실제로 무엇으로
@@ -57,9 +61,13 @@ def load_model_for_relevance(
 
     monkey_patch(modeling_mod, verbose=False)
 
-    torch_dtype, dtype_name = resolve_dtype(dtype, device)
+    resolved_device_map = device_map or device
+    # dtype 판정에는 **device_map**을 넘긴다. "auto"를 device처럼 취급해 fp32로 떨어지면
+    # 분산 로드의 목적(메모리 절감) 자체가 무너지기 때문 (runtime_env.resolve_dtype 주석 참고).
+    torch_dtype, dtype_name = resolve_dtype(dtype, resolved_device_map)
 
-    kwargs = dict(torch_dtype=torch_dtype, device_map=device, attn_implementation="eager")
+    kwargs = dict(torch_dtype=torch_dtype, device_map=resolved_device_map,
+                  attn_implementation="eager")
     if four_bit:
         from transformers import BitsAndBytesConfig
         kwargs["quantization_config"] = BitsAndBytesConfig(

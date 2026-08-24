@@ -60,7 +60,13 @@ def resolve_dtype(name: str = "auto", device: str = "cuda") -> tuple:
     if name != "auto":
         return _DTYPE_MAP[name], name
 
-    if not str(device).startswith("cuda") or not torch.cuda.is_available():
+    # ⚠️ device는 "cuda" / "cuda:0" 뿐 아니라 **"auto"(device_map="auto", 다중 GPU 분산)**
+    # 로도 들어온다. 예전 판은 startswith("cuda")만 봐서 device="auto"면 조용히 fp32로
+    # 떨어졌고, 그러면 32B 분산 로드에서 메모리가 2배가 되어 애초 목적이 무너진다.
+    # "auto"는 accelerate가 GPU에 올릴 수 있으면 올리는 뜻이므로 CUDA 가용 여부로만 판단한다.
+    _dev = str(device)
+    on_cuda = _dev.startswith("cuda") or _dev == "auto" or _dev == "balanced"
+    if not on_cuda or not torch.cuda.is_available():
         return torch.float32, "fp32"
 
     # CUDA에서는 항상 bf16. compute capability로 fp16과 갈랐던 이전 판을 실측으로 뒤집었다.
