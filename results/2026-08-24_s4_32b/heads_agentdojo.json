@@ -1,0 +1,425 @@
+{
+  "source": "agentdojo",
+  "heads": [
+    [
+      50,
+      28
+    ],
+    [
+      48,
+      34
+    ],
+    [
+      46,
+      18
+    ],
+    [
+      44,
+      20
+    ],
+    [
+      46,
+      26
+    ],
+    [
+      49,
+      3
+    ],
+    [
+      44,
+      23
+    ],
+    [
+      42,
+      11
+    ],
+    [
+      47,
+      19
+    ],
+    [
+      0,
+      27
+    ],
+    [
+      45,
+      21
+    ],
+    [
+      44,
+      35
+    ],
+    [
+      49,
+      2
+    ],
+    [
+      41,
+      9
+    ],
+    [
+      46,
+      25
+    ],
+    [
+      42,
+      21
+    ],
+    [
+      50,
+      29
+    ],
+    [
+      44,
+      37
+    ],
+    [
+      45,
+      11
+    ],
+    [
+      52,
+      9
+    ]
+  ],
+  "num_layers": 64,
+  "num_heads_per_layer": 40,
+  "n_examples_used": 130,
+  "n_oom_skipped": 76,
+  "n_nan_skipped": 0,
+  "suite_counts": {
+    "banking": {
+      "ok": 55,
+      "oom": 2
+    },
+    "slack": {
+      "ok": 50
+    },
+    "travel": {
+      "ok": 13,
+      "oom": 34
+    },
+    "workspace": {
+      "oom": 40,
+      "ok": 12
+    }
+  },
+  "split_info": {
+    "requested_head_n": 200,
+    "seed": 42,
+    "group_key": "user_task",
+    "stratify_key": "suite",
+    "holdout_stratum": null,
+    "fallback": [],
+    "quota_per_stratum": 50,
+    "per_stratum": {
+      "banking": {
+        "role": "split",
+        "quota": 50,
+        "head_pairs": 57,
+        "eval_pairs": 7,
+        "head_groups": [
+          "user_task_0",
+          "user_task_11",
+          "user_task_12",
+          "user_task_13",
+          "user_task_15",
+          "user_task_2",
+          "user_task_3",
+          "user_task_4",
+          "user_task_5",
+          "user_task_6",
+          "user_task_9"
+        ],
+        "n_groups": 12,
+        "shortfall": 0
+      },
+      "slack": {
+        "role": "split",
+        "quota": 50,
+        "head_pairs": 50,
+        "eval_pairs": 24,
+        "head_groups": [
+          "user_task_10",
+          "user_task_11",
+          "user_task_12",
+          "user_task_13",
+          "user_task_14",
+          "user_task_15",
+          "user_task_16",
+          "user_task_17",
+          "user_task_18",
+          "user_task_19",
+          "user_task_20",
+          "user_task_4",
+          "user_task_5",
+          "user_task_6"
+        ],
+        "n_groups": 20,
+        "shortfall": 0
+      },
+      "travel": {
+        "role": "split",
+        "quota": 50,
+        "head_pairs": 47,
+        "eval_pairs": 0,
+        "head_groups": [
+          "user_task_0",
+          "user_task_1",
+          "user_task_10",
+          "user_task_11",
+          "user_task_12",
+          "user_task_14",
+          "user_task_15",
+          "user_task_16",
+          "user_task_19",
+          "user_task_2",
+          "user_task_4",
+          "user_task_5",
+          "user_task_6",
+          "user_task_7",
+          "user_task_8",
+          "user_task_9"
+        ],
+        "n_groups": 16,
+        "shortfall": 3
+      },
+      "workspace": {
+        "role": "split",
+        "quota": 50,
+        "head_pairs": 52,
+        "eval_pairs": 11,
+        "head_groups": [
+          "user_task_12",
+          "user_task_18",
+          "user_task_19",
+          "user_task_20",
+          "user_task_21",
+          "user_task_23",
+          "user_task_25",
+          "user_task_39",
+          "user_task_4",
+          "user_task_6",
+          "user_task_8",
+          "user_task_9"
+        ],
+        "n_groups": 14,
+        "shortfall": 0
+      }
+    },
+    "n_head_pairs": 206,
+    "n_eval_pairs": 42,
+    "shortfall_total": 3,
+    "head_turn_idx": {
+      "0": 141,
+      "1": 26,
+      "2": 24,
+      "3": 9,
+      "4": 6
+    },
+    "eval_turn_idx": {
+      "0": 38,
+      "1": 4
+    },
+    "n_all_pairs": 248
+  },
+  "head_n": 200,
+  "seed": 42,
+  "topk": 20,
+  "model": "Qwen/Qwen2.5-32B-Instruct",
+  "batch_size": 3,
+  "env": {
+    "timestamp": "2026-08-24T12:29:32.010429+00:00",
+    "dtype": "bf16",
+    "git": {
+      "commit": "04a3f571245e7d83b1eab7acc3d0449aebd52e41",
+      "branch": "master",
+      "dirty": false,
+      "dirty_files": []
+    },
+    "argv": [
+      "compare_head_sources.py",
+      "discover-parallel",
+      "--source",
+      "agentdojo",
+      "--model",
+      "Qwen/Qwen2.5-32B-Instruct",
+      "--family",
+      "qwen2",
+      "--four_bit",
+      "--device",
+      "cuda:0",
+      "--device_map",
+      "auto",
+      "--head_n",
+      "200",
+      "--max_seq_len",
+      "1500",
+      "--batch_size",
+      "3",
+      "--out_json",
+      "results/2026-08-24_s4_32b/heads_agentdojo.json"
+    ],
+    "cwd": "/data3/hjkim/jbwon/atlas_poc",
+    "python": "3.11.15",
+    "platform": "Linux-5.15.0-88-generic-x86_64-with-glibc2.31",
+    "torch": "2.13.0+cu126",
+    "cuda": "12.6",
+    "gpus": [
+      {
+        "index": 0,
+        "name": "NVIDIA TITAN RTX",
+        "compute_capability": "7.5",
+        "total_memory_gib": 23.64,
+        "bf16_supported": false
+      },
+      {
+        "index": 1,
+        "name": "NVIDIA TITAN RTX",
+        "compute_capability": "7.5",
+        "total_memory_gib": 23.64,
+        "bf16_supported": false
+      },
+      {
+        "index": 2,
+        "name": "NVIDIA TITAN RTX",
+        "compute_capability": "7.5",
+        "total_memory_gib": 23.64,
+        "bf16_supported": false
+      }
+    ],
+    "key_packages": {
+      "torch": "2.13.0+cu126",
+      "transformers": "4.51.3",
+      "lxt": "2.1",
+      "accelerate": "1.14.0",
+      "bitsandbytes": "0.50.1",
+      "agentdojo": "0.1.35"
+    },
+    "packages": {
+      "accelerate": "1.14.0",
+      "agentdojo": "0.1.35",
+      "annotated-types": "0.8.0",
+      "anthropic": "1.0.0",
+      "anyio": "4.14.2",
+      "bitsandbytes": "0.50.1",
+      "cachebox": "5.2.3",
+      "certifi": "2026.7.22",
+      "cffi": "2.1.1",
+      "charset-normalizer": "3.5.1",
+      "click": "8.4.2",
+      "cohere": "7.0.9",
+      "contourpy": "1.3.3",
+      "cryptography": "50.0.0",
+      "cuda-bindings": "12.9.7",
+      "cuda-pathfinder": "1.6.0",
+      "cuda-toolkit": "12.6.3",
+      "cycler": "0.12.1",
+      "deepdiff": "9.1.0",
+      "distro": "1.9.0",
+      "dnspython": "2.8.0",
+      "docstring_parser": "0.18.0",
+      "email-validator": "2.3.0",
+      "fastavro": "1.12.2",
+      "filelock": "3.32.3",
+      "fonttools": "4.63.0",
+      "fsspec": "2026.7.0",
+      "ftfy": "6.3.1",
+      "google-auth": "2.56.3",
+      "google-genai": "2.19.0",
+      "h11": "0.16.0",
+      "hf-xet": "1.6.0",
+      "httpcore": "1.0.9",
+      "httpcore2": "2.12.0",
+      "httpx": "0.28.1",
+      "httpx2": "2.12.0",
+      "huggingface_hub": "0.36.2",
+      "idna": "3.19",
+      "Jinja2": "3.1.6",
+      "jiter": "0.16.0",
+      "jsonpatch": "1.33",
+      "jsonpointer": "3.1.1",
+      "kiwisolver": "1.5.0",
+      "langchain": "1.3.16",
+      "langchain-core": "1.6.0",
+      "langchain-protocol": "0.0.18",
+      "langgraph": "1.2.11",
+      "langgraph-checkpoint": "4.2.0",
+      "langgraph-prebuilt": "1.1.0",
+      "langgraph-sdk": "0.4.3",
+      "langsmith": "0.11.1",
+      "lxt": "2.1",
+      "markdown-it-py": "4.2.0",
+      "MarkupSafe": "3.0.3",
+      "matplotlib": "3.11.1",
+      "mdurl": "0.1.2",
+      "mpmath": "1.3.0",
+      "networkx": "3.6.1",
+      "numpy": "2.4.6",
+      "nvidia-cublas-cu12": "12.6.4.1",
+      "nvidia-cuda-cupti-cu12": "12.6.80",
+      "nvidia-cuda-nvrtc-cu12": "12.6.85",
+      "nvidia-cuda-runtime-cu12": "12.6.77",
+      "nvidia-cudnn-cu12": "9.10.2.21",
+      "nvidia-cufft-cu12": "11.3.0.4",
+      "nvidia-cufile-cu12": "1.11.1.6",
+      "nvidia-curand-cu12": "10.3.7.77",
+      "nvidia-cusolver-cu12": "11.7.1.2",
+      "nvidia-cusparse-cu12": "12.5.4.2",
+      "nvidia-cusparselt-cu12": "0.7.1",
+      "nvidia-nccl-cu12": "2.29.3",
+      "nvidia-nvjitlink-cu12": "12.6.85",
+      "nvidia-nvshmem-cu12": "3.4.5",
+      "nvidia-nvtx-cu12": "12.6.77",
+      "open_clip_torch": "3.3.0",
+      "openai": "3.3.1",
+      "orderly-set": "5.5.0",
+      "orjson": "3.12.0",
+      "ormsgpack": "1.12.2",
+      "packaging": "26.3",
+      "pillow": "12.3.0",
+      "pip": "26.2.1",
+      "psutil": "7.2.2",
+      "pyasn1": "0.6.4",
+      "pyasn1_modules": "0.4.2",
+      "pycparser": "3.0",
+      "pydantic": "2.13.4",
+      "pydantic_core": "2.46.4",
+      "Pygments": "2.21.0",
+      "pyparsing": "3.3.2",
+      "python-dateutil": "2.9.0.post0",
+      "python-dotenv": "1.2.3",
+      "PyYAML": "6.0.3",
+      "regex": "2026.7.19",
+      "requests": "2.34.2",
+      "requests-toolbelt": "1.0.0",
+      "rich": "15.0.0",
+      "safetensors": "0.8.0",
+      "setuptools": "84.0.0",
+      "six": "1.17.0",
+      "sniffio": "1.3.1",
+      "sympy": "1.14.0",
+      "tabulate": "0.10.0",
+      "tenacity": "9.1.4",
+      "timm": "1.0.28",
+      "tokenizers": "0.21.4",
+      "torch": "2.13.0+cu126",
+      "torchvision": "0.28.0+cu126",
+      "tqdm": "4.70.0",
+      "transformers": "4.51.3",
+      "triton": "3.7.1",
+      "truststore": "0.10.4",
+      "types-requests": "2.33.0.20260712",
+      "typing-inspection": "0.4.4",
+      "typing_extensions": "4.16.0",
+      "urllib3": "2.7.0",
+      "uuid_utils": "0.17.0",
+      "wcwidth": "0.8.2",
+      "websockets": "16.1.1",
+      "wheel": "0.48.0",
+      "xxhash": "4.0.1",
+      "zennit": "1.0.0",
+      "zstandard": "0.25.0"
+    }
+  }
+}
