@@ -10,7 +10,9 @@ Atlas (NeurIPS'25) 의 AttnLRP 기반 head relevance 산출 방식을 lxt(pip in
 
 를 그대로 따르되, `self_attn.softmax`라는 커스텀 서브모듈을 만들 필요 없이
 `output_attentions=True` (+ `attn_implementation="eager"`) 로 얻은 attention tensor에
-바로 retain_grad()를 걸어서 구현한다.
+backward 훅을 걸어서 구현한다. (이전 판은 `retain_grad()`로 모든 레이어의 gradient를
+backward가 끝날 때까지 통째로 들고 있었다 — 훅으로 바꿔 gradient가 계산되는 즉시
+축약·전송하고 버림으로써 peak 메모리를 절반으로 줄인다. 2026-08-21 status 문서 참고.)
 
 ⚠️ gradient checkpointing을 켜면 (`model.gradient_checkpointing_enable()`) 이 함수의
 attention tensor는 backward 시점에 재계산된 별개의 tensor가 되어 `.grad`가 채워지지
@@ -102,9 +104,29 @@ def compute_head_relevance(
     out = model(inputs_embeds=inputs_embeds, output_attentions=True, use_cache=False)
     attn_maps = out.attentions  # tuple(num_layers) of [batch, heads, seq_i, seq_j]
 
-    for a in attn_maps:
+    num_layers = len(attn_maps)
+    num_heads = attn_maps[0].shape[1]
+    group_scores = {g: torch.zeros(num_layers, num_heads) for g in key_spans}
+    hooked = [False] * num_layers
+
+    def _make_hook(l, a):
+        def _hook(grad):
+            # a는 어차피 autograd가 그래프 안에 들고 있으므로 detach가 메모리를 더 쓰지 않음.
+            # rel을 [heads] 그룹 스칼라로 즉시 축약해 CPU로 보내고, grad 자체는 리턴 없이 버림
+            # (return None -> 훅이 끝나면 이 grad 텐서는 즉시 해제됨).
+            rel = (a[0].detach().float() * grad[0].float()).clamp(min=0)  # [heads, seq_i, seq_j]
+            for g, positions in key_spans.items():
+                if len(positions) == 0:
+                    continue
+                group_scores[g][l] = rel[:, :, positions].sum(dim=(1, 2)).cpu()
+            hooked[l] = True
+            return None
+        return _hook
+
+    handles = []
+    for l, a in enumerate(attn_maps):
         if a.requires_grad:
-            a.retain_grad()
+            handles.append(a.register_hook(_make_hook(l, a)))
 
     target_logit = out.logits[0, -1, target_token_id]
 
@@ -113,19 +135,11 @@ def compute_head_relevance(
         inputs_embeds.grad = None
     target_logit.backward()
 
-    num_layers = len(attn_maps)
-    num_heads = attn_maps[0].shape[1]
-    group_scores = {g: torch.zeros(num_layers, num_heads) for g in key_spans}
+    for h in handles:
+        h.remove()
 
-    for l, a in enumerate(attn_maps):
-        if a.grad is None:
-            # checkpointing이 켜져 있거나 그래프가 끊긴 경우 — 여기 걸리면 설정을 점검할 것
-            continue
-        rel = _clamp_pos(a[0].float() * a.grad[0].float())  # [heads, seq_i, seq_j]
-        for g, positions in key_spans.items():
-            if len(positions) == 0:
-                continue
-            group_scores[g][l] = rel[:, :, positions].sum(dim=(1, 2)).cpu()
+    # hooked[l] == False인 레이어는 checkpointing이 켜져 있거나 그래프가 끊긴 경우 —
+    # 여기 걸리면 설정을 점검할 것 (group_scores는 0으로 남아 조용히 통과한다).
 
     return group_scores
 
