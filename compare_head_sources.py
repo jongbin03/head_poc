@@ -287,7 +287,21 @@ _DISCOVER_FNS = {
 }
 
 
+def _ensure_out_dir(path: str) -> str:
+    """출력 파일의 상위 폴더를 **미리** 만든다.
+
+    ⚠️ 반드시 GPU 작업 **전에** 부를 것. 2026-08-24에 32B 스모크가 계산을 전부 끝낸 뒤
+    마지막 파일 쓰기에서 FileNotFoundError로 죽었다 — 부분합 tmp_dir은 이미 정리된 뒤라
+    수십 분의 GPU 시간이 통째로 날아갔다. 쓰기 직전이 아니라 시작 시점에 확인해야 한다.
+    """
+    d = os.path.dirname(path)
+    if d:
+        os.makedirs(d, exist_ok=True)
+    return path
+
+
 def cmd_discover(args):
+    out_json = _ensure_out_dir(args.out_json or f"heads_{args.source}.json")
     print(f"[discover:{args.source}] loading {args.model} (family={args.family}, four_bit={args.four_bit}) ...")
     model, tok, dtype_name = load_model_for_relevance(
         model_path=args.model, four_bit=args.four_bit, device=args.device,
@@ -299,7 +313,6 @@ def cmd_discover(args):
     # heads JSON은 결과 폴더가 아니라 단독 파일로 나가므로 환경을 안에 넣는다
     result["env"] = collect_env_meta(dtype_name)
 
-    out_json = args.out_json or f"heads_{args.source}.json"
     with open(out_json, "w", encoding="utf-8") as f:
         json.dump(result, f, indent=2)
     print(f"[discover:{args.source}] {len(result['heads'])} heads -> saved to {out_json}")
@@ -370,6 +383,10 @@ def cmd_discover_parallel(args):
     """소스 하나를 --batch_size개씩 나눠 각 배치를 새 서브프로세스(discover-batch)로 실행하고,
     부분합을 모아 최종 head를 뽑는다. AgentDojo처럼 단일 프로세스(discover)로는 메모리 누적
     버그 때문에 수율이 낮은 소스에 쓴다."""
+    # 출력 폴더를 배치 루프 **전에** 확보한다 (_ensure_out_dir 주석 참고 — 여기서 안 하면
+    # 전부 계산한 뒤 마지막 쓰기에서 죽고 부분합은 이미 지워져 복구가 안 된다).
+    out_json = _ensure_out_dir(args.out_json or f"heads_{args.source}.json")
+
     head_pairs, split_info = _build_head_pairs(args, args.source, return_info=True)
     total = len(head_pairs)
     print(f"[discover-parallel:{args.source}] {total} head_pairs total, batch_size={args.batch_size}")
@@ -474,7 +491,6 @@ def cmd_discover_parallel(args):
         "batch_size": args.batch_size,
         "env": collect_env_meta(resolved_dtype),
     }
-    out_json = args.out_json or f"heads_{args.source}.json"
     with open(out_json, "w", encoding="utf-8") as f:
         json.dump(result, f, indent=2)
     print(
@@ -548,7 +564,7 @@ def cmd_compare(args):
                 f"{names[i]} ∩ {names[j]} = {len(pair_inter)} heads: {sorted(pair_inter)}"
             )
 
-    out_summary = args.out_summary or "compare_head_sources_summary.txt"
+    out_summary = _ensure_out_dir(args.out_summary or "compare_head_sources_summary.txt")
     with open(out_summary, "w", encoding="utf-8") as f:
         f.write("\n".join(lines) + "\n")
     print(f"\nsummary saved to {out_summary}")

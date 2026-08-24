@@ -20,6 +20,7 @@ knockout이 잘 작동하면 security가 True->False로 줄고 utility는 유지
 import argparse
 import gc
 import json
+import os
 import random
 from typing import Dict, List, Tuple
 
@@ -140,6 +141,14 @@ def main():
     parser.add_argument("--out_json", default=None)
     add_runtime_args(parser)
     args = parser.parse_args()
+
+    # 출력 폴더를 롤아웃 **전에** 확보한다. 결과 쓰기는 모든 롤아웃이 끝난 뒤라, 폴더가
+    # 없으면 수십 분~수 시간의 GPU 작업을 다 하고 마지막 줄에서 죽는다
+    # (2026-08-24에 compare_head_sources의 32B 스모크가 실제로 이렇게 날아갔다).
+    out_json = args.out_json or "agentdojo_eval_summary.json"
+    _out_dir = os.path.dirname(out_json)
+    if _out_dir:
+        os.makedirs(_out_dir, exist_ok=True)
 
     heads, split_info = _load_heads(args.heads_json)
     excluded_by_suite = _heldout_user_tasks(split_info)
@@ -268,7 +277,7 @@ def main():
         f"truncated(닫는태그 없음)={ps['truncated']}  json_errors={ps['json_errors']}  non_dict_args={ps['non_dict_args']}"
     )
 
-    out_json = args.out_json or "agentdojo_eval_summary.json"
+    # out_json은 위(롤아웃 시작 전)에서 이미 정해지고 폴더까지 확보돼 있다.
     # 결과 폴더가 아니라 단일 JSON으로 나가는 경로라, env.json 대신 summary 안에 넣는다.
     # 이게 없으면 "어느 커밋/어느 dtype으로 낸 숫자인지" 사후에 가릴 수 없다.
     summary["eval_split"] = {

@@ -19,6 +19,7 @@ lxt backward가 필요 없음) `--heads_json`으로 이미 찾아둔 head 집합
 """
 import argparse
 import json
+import os
 from typing import Dict, List, Tuple
 
 from attn_relevance import load_model_for_relevance
@@ -45,6 +46,13 @@ def main():
     parser.add_argument("--out_json", default=None)
     add_runtime_args(parser)
     args = parser.parse_args()
+
+    # 출력 폴더는 sweep **전에** 확보한다 (run_agentdojo_eval과 같은 이유 —
+    # 다 계산하고 마지막 쓰기에서 죽으면 GPU 시간이 통째로 날아간다).
+    out_json = args.out_json or "proxy_eval_summary.json"
+    _out_dir = os.path.dirname(out_json)
+    if _out_dir:
+        os.makedirs(_out_dir, exist_ok=True)
 
     heads = _load_heads(args.heads_json)
     print(f"[run_proxy_eval] {len(heads)} heads loaded from {args.heads_json}: {heads}")
@@ -90,7 +98,7 @@ def main():
         )
     results["injecagent"] = injecagent_sweep
 
-    out_json = args.out_json or "proxy_eval_summary.json"
+    # out_json은 위(sweep 시작 전)에서 이미 정해지고 폴더까지 확보돼 있다.
     results["env"] = collect_env_meta(dtype_name)
     with open(out_json, "w", encoding="utf-8") as f:
         json.dump(results, f, indent=2)
