@@ -14,6 +14,7 @@
 | P5 | (교수님 피드백) 키 그룹 2개 vs 데이터셋 모드 4개 문서 정비 | P4 결과로 서술이 또 바뀔 수 있어 그 뒤에 |
 | P3 | control head 내 internal-only vs external-only 채널 분기 검증 | **후순위 (2026-08-21 결정)**. 겹침 정도는 기존 결과에서 산출 완료(합성 한정 예비, plan-2026-08-26.md 2절). **정식 분석은 AgentDojo injection task 재라벨링(신설 P10)이 선행돼야 함** — 합성 데이터는 품질이 낮아 이 위에서 결론 내면 content-availability 교란이 곱해짐 |
 | P10 | **AgentDojo에 internal/external 채널 축 이식 — injection task 재라벨링** | **신설 (2026-08-21)**. P3의 선행 조건. P9의 1·2·4 항목이 끝난 뒤 다음 사이클. 설계는 plan-2026-08-26.md 2.6절 |
+| P11 | lxt 미지원 아키텍처로 head 탐색 확장 (Mistral/DeepSeek 등) | **신설 (2026-08-25)**. 표준 아키텍처는 config 추가로 저렴, MoE/MLA/SSM은 규칙 유도 필요. P9(8/26 발표) 이후 |
 
 아래는 우선순위 순서대로 자세한 내용, 그 뒤에 보류 항목.
 자세한 대응 계획(특히 "키 그룹" 정의 재확인)은 `feedback-2026-07-29.md`,
@@ -902,6 +903,56 @@ penalty 없음)이 숫자 필드에서 퇴화하는 현상"이라, `max_new_toke
 **주의**: 2번을 건너뛰고 1번만 하면 "채널 전용 head가 있다/없다"가 아니라 "타깃 토큰을
 어떻게 정했나"를 측정하게 된다. **2번이 이 항목의 병목이고, 여기서 시간을 아끼면 결과가
 무의미해진다.**
+
+---
+
+## P11. lxt 미지원 아키텍처로 head 탐색 확장 (신설 2026-08-25)
+
+**배경**: S6(Llama-3.1-8B) 준비 중 "lxt가 지원하는 qwen2/llama 말고 다른(더 좋은) 모델로도
+할 수 없나"는 질문이 나와서, `.venv/Lib/site-packages/lxt/efficient/`를 직접 열어 구조를
+확인함. `compute_head_relevance`(attn_relevance.py)의 relevance 수식 자체(`rel = attn * grad`)는
+lxt 함수를 직접 부르지 않고, lxt의 `monkey_patch()`가 하는 일은 backward가 softmax/RMSNorm 등
+비선형 연산을 지날 때 표준 gradient 대신 AttnLRP 규칙으로 흘러가게 바꿔치기하는 것뿐임.
+
+**핵심 발견 — per-family "config"에 새 수식이 없다.** `lxt/efficient/models/llama.py` 전체가
+이거였음:
+```python
+attnLRP = {
+    LlamaMLP: partial(patch_method, gated_mlp_forward),
+    LlamaRMSNorm: partial(patch_method, rms_norm_forward),
+    Dropout: partial(patch_method, dropout_forward),
+    modeling_llama: patch_attention,
+}
+```
+`gated_mlp_forward`/`rms_norm_forward`/`patch_attention`은 `lxt/efficient/patches.py`에
+**architecture-agnostic하게 한 번만** 정의돼 있고, per-family 파일은 "이 모델에서 그 역할을
+하는 클래스가 뭐냐"만 매핑하는 딕셔너리 하나뿐임. `patch_attention`이 거는 대상도
+transformers의 공용 인터페이스(`module.eager_attention_forward`, `module.ALL_ATTENTION_FUNCTIONS`)라
+architecture-specific하지 않음. (`lxt/efficient/models/`에 이미 `llama.py`/`qwen2.py`/`qwen3.py`/
+`gemma3.py`/`bert.py`/`gpt2.py`/`vit_torch.py` 존재 — `docs/todo.md` 기존 기록(P4 섹션,
+2026-08-21)의 "DEFAULT_MAP은 llama/qwen2/qwen3/gemma3/bert/gpt2/vit 지원"과 일치.)
+
+**결론 — 두 갈래로 갈린다**:
+
+1. **표준 구성요소(RMSNorm + SwiGLU-gated MLP + HF `ALL_ATTENTION_FUNCTIONS` 표준 attention)를
+   쓰는 모델**(Mistral, 대부분의 DeepSeek dense 계열, GPT-OSS 등 최근 dense 오픈모델 다수)이면
+   — **`llama.py`를 그대로 복사해 클래스 이름만 바꾸면 됨.** 새 LRP 수식 유도 불필요, 15~20줄
+   짜리 파일 하나. `attn_relevance.py:58-65`의 `qwen2`/`llama` 분기에 새 분기 추가 + 새
+   `lxt/efficient/models/<family>.py` config만 있으면 head 탐색(Track A)이 그대로 동작함.
+2. **core 연산 자체가 다른 아키텍처**는 진짜 새 규칙 유도가 필요 — 연구성 작업, 하루 안에 못 함:
+   - **MoE 라우팅**(Mixtral, DeepSeek-MoE) — top-k expert 선택/가중합 규칙이 없음
+   - **DeepSeek Multi-head Latent Attention(MLA)** — QKV 압축 구조가 달라 attention 규칙
+     (`divide_gradient` 적용 지점)을 새로 설계해야 함
+   - **Mamba/SSM 계열** — attention이 없어 AttnLRP 프레임 자체가 안 맞음
+
+**할 일 (착수 시)**:
+1. (1번 갈래 대상 모델 선정 후) `lxt/efficient/models/<family>.py` 신규 작성 — `llama.py` 패턴
+   그대로, 해당 모델의 MLP/RMSNorm 클래스만 교체
+2. `attn_relevance.py`/`run_agentdojo_eval.py`의 `--family` 분기에 새 값 추가 (~6줄, 기존
+   qwen2/llama 분기와 동일 패턴)
+3. **반드시 P7 스타일 검증(랜덤 head 기준선, jaccard 우연 기준선) 재실행** — 새 아키텍처에서
+   head 랭킹이 유의미한지 확인 없이 바로 발표에 쓰지 말 것
+4. 2번 갈래(MoE/MLA/SSM)는 이번 항목과 분리해서 별도로 다룰 것 — 수식 유도부터 필요
 
 ---
 
