@@ -960,12 +960,21 @@ architecture-specific하지 않음. (`lxt/efficient/models/`에 이미 `llama.py
 
 ## P13. Track B tool-call 파서가 Qwen 전용 포맷을 family 무관하게 하드코딩 (신설 2026-08-26)
 
-> ✅ **수정 완료 (2026-08-26, 코드 커밋 전)** — 아래 "할 일 1번"(family별 파서 분기)으로
+> ✅ **1차 수정 완료 (커밋 `bf78653`)** — 아래 "할 일 1번"(family별 파서 분기)으로
 > 구현함. `adapters/agentdojo_pipeline.py`에 `_parse_tool_calls_qwen`/`_parse_tool_calls_llama`
 > 분리 + `KnockoutLocalLLM(family=...)` 신규 파라미터 → `run_agentdojo_eval.py`가
 > `args.family`를 그대로 전달. Llama 포맷은 실측 확인 후 반영(태그 없는 JSON, 키
-> `parameters`) — 아래 실측 근거 그대로. **아직 서버에서 재실행 검증 전** — 다음 세션
-> 바로 할 일은 S6 eval 재실행 + `parse_stats.ok` 정상 범위(Qwen 기준 68~71%) 복귀 확인.
+> `parameters`).
+>
+> **서버 재실행(bf78653 기준) 결과 확인: 파싱 성공률 0%→79.1%로 개선됨** — 1차 수정
+> 유효함이 확인됐다. 다만 결과 검토 중 **2차(경미한) 버그를 발견 — 완결된 JSON 뒤에
+> 자연어가 붙는 정상 응답을 `truncated`로 오분류**(`completion.strip().endswith("}")`가
+> 너무 엄격했음). **`bd19216`으로 즉시 수정**(중괄호 개수 균형 판정으로 교체) —
+> **이 수정은 아직 서버 재실행 검증 전.** 상세는 `docs/status-2026-08-26.md` 5.4/5.5절.
+>
+> **다음 세션 바로 할 일**: `git pull`로 `bd19216`(또는 그 이후) 받아서 S6 eval **3차
+> 재실행**, `parse_stats.ok`가 79.1%에서 더 오르는지 + slack security 신호(13.3%→0%)가
+> 유지되는지 확인.
 
 **배경**: S6(Llama-3.1-8B) eval을 실행했더니(`results/2026-08-25_s6_llama8b/agentdojo_eval.json`)
 `parse_stats.ok=0/90` — **tool_call 파싱이 단 한 번도 성공 못 함**. knockout 유무와 무관하게
