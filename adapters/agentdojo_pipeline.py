@@ -151,13 +151,20 @@ def _parse_tool_calls_qwen(completion: str, stats: Optional[dict]) -> List[Funct
 def _parse_tool_calls_llama(completion: str, stats: Optional[dict]) -> List[FunctionCall]:
     """Llama-3.1 native format: 태그 없는 단일 JSON `{"name":...,"parameters":{...}}`.
     (2026-08-26 실측, 모듈 docstring 참고). 한 턴에 하나만 지원 — Qwen처럼 반복 태그로
-    여러 건을 만드는 관례가 아니다."""
+    여러 건을 만드는 관례가 아니다.
+
+    ⚠️ 2026-08-26 1차 수정판은 "completion 전체가 `}`로 끝나야 완결"로 판정했는데, Llama가
+    JSON 뒤에 자연어 설명을 덧붙이는 경우(실측 확인, S6 재실행 truncated_examples)가 흔해서
+    완결된 유효 JSON까지 전부 truncated로 오분류하고 파싱을 시도조차 안 했다. 지금은 중괄호
+    개수 균형으로 판정한다 — `_extract_json_object`가 첫 '{'~마지막 '}' 사이를 뽑으므로,
+    진짜로 max_new_tokens에 잘렸으면(닫는 '}'가 아예 없거나 마지막 '}'가 다른 중첩 객체의
+    것) 중괄호 개수가 안 맞을 가능성이 높다. 뒤에 붙는 자연어 설명 자체는 중괄호를 안 쓰므로
+    이 판정에 영향 없다."""
     tool_calls = []
     raw = _extract_json_object(completion)
     has_open = raw is not None
-    # rstrip 기준으로 완결된 JSON처럼 보이는지 — 안 그러면 max_new_tokens에 잘렸을 가능성
-    has_close = has_open and completion.strip().endswith("}")
-    if raw is not None and has_close:
+    looks_truncated = has_open and raw.count("{") != raw.count("}")
+    if raw is not None and not looks_truncated:
         try:
             parsed = json.loads(raw)
             call = _try_build_call(parsed, "parameters", stats)
@@ -170,7 +177,7 @@ def _parse_tool_calls_llama(completion: str, stats: Optional[dict]) -> List[Func
     if stats is not None:
         if not has_open:
             stats["no_tag"] += 1
-        elif not has_close:
+        elif looks_truncated:
             stats["truncated"] += 1
             if len(stats["truncated_examples"]) < 5:
                 stats["truncated_examples"].append(completion[-300:])
