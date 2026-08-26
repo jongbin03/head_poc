@@ -9,13 +9,28 @@ P4 Track B: AgentDojo의 실제 멀티턴 agent loop(`AgentPipeline`/`ToolsExecu
 몽키패치를 적용할 수 없다. 대신 이 클래스는 `model.generate()`를 같은 프로세스에서 직접
 호출해 knockout이 실제로 적용되게 한다.
 
-⚠️ **tool-call 문법은 agentdojo 기본값(`<function=name>{...}</function>`)이 아니라 Qwen2.5
-네이티브 포맷(`<tool_call>{"name":...,"arguments":{...}}</tool_call>`, `tokenizer.
-apply_chat_template(..., tools=...)`)을 쓴다.** 실측 확인: agentdojo 기본 문법으로 프롬프트를
-만들면 1.5B 모델이 그 문법을 안 따르고(마크다운 코드블록으로 응답) tool_calls가 매번 빈
-리스트로 파싱되어 첫 턴에 롤아웃이 끊겼다. Qwen2.5는 `<tool_call>` 포맷으로 파인튜닝돼 있어
-그 포맷을 그대로 쓰는 게 안정적이다 — 대신 agentdojo의 `_make_system_prompt`/
-`_parse_model_output`(local_llm.py)은 재사용하지 않는다.
+⚠️ **tool-call 문법은 agentdojo 기본값(`<function=name>{...}</function>`)을 쓰지 않는다.**
+실측 확인: agentdojo 기본 문법으로 프롬프트를 만들면 1.5B 모델이 그 문법을 안 따르고
+(마크다운 코드블록으로 응답) tool_calls가 매번 빈 리스트로 파싱되어 첫 턴에 롤아웃이
+끊겼다. 대신 `tokenizer.apply_chat_template(..., tools=...)`이 **각 모델 자신의 tokenizer
+chat_template이 실제로 지시하는 포맷**을 그대로 렌더링하게 두고(agentdojo의
+`_make_system_prompt`/`_parse_model_output`(local_llm.py)은 재사용하지 않음), 파서
+(`_parse_tool_calls`)만 그 포맷에 맞춰 `--family`별로 분기한다:
+
+  - **Qwen2.5** (`family="qwen2"`): `<tool_call>{"name":...,"arguments":{...}}</tool_call>`.
+    이 태그 관례는 Qwen2.5 tokenizer의 chat_template 자체가 지시하는 것.
+  - **Llama-3.1** (`family="llama"`): 태그 없이 `{"name": ..., "parameters": {...}}` 단일
+    JSON 객체. 2026-08-26 실측(`AutoTokenizer.from_pretrained("meta-llama/Llama-3.1-8B-
+    Instruct").apply_chat_template(..., tools=...)`) — 시스템 프롬프트가 "Respond in the
+    format {"name": function name, "parameters": dictionary of argument name and its
+    value}"라고 명시적으로 지시함. **키 이름이 Qwen과 다르다(`arguments`가 아니라
+    `parameters`)** — 이걸 놓쳐서 S6(2026-08-25/26) eval의 tool_call 파싱이 90/90 전부
+    실패했었다(`docs/status-2026-08-26.md` 5절, `docs/todo.md` P13).
+
+  family를 하드코딩된 Qwen 전용 정규식으로 강제 통일하지 않고 **각 모델의 native 포맷을
+  그대로 인정하는** 이유: agentdojo 기본 포맷을 1.5B에 강제했을 때도 안 먹혔던 전례가 있어,
+  모델에게 파인튜닝 습관과 다른 포맷을 강제로 지시하는 쪽이 오히려 불안정할 위험이 크다고
+  판단했다.
 """
 import json
 import re
@@ -36,6 +51,22 @@ _ANCHOR_END = "</INFORMATION>"
 _TOOL_CALL_RE = re.compile(r"<tool_call>\s*(\{.*?\})\s*</tool_call>", re.DOTALL)
 _TOOL_CALL_OPEN = "<tool_call>"
 _TOOL_CALL_CLOSE = "</tool_call>"
+
+# Llama 계열은 태그가 없다 — 마크다운 코드펜스로 감쌀 수 있어(관측된 적은 없지만 다른
+# 모델에서 흔한 패턴이라 방어적으로) 먼저 벗겨내고, 첫 '{'~마지막 '}' 사이를 통째로 뽑는다.
+_JSON_FENCE_RE = re.compile(r"^```(?:json)?\s*(.*?)\s*```$", re.DOTALL)
+
+
+def _extract_json_object(text: str) -> Optional[str]:
+    text = text.strip()
+    fence = _JSON_FENCE_RE.match(text)
+    if fence:
+        text = fence.group(1).strip()
+    start = text.find("{")
+    end = text.rfind("}")
+    if start == -1 or end == -1 or end < start:
+        return None
+    return text[start:end + 1]
 
 
 def _tools_to_openai_format(tools) -> List[dict]:
@@ -79,28 +110,32 @@ def _messages_to_qwen_format(messages: Sequence[ChatMessage]) -> List[dict]:
     return out
 
 
-def _parse_tool_calls(completion: str, stats: Optional[dict] = None) -> ChatAssistantMessage:
-    matches = _TOOL_CALL_RE.findall(completion)
+def _try_build_call(parsed: dict, args_key: str, stats: Optional[dict]) -> Optional[FunctionCall]:
+    args = parsed.get(args_key) or {}
+    if not isinstance(args, dict):
+        # 모델이 가끔 args를 dict가 아니라 리스트/문자열로 잘못 생성함
+        # (실측 확인: travel suite에서 리스트로 나온 사례) — FunctionCall이 dict를
+        # 요구하므로 이런 tool_call은 파싱 실패로 취급하고 건너뛴다.
+        if stats is not None:
+            stats["non_dict_args"] += 1
+        return None
+    return FunctionCall(function=parsed["name"], args=args)
+
+
+def _parse_tool_calls_qwen(completion: str, stats: Optional[dict]) -> List[FunctionCall]:
+    """Qwen2.5 native format: 반복 가능한 `<tool_call>{"name":...,"arguments":{...}}</tool_call>`."""
     tool_calls = []
-    for raw in matches:
+    for raw in _TOOL_CALL_RE.findall(completion):
         try:
             parsed = json.loads(raw)
-            args = parsed.get("arguments") or {}
-            if not isinstance(args, dict):
-                # 모델이 가끔 "arguments"를 dict가 아니라 리스트/문자열로 잘못 생성함
-                # (실측 확인: travel suite에서 리스트로 나온 사례) — FunctionCall이 dict를
-                # 요구하므로 이런 tool_call은 파싱 실패로 취급하고 건너뛴다.
-                if stats is not None:
-                    stats["non_dict_args"] += 1
-                continue
-            tool_calls.append(FunctionCall(function=parsed["name"], args=args))
+            call = _try_build_call(parsed, "arguments", stats)
+            if call is not None:
+                tool_calls.append(call)
         except (json.JSONDecodeError, KeyError):
             if stats is not None:
                 stats["json_errors"] += 1
-            continue
 
     if stats is not None:
-        stats["n_calls"] += 1
         has_open = _TOOL_CALL_OPEN in completion
         has_close = _TOOL_CALL_CLOSE in completion
         if not has_open:
@@ -110,6 +145,46 @@ def _parse_tool_calls(completion: str, stats: Optional[dict] = None) -> ChatAssi
             stats["truncated"] += 1
             if len(stats["truncated_examples"]) < 5:
                 stats["truncated_examples"].append(completion[-300:])
+    return tool_calls
+
+
+def _parse_tool_calls_llama(completion: str, stats: Optional[dict]) -> List[FunctionCall]:
+    """Llama-3.1 native format: 태그 없는 단일 JSON `{"name":...,"parameters":{...}}`.
+    (2026-08-26 실측, 모듈 docstring 참고). 한 턴에 하나만 지원 — Qwen처럼 반복 태그로
+    여러 건을 만드는 관례가 아니다."""
+    tool_calls = []
+    raw = _extract_json_object(completion)
+    has_open = raw is not None
+    # rstrip 기준으로 완결된 JSON처럼 보이는지 — 안 그러면 max_new_tokens에 잘렸을 가능성
+    has_close = has_open and completion.strip().endswith("}")
+    if raw is not None and has_close:
+        try:
+            parsed = json.loads(raw)
+            call = _try_build_call(parsed, "parameters", stats)
+            if call is not None:
+                tool_calls.append(call)
+        except (json.JSONDecodeError, KeyError):
+            if stats is not None:
+                stats["json_errors"] += 1
+
+    if stats is not None:
+        if not has_open:
+            stats["no_tag"] += 1
+        elif not has_close:
+            stats["truncated"] += 1
+            if len(stats["truncated_examples"]) < 5:
+                stats["truncated_examples"].append(completion[-300:])
+    return tool_calls
+
+
+def _parse_tool_calls(completion: str, stats: Optional[dict] = None, family: str = "qwen2") -> ChatAssistantMessage:
+    if family == "llama":
+        tool_calls = _parse_tool_calls_llama(completion, stats)
+    else:
+        tool_calls = _parse_tool_calls_qwen(completion, stats)
+
+    if stats is not None:
+        stats["n_calls"] += 1
         if tool_calls:
             stats["ok"] += 1
 
@@ -134,6 +209,7 @@ class KnockoutLocalLLM(BasePipelineElement):
         knockout_map: Optional[Dict[int, List[int]]] = None,
         max_new_tokens: int = 128,
         device: str = "cuda",
+        family: str = "qwen2",
     ) -> None:
         self.model = model
         self.tok = tokenizer
@@ -141,6 +217,7 @@ class KnockoutLocalLLM(BasePipelineElement):
         self.knockout_map = knockout_map or {}
         self.max_new_tokens = max_new_tokens
         self.device = device
+        self.family = family
         self.name = "knockout-local-llm"
         self.parse_stats = {
             "n_calls": 0, "ok": 0, "no_tag": 0, "truncated": 0,
@@ -199,5 +276,5 @@ class KnockoutLocalLLM(BasePipelineElement):
                 out_ids = self.model.generate(**gen_kwargs)
 
         completion = self.tok.decode(out_ids[0, input_ids.shape[-1]:], skip_special_tokens=True)
-        output = _parse_tool_calls(completion, stats=self.parse_stats)
+        output = _parse_tool_calls(completion, stats=self.parse_stats, family=self.family)
         return query, runtime, env, [*messages, output], extra_args
