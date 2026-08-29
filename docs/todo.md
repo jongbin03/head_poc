@@ -12,6 +12,7 @@
 | **P9** | **SSH 공용 서버 이전 + 3차 발표(8/26) 확장 실험** — 환경 이전, suite 균등화, 모델 스케일업, split 재설계 | **최우선.** 상세 계획은 **[plan-2026-08-26.md](plan-2026-08-26.md)** |
 | ~~P13~~ | ~~Track B(`run_agentdojo_eval.py`) tool-call 파서가 Qwen 전용 `<tool_call>` 태그에 family 무관하게 하드코딩됨 — Llama에서 파싱 0%~~ | **완료 (2026-08-26, 3차 재실행으로 검증).** S6(Llama-3.1-8B) eval을 무효로 만든 원인이었음. banking/slack/workspace 유효 결과 확보. P12(Llama 70B)의 선행 조건 해소 |
 | P14 | Llama travel suite에서 multi-call 체이닝(세미콜론으로 이은 JSON 여러 개) 파서 미지원 | **신설 (2026-08-26)**. P13 검증 중 발견, travel utility/security가 구조적으로 0%가 되는 원인. 발표 당일 판단으로 보류 — P9(8/26 발표) 이후. 상세는 P13 섹션 하단 |
+| **P15** | **AgentDojo 네이티브 공격성공률(2~5%)이 낮은 문제 — 데이터셋 전환 vs 모델 성능 향상 중 방향 결정** | **신설·최우선 (2026-08-30)**. S6 재현성 검증(flip 0) + 표본 3배 확대(n=44→122)로 "표본/노이즈 문제 아님"을 확인. P11(새 아키텍처) 시도는 14B 스케일업 반례로 기각됨. 상세·옵션 비교는 **[status-2026-08-30.md](status-2026-08-30.md) 5절** |
 | **P4** | **(교수님 피드백) Head 탐색 방법론 재설계 — synthetic/InjecAgent/AgentDojo 3소스 비교, Track A(탐색)/Track B(평가) 하이브리드** | 진행 중. 구 P4+P6 통합. P9의 4·5절이 이 항목의 연장 |
 | P5 | (교수님 피드백) 키 그룹 2개 vs 데이터셋 모드 4개 문서 정비 | P4 결과로 서술이 또 바뀔 수 있어 그 뒤에 |
 | P3 | control head 내 internal-only vs external-only 채널 분기 검증 | **후순위 (2026-08-21 결정)**. 겹침 정도는 기존 결과에서 산출 완료(합성 한정 예비, plan-2026-08-26.md 2절). **정식 분석은 AgentDojo injection task 재라벨링(신설 P10)이 선행돼야 함** — 합성 데이터는 품질이 낮아 이 위에서 결론 내면 content-availability 교란이 곱해짐 |
