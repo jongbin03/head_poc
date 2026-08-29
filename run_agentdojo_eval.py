@@ -178,7 +178,10 @@ def main():
     )
     print(describe(dtype_name))
 
-    llm = KnockoutLocalLLM(model, tok, modeling_mod, knockout_map=None, max_new_tokens=args.max_new_tokens, device=args.device)
+    llm = KnockoutLocalLLM(
+        model, tok, modeling_mod, knockout_map=None, max_new_tokens=args.max_new_tokens,
+        device=args.device, family=args.family,
+    )
     pipeline = _build_pipeline(llm, args.max_iters)
 
     rng = random.Random(args.seed)

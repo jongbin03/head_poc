@@ -10,11 +10,14 @@
 | ~~P7~~ | ~~방법론 진단 — 랜덤 head 기준선 / top-K sweep / jaccard 우연 기준선 / 문서-코드 불일치 정정~~ | **완료** (2026-07-31, `../results/2026-07-31_Qwen-Qwen2-5-1-5B-Instruct`) |
 | P8 | 합성 데이터셋의 content-availability 교란 제거 | **보류 (2026-07-31 결정)**. head 탐색은 synthetic 그대로 써도 유효하다고 판단, 발표용 헤드라인은 AgentDojo 네이티브 채점(P4)에 맡기기로 함 |
 | **P9** | **SSH 공용 서버 이전 + 3차 발표(8/26) 확장 실험** — 환경 이전, suite 균등화, 모델 스케일업, split 재설계 | **최우선.** 상세 계획은 **[plan-2026-08-26.md](plan-2026-08-26.md)** |
+| ~~P13~~ | ~~Track B(`run_agentdojo_eval.py`) tool-call 파서가 Qwen 전용 `<tool_call>` 태그에 family 무관하게 하드코딩됨 — Llama에서 파싱 0%~~ | **완료 (2026-08-26, 3차 재실행으로 검증).** S6(Llama-3.1-8B) eval을 무효로 만든 원인이었음. banking/slack/workspace 유효 결과 확보. P12(Llama 70B)의 선행 조건 해소 |
+| P14 | Llama travel suite에서 multi-call 체이닝(세미콜론으로 이은 JSON 여러 개) 파서 미지원 | **신설 (2026-08-26)**. P13 검증 중 발견, travel utility/security가 구조적으로 0%가 되는 원인. 발표 당일 판단으로 보류 — P9(8/26 발표) 이후. 상세는 P13 섹션 하단 |
 | **P4** | **(교수님 피드백) Head 탐색 방법론 재설계 — synthetic/InjecAgent/AgentDojo 3소스 비교, Track A(탐색)/Track B(평가) 하이브리드** | 진행 중. 구 P4+P6 통합. P9의 4·5절이 이 항목의 연장 |
 | P5 | (교수님 피드백) 키 그룹 2개 vs 데이터셋 모드 4개 문서 정비 | P4 결과로 서술이 또 바뀔 수 있어 그 뒤에 |
 | P3 | control head 내 internal-only vs external-only 채널 분기 검증 | **후순위 (2026-08-21 결정)**. 겹침 정도는 기존 결과에서 산출 완료(합성 한정 예비, plan-2026-08-26.md 2절). **정식 분석은 AgentDojo injection task 재라벨링(신설 P10)이 선행돼야 함** — 합성 데이터는 품질이 낮아 이 위에서 결론 내면 content-availability 교란이 곱해짐 |
 | P10 | **AgentDojo에 internal/external 채널 축 이식 — injection task 재라벨링** | **신설 (2026-08-21)**. P3의 선행 조건. P9의 1·2·4 항목이 끝난 뒤 다음 사이클. 설계는 plan-2026-08-26.md 2.6절 |
 | P11 | lxt 미지원 아키텍처로 head 탐색 확장 (Mistral/DeepSeek 등) | **신설 (2026-08-25)**. 표준 아키텍처는 config 추가로 저렴, MoE/MLA/SSM은 규칙 유도 필요. P9(8/26 발표) 이후 |
+| P12 | Llama family 내부 스케일 축 — 8B vs 70B(/405B) | **신설 (2026-08-26)**. `--family llama` 코드 수정 0, 모델 인자만 교체. 현재 하드웨어로 OOM 위험 큼(아래 상세). P9(8/26 발표) 이후 |
 
 아래는 우선순위 순서대로 자세한 내용, 그 뒤에 보류 항목.
 자세한 대응 계획(특히 "키 그룹" 정의 재확인)은 `feedback-2026-07-29.md`,
@@ -953,6 +956,132 @@ architecture-specific하지 않음. (`lxt/efficient/models/`에 이미 `llama.py
 3. **반드시 P7 스타일 검증(랜덤 head 기준선, jaccard 우연 기준선) 재실행** — 새 아키텍처에서
    head 랭킹이 유의미한지 확인 없이 바로 발표에 쓰지 말 것
 4. 2번 갈래(MoE/MLA/SSM)는 이번 항목과 분리해서 별도로 다룰 것 — 수식 유도부터 필요
+
+---
+
+## P13. Track B tool-call 파서가 Qwen 전용 포맷을 family 무관하게 하드코딩 (신설·완료 2026-08-26)
+
+> ✅ **완료 — 3차 재실행으로 최종 검증됨.**
+> 1차 수정(커밋 `bf78653`): `adapters/agentdojo_pipeline.py`에
+> `_parse_tool_calls_qwen`/`_parse_tool_calls_llama` 분리 + `KnockoutLocalLLM(family=...)`
+> 신규 파라미터. 재실행 결과 파싱 성공률 0%→79.1%.
+> 2차 수정(커밋 `bd19216`): truncated 오분류(완결된 JSON 뒤 자연어가 붙는 정상 응답을
+> 잘못 판정) — 중괄호 개수 균형 판정으로 교체.
+> **3차 재실행(bd19216 + `--device_map auto` 2-GPU, travel OOM 대응) 결과: banking/slack/
+> workspace(n=44)가 유효** — utility 38.6%→38.6%(유지), security 4.5%→0%(완전 억제).
+> Llama family에서도 32B/7B와 같은 knockout 패턴 재현 확인. **발표에 쓸 수 있는 상태.**
+> travel(n=15)만 새로운 파서 한계(P14)로 0%/0% — 실제 결과 아님, caveat 처리.
+> 상세는 `docs/status-2026-08-26.md` 5.1~5.6절.
+
+**배경**: S6(Llama-3.1-8B) eval을 실행했더니(`results/2026-08-25_s6_llama8b/agentdojo_eval.json`)
+`parse_stats.ok=0/90` — **tool_call 파싱이 단 한 번도 성공 못 함**. knockout 유무와 무관하게
+모든 row에서 `k0_*==kN_*`(모델이 tool을 아예 안 써서 조건 간 차이 자체가 없음) — S6 eval
+결과 전체가 무효. 상세 진단은 `docs/status-2026-08-26.md` 5절.
+
+**원인**: `adapters/agentdojo_pipeline.py:36`
+```python
+_TOOL_CALL_RE = re.compile(r"<tool_call>\s*(\{.*?\})\s*</tool_call>", re.DOTALL)
+```
+이 태그는 **Qwen2.5 전용 관례**다 — Qwen2.5 tokenizer의 `chat_template`(Jinja)이 "함수
+호출은 `<tool_call>` XML 태그로 감싸라"는 지시문을 템플릿 안에 직접 박아넣고 있어서
+모델이 그 포맷을 따르는 것이지, 우리 코드가 강제한 게 아니다. `_render_prompt`는
+`self.tok.apply_chat_template(...)`을 쓰므로 로드된 모델의 tokenizer가 바뀌면 렌더링되는
+지시문도 통째로 바뀌는데, **Llama 3.1 공식 chat_template은 이 `<tool_call>` 관례를 안 쓴다**
+— 모델은 자기 방식대로 답했을 뿐인데 파서가 Qwen 방식만 인식해서 전부 놓쳤다.
+
+`--family llama`는 지금까지 `attn_relevance.py`(LRP relevance 계산)에만 연결돼 있었고
+Track B(tool-call 파싱) 쪽엔 한 번도 연결된 적이 없었다 — S6 전까지는 Qwen 계열만
+Track B를 돌려서 이 gap이 드러나지 않았다.
+
+**영향 범위**: Qwen 계열이 아닌 모든 family의 Track B eval(`run_agentdojo_eval.py`)이
+전부 이 문제를 겪는다. P9의 S6 서브항목, P12(Llama 70B 스케일 축)가 이 항목에 막혀
+있다 — 먼저 고쳐야 둘 다 유효한 수치가 나온다.
+
+**할 일 (착수 시)** — 두 방향, 택1 또는 병행:
+1. **family별 파서 분기** — Llama가 실제로 어떤 포맷으로 답하는지 실측(`--family llama`일 때
+   tokenizer 기본 `chat_template`이 어떤 tool-call 관례를 쓰는지 확인, 필요하면
+   `tok.apply_chat_template` 결과를 직접 찍어봐서 확인) 후 그에 맞는 정규식을
+   `_TOOL_CALL_RE`처럼 family별로 추가. Qwen 분기와 같은 패턴이라 상대적으로 저렴하지만
+   family가 늘어날 때마다(P11의 Mistral/DeepSeek 등) 반복해야 함.
+2. **prompt-engineered 강제 통일** — family 무관하게 시스템 프롬프트에 "`<tool_call>{...}
+   </tool_call>` 형식으로만 답하라"는 명시적 지시문을 추가하고, tokenizer 기본
+   `chat_template`의 tool 안내 문구는 억제/무시. 한 번 구현하면 모든 family에 재사용
+   가능하지만, 모델이 그 지시를 실제로 따르는지 검증 필요 — agentdojo 기본 포맷이 1.5B
+   에서 안 먹혔던 전례가 있어(어댑터 docstring 참고) 8B급 이상에서도 미보장.
+3. 어느 쪽이든 **수정 후 반드시 재실행해서 parse_stats로 검증** — 낮은 실패율(Qwen 기준
+   29~32%)이 "정상" 범주이므로 그 수준으로 돌아오는지 확인.
+
+---
+
+## P14. Llama travel suite — multi-call 체이닝 파서 미지원 (신설 2026-08-26)
+
+**배경**: P13 3차 재실행(2-GPU 분산으로 travel OOM 해소 후) 결과, travel 15쌍 전부
+utility·security가 0%로 나왔다. `truncated_examples`를 보면 원인은 모델 성능이 아니라
+파서 한계였다:
+
+```
+...{"name": "get_hotels_prices", "parameters": {...}}; {"name": "get_hotels_address",
+"parameters": {...}}; {"name": "create_calendar_event", "parameters": {...}}
+```
+
+Llama가 **한 턴에 여러 tool call을 세미콜론(`;`)으로 이어붙여 응답**하는 패턴을 travel
+에서만 쓴다(banking/slack/workspace에서는 관측 안 됨 — 여행 예약처럼 여러 단계 호출이
+자연스러운 태스크 특성으로 보임). `adapters/agentdojo_pipeline.py`의
+`_extract_json_object`(첫 `{`~마지막 `}`)는 "한 턴에 JSON 객체 하나"를 가정하므로, 이
+경우 여러 객체 + 세미콜론이 통째로 잡혀 `json.loads`가 실패한다 — travel 파싱 실패가
+전부 이 경로로 `json_errors`에 쌓인다(3차 재실행에서 22건→50건으로 증가한 원인).
+
+**영향 범위**: 지금까지 관측된 건 travel뿐이지만, 다른 suite나 다른 모델에서도 비슷한
+멀티콜 체이닝이 나올 수 있다 — Llama가 "한 턴에 하나만" 답하도록 강제된 적이 없어서다.
+
+**보류 이유 (2026-08-26 발표 당일 판단)**: (1) 시간이 촉박했고, (2) banking/slack/
+workspace 3개 suite(n=44)만으로 지시 2번(패밀리 축)에 충분히 답이 됐고, (3) 세미콜론
+구분자가 모델이 즉흥적으로 만든 비표준 포맷이라 안전하게 파싱하려면 추가 검증(다른
+구분자를 쓸 수도 있는지, 항상 세미콜론인지)이 필요해서 발표 전에 급하게 손대지 않기로
+했다.
+
+**할 일 (착수 시)**:
+1. `_parse_tool_calls_llama`를 Qwen처럼 **여러 개 추출**하도록 확장 — 세미콜론 분리보다는
+   정규식으로 `\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}` 같은 균형 괄호 매칭을 반복 적용해 JSON
+   객체 여러 개를 순서대로 뽑는 방식이 구분자(세미콜론/줄바꿈/쉼표 등)에 안 흔들려서 더
+   안전함
+2. `agentdojo`의 `ChatAssistantMessage.tool_calls`가 리스트를 받으므로, 여러 `FunctionCall`을
+   한 번에 담아 돌려주면 `ToolsExecutionLoop`가 알아서 순차 실행함 — 파서 쪽만 고치면 됨
+3. 수정 후 travel만 골라 재실행(`--suite travel`)해서 `parse_stats`와 utility/security
+   재확인. 다른 suite(banking/slack/workspace)에는 영향 없어야 함(회귀 확인)
+
+---
+
+## P12. Llama family 내부 스케일 축 — 8B vs 70B(/405B) (신설 2026-08-26)
+
+**배경**: S6(Llama-3.1-8B, 8/25~26)로 "패밀리 축"(Qwen2 vs Llama, ~7-8B 스케일 고정)을
+시도했지만, Qwen 쪽처럼 **같은 family 안에서 스케일만 올린 대조**(Qwen2.5 7B→32B에 대응하는
+Llama 8B→70B)는 아직 없다. `meta-llama/Llama-3.1-70B-Instruct`(또는 더 최신·고성능인
+`meta-llama/Llama-3.3-70B-Instruct`), 그리고 405B도 존재함 — `--family llama`는 head 탐색
+(Track A, `attn_relevance.py`) 쪽은 코드 수정 없이 그대로 쓸 수 있음(모델 인자만 교체).
+
+**선행 조건 — P13.** eval(Track B)은 `--family llama`로도 tool-call 파싱이 0% 성공하는
+버그가 있었다(P13, S6에서 실측됨). **코드 수정은 완료됐지만(2026-08-26) 서버 재검증
+전이다** — P13이 실제로 고쳐졌다고 확인(재실행 후 `parse_stats.ok`가 정상 범위로 복귀)되기
+전까지는 70B로 넘어가지 말 것. 안 그러면 8B와 똑같이 무효한 수치가 또 나올 수 있다.
+
+**보류 이유 — 지금 하드웨어로 OOM 위험이 크다**: 32B 4bit조차 `--device_map auto` +
+`batch_size=3` + `max_seq_len=1500`으로 낮춰서도 OOM 76/206(37%)이 났다(2026-08-24,
+`results/2026-08-24_s4_32b/`). 70B는 32B의 2배 이상이라 가중치만 4bit로 ~35GB, 여기에
+attention relevance backward의 activation 메모리가 얹힌다 — 지금 서버(Titan RTX 24GB×3
+또는 신규 Pro 4500 32GB/A6000 48GB, `status-2026-08-24.md` 3절)로 스모크 없이 바로
+안정적인 수율을 낼 수 있을지 불확실. 405B는 4bit로도 200GB대라 지금 하드웨어로는 논외.
+
+**할 일 (착수 시)**:
+1. 32B 때와 같은 순서 — **7B/8B 스모크 없이 바로 70B로 가지 말 것**. `head_n`을 작게
+   줄인 소규모 스모크로 OOM 여부·수율 먼저 확인(plan-2026-08-26.md 0.1절 (b)와 동일 논리)
+2. 새 서버(A6000 48GB 단일 카드)가 있다면 분산(`device_map auto`) 없이 단일 카드 우선
+   시도 — 분산은 순차 실행이라 느림(status-2026-08-24.md 3절)
+3. S4(discover) → S5(eval) `--eval_split heldout` 파이프라인은 그대로 재사용 (코드 수정 0)
+4. Qwen2.5 32B 결과와 "스케일업 시 knockout 효과가 어떻게 변하는가"를 family 두 개로
+   교차 비교 — 8/26 사이클에서 나온 "32B에서 baseline 공격 성공률 floor가 깨진다",
+   "공격 문구가 32B에서 유의미해진다"(status-2026-08-25.md 1.3/2.2절) 같은 스케일-의존
+   관측이 Llama family에서도 재현되는지가 검증 포인트
 
 ---
 
