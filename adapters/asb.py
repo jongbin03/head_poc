@@ -36,6 +36,7 @@ docs/todo.md P15 "코드 확인 결과" 절 참고.
 import itertools
 import json
 import os
+import random
 from typing import Dict, List, Optional
 
 from dataset import IPIExample, PromptBuilder, IM_START, IM_END
@@ -129,6 +130,11 @@ def build_asb_example(
     response_tool/next_tool/attacker_tool 이름이 서로 겹치거나 exec_target/read_target의
     첫 토큰이 우연히 같으면 next-token proxy로 구분 불가하므로 None(건너뜀).
     """
+    if attack_type not in _ATTACK_TEMPLATES:
+        raise ValueError(
+            f"unknown attack_type={attack_type!r}, expected one of {sorted(_ATTACK_TEMPLATES)}"
+        )
+
     names = {response_tool["Tool Name"], next_tool["Tool Name"], attacker_tool["Attacker Tool"]}
     if len(names) != 3:
         return None
@@ -239,18 +245,26 @@ def build_asb_pairs(
     aggressive: Optional[bool] = None,
     attack_type: str = DEFAULT_ATTACK_TYPE,
     limit: Optional[int] = None,
+    seed: int = 42,
 ) -> List[Dict[str, IPIExample]]:
     """agent_task/all_normal_tools/all_attack_tools를 조합해 {"clean":.., "injected":..}
-    쌍 리스트를 만든다. 순회 순서: agent -> task -> (response_tool, next_tool) 순열
-    -> attacker_tool. `adapters/injecagent.py`의 `split_pairs()`를 그대로 이어서
+    쌍 리스트를 만든다. `adapters/injecagent.py`의 `split_pairs()`를 그대로 이어서
     head 선정용/평가용으로 나눌 수 있다 (제네릭 함수라 재정의 안 함).
 
-    limit: 만들어지는 쌍 개수 상한 (조합이 커서 전량 순회하면 느릴 수 있음, 앞에서부터 자름)."""
+    ⚠️ agent당 조합이 400개(task 5~6 x 순열 2 x attacker_tool 40)나 돼서, agent 순서대로
+    순회하다 `limit`에서 자르면 **`limit < 400`일 때 전부 첫 agent(financial_analyst_agent)
+    한정 표본**이 된다 — cross-agent 전이를 검증하려는 용도에 안 맞는다(2026-08-31
+    코드리뷰로 발견). 그래서 (agent, task, response_tool, next_tool, attacker_tool) 조합
+    스펙을 먼저 값싸게(토크나이즈 없이) 전부 만든 뒤 고정 seed로 섞고, `limit`은 그
+    섞인 순서에서 앞에서부터 채운다 — 어떤 `limit` 값이든 agent가 골고루 섞여 들어간다.
+
+    limit: 만들어지는 쌍 개수 상한 (조합이 커서 전량 순회하면 느릴 수 있음).
+    seed: 조합 순서를 섞는 seed — 재현성을 위해 고정값 기본 제공."""
     agent_tasks = load_agent_tasks(repo_dir)
     normal_tools = load_normal_tools(repo_dir)
     attack_tools = load_attack_tools(repo_dir, aggressive=aggressive)
 
-    out: List[Dict[str, IPIExample]] = []
+    combos = []  # (task, response_tool, next_tool, attacker_tool, agent_normal_tools)
     for entry in agent_tasks:
         agent_name = entry["agent_name"]
         agent_normal_tools = normal_tools.get(agent_name, [])
@@ -261,19 +275,25 @@ def build_asb_pairs(
         for task in entry["tasks"]:
             for response_tool, next_tool in itertools.permutations(agent_normal_tools, 2):
                 for attacker_tool in agent_attack_tools:
-                    injected = build_asb_example(
-                        tokenizer, task, response_tool, next_tool, attacker_tool,
-                        agent_normal_tools, device=device, attack_type=attack_type,
-                    )
-                    if injected is None:
-                        continue
-                    clean = build_asb_clean_example(
-                        tokenizer, task, response_tool, next_tool, attacker_tool,
-                        agent_normal_tools, device=device,
-                    )
-                    if clean is None:
-                        continue
-                    out.append({"clean": clean, "injected": injected})
-                    if limit is not None and len(out) >= limit:
-                        return out
+                    combos.append((task, response_tool, next_tool, attacker_tool, agent_normal_tools))
+
+    random.Random(seed).shuffle(combos)
+
+    out: List[Dict[str, IPIExample]] = []
+    for task, response_tool, next_tool, attacker_tool, agent_normal_tools in combos:
+        injected = build_asb_example(
+            tokenizer, task, response_tool, next_tool, attacker_tool,
+            agent_normal_tools, device=device, attack_type=attack_type,
+        )
+        if injected is None:
+            continue
+        clean = build_asb_clean_example(
+            tokenizer, task, response_tool, next_tool, attacker_tool,
+            agent_normal_tools, device=device,
+        )
+        if clean is None:
+            continue
+        out.append({"clean": clean, "injected": injected})
+        if limit is not None and len(out) >= limit:
+            return out
     return out

@@ -585,7 +585,7 @@ def cmd_compare(args):
 
 def _add_common_discover_args(p):
     p.add_argument("--model", default="Qwen/Qwen2.5-1.5B-Instruct")
-    p.add_argument("--family", default="qwen2", choices=["qwen2", "llama"])
+    p.add_argument("--family", default="qwen2", choices=["qwen2", "llama", "qwen3"])
     p.add_argument("--device", default="cuda", help="입력 텐서를 올릴 device. "
                    "--device_map auto로 모델을 쪼개도 입력은 첫 device에 있어야 하므로 "
                    "그 경우 'cuda:0'으로 둘 것.")

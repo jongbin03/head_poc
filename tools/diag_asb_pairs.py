@@ -20,16 +20,18 @@ def main():
     p.add_argument("--model", default="Qwen/Qwen2.5-7B-Instruct",
                     help="토크나이저만 쓴다 (가중치 다운로드 없음).")
     p.add_argument("--limit", type=int, default=None)
-    p.add_argument("--attack_type", default="context_ignoring")
-    p.add_argument("--aggressive", default=None,
-                    help="'true'/'false'/미지정(both, 기본)")
+    p.add_argument("--attack_type", default="context_ignoring",
+                    choices=["naive", "fake_completion", "escape_characters",
+                             "context_ignoring", "combined_attack"])
+    p.add_argument("--aggressive", default=None, choices=["true", "false"],
+                    help="미지정이면 both(기본, all_attack_tools.jsonl 전체 사용).")
     p.add_argument("--show", action="store_true",
                     help="쌍 몇 개를 디코딩해서 눈으로 확인한다.")
     args = p.parse_args()
 
     aggressive = None
     if args.aggressive is not None:
-        aggressive = args.aggressive.lower() == "true"
+        aggressive = args.aggressive == "true"
 
     from transformers import AutoTokenizer
     from adapters.asb import build_asb_pairs, load_agent_tasks, load_normal_tools, load_attack_tools

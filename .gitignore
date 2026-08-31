@@ -157,6 +157,9 @@ ENV/
 # 서버 venv/Miniforge — env.sh가 $JB(=repo 루트)를 기준으로 여기 만든다 (2026-08-31, aisec-king).
 envs/
 miniforge3/
+# env.sh가 CONDA_PKGS_DIRS="$JB/.conda/pkgs"로 잡음(conda env 경로 쓸 때) — 위 .cache처럼
+# 빠뜨리면 GB급 conda 패키지가 untracked로 뜬다 (2026-08-31 코드리뷰로 발견).
+.conda/
 env.bak/
 venv.bak/
 

@@ -53,7 +53,7 @@ def _clean_ks(full_ks: List[int], n_heads: int) -> List[int]:
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", default="Qwen/Qwen2.5-0.5B-Instruct")
-    parser.add_argument("--family", default="qwen2", choices=["qwen2", "llama"])
+    parser.add_argument("--family", default="qwen2", choices=["qwen2", "llama", "qwen3"])
     parser.add_argument("--device", default="cuda")
     parser.add_argument("--four_bit", action="store_true")
     parser.add_argument("--topk", type=int, default=20)
@@ -259,6 +259,8 @@ def main():
     print("[4/4] edge-knockout sweep on control head candidates ...")
     if args.family == "qwen2":
         from transformers.models.qwen2 import modeling_qwen2 as modeling_mod
+    elif args.family == "qwen3":
+        from transformers.models.qwen3 import modeling_qwen3 as modeling_mod
     else:
         from transformers.models.llama import modeling_llama as modeling_mod
 

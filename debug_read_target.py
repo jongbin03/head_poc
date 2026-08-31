@@ -51,7 +51,7 @@ def show_topk(logits: torch.Tensor, tok, target_id: int, topn: int = 10):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", default="Qwen/Qwen2.5-3B-Instruct")
-    parser.add_argument("--family", default="qwen2", choices=["qwen2", "llama"])
+    parser.add_argument("--family", default="qwen2", choices=["qwen2", "llama", "qwen3"])
     parser.add_argument("--device", default="cuda")
     parser.add_argument("--dataset_limit", type=int, default=3)
     parser.add_argument("--gen_tokens", type=int, default=12)

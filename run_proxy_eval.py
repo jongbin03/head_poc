@@ -37,7 +37,7 @@ def _load_heads(heads_json: str) -> List[Tuple[int, int]]:
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", default="Qwen/Qwen2.5-1.5B-Instruct")
-    parser.add_argument("--family", default="qwen2", choices=["qwen2", "llama"])
+    parser.add_argument("--family", default="qwen2", choices=["qwen2", "llama", "qwen3"])
     parser.add_argument("--device", default="cuda")
     parser.add_argument("--four_bit", action="store_true")
     parser.add_argument("--heads_json", required=True, help="compare_head_sources.py discover(-parallel) 결과 JSON")
@@ -66,6 +66,8 @@ def main():
     print(describe(dtype_name))
     if args.family == "qwen2":
         from transformers.models.qwen2 import modeling_qwen2 as modeling_mod
+    elif args.family == "qwen3":
+        from transformers.models.qwen3 import modeling_qwen3 as modeling_mod
     else:
         from transformers.models.llama import modeling_llama as modeling_mod
 

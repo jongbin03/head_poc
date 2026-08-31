@@ -312,16 +312,23 @@ class KnockoutLocalLLM(BasePipelineElement):
         }
 
     def _render_prompt(self, messages: Sequence[ChatMessage], tools) -> str:
+        # enable_thinking=False: Qwen3의 chat_template 기본값은 thinking 켜짐이라
+        # generation prompt 뒤에 <think> 블록이 열린다. max_new_tokens(기본 128)가 그
+        # 추론에 다 소진되면 <tool_call>이 아예 안 나와서 파싱이 전부 no_tag로 조용히
+        # 무너진다(P13과 같은 종류의 실패 모드, 2026-08-31 코드리뷰로 발견). Qwen2.5/Llama
+        # chat_template은 이 kwarg를 참조하지 않으므로 무시되고 아무 영향 없다.
         if self.tool_call_format == "agentdojo_default":
             agentdojo_messages = _messages_to_agentdojo_format(messages, tools)
             # tools= 를 안 넘긴다 — tool 설명은 이미 system 텍스트 안에 있다(위 함수 docstring).
             return self.tok.apply_chat_template(
-                agentdojo_messages, add_generation_prompt=True, tokenize=False
+                agentdojo_messages, add_generation_prompt=True, tokenize=False,
+                enable_thinking=False,
             )
         qwen_messages = _messages_to_qwen_format(messages)
         openai_tools = _tools_to_openai_format(tools)
         return self.tok.apply_chat_template(
-            qwen_messages, tools=openai_tools, add_generation_prompt=True, tokenize=False
+            qwen_messages, tools=openai_tools, add_generation_prompt=True, tokenize=False,
+            enable_thinking=False,
         )
 
     def _find_injection_key_positions(self, prompt: str) -> List[int]:
