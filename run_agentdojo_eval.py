@@ -56,6 +56,8 @@ def _load_model(model_path: str, family: str, four_bit: bool, device: str, dtype
 
     if family == "qwen2":
         from transformers.models.qwen2 import modeling_qwen2 as modeling_mod
+    elif family == "qwen3":
+        from transformers.models.qwen3 import modeling_qwen3 as modeling_mod
     else:
         from transformers.models.llama import modeling_llama as modeling_mod
 
@@ -117,7 +119,7 @@ def _heads_to_knockout_map(heads: List[Tuple[int, int]]) -> Dict[int, List[int]]
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", default="Qwen/Qwen2.5-1.5B-Instruct")
-    parser.add_argument("--family", default="qwen2", choices=["qwen2", "llama"])
+    parser.add_argument("--family", default="qwen2", choices=["qwen2", "llama", "qwen3"])
     parser.add_argument("--device", default="cuda", help="입력 텐서를 올릴 device. "
                          "--device_map auto로 모델을 쪼개도 입력은 첫 device에 있어야 하므로 "
                          "그 경우 'cuda:0'으로 둘 것.")

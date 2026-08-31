@@ -38,7 +38,10 @@ def load_model_for_relevance(
     device_map: Optional[str] = None,
 ):
     """
-    model_family: "qwen2" | "llama"  (lxt가 공식 지원하는 아키텍처만)
+    model_family: "qwen2" | "llama" | "qwen3"  (lxt가 공식 지원하는 아키텍처만).
+           ⚠️ qwen3: lxt README가 "attribution이 첫 토큰으로 쏠린다"고 경고한다
+           (docs/plan-2026-08-26.md 3.1.1절) — 배선 자체는 되지만 relevance 결과
+           신뢰도는 별도로 진단해야 한다(`tools/diag_qwen3_relevance.py`).
     dtype: "auto" | "bf16" | "fp16" | "fp32" — runtime_env.resolve_dtype 참고.
            실측으로 CUDA에서는 항상 bf16이 선택된다(fp16은 NaN으로 배제, 1.3절).
     device: **입력 텐서를 올릴 device.** device_map="auto"로 모델을 쪼개도 입력은
@@ -61,6 +64,9 @@ def load_model_for_relevance(
     elif model_family == "llama":
         from transformers.models.llama import modeling_llama as modeling_mod
         model_cls = modeling_mod.LlamaForCausalLM
+    elif model_family == "qwen3":
+        from transformers.models.qwen3 import modeling_qwen3 as modeling_mod
+        model_cls = modeling_mod.Qwen3ForCausalLM
     else:
         raise ValueError(f"unsupported model_family={model_family}")
 
