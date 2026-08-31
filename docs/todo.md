@@ -9,7 +9,7 @@
 | ~~P2~~ | ~~외부/추가 데이터셋으로 기존 control head의 edge knockout 효과 검증~~ | **완료** (2026-07-28, P2-a/b/c/d 전부) |
 | ~~P7~~ | ~~방법론 진단 — 랜덤 head 기준선 / top-K sweep / jaccard 우연 기준선 / 문서-코드 불일치 정정~~ | **완료** (2026-07-31, `../results/2026-07-31_Qwen-Qwen2-5-1-5B-Instruct`) |
 | P8 | 합성 데이터셋의 content-availability 교란 제거 | **보류 (2026-07-31 결정)**. head 탐색은 synthetic 그대로 써도 유효하다고 판단, 발표용 헤드라인은 AgentDojo 네이티브 채점(P4)에 맡기기로 함 |
-| **P16** | **(교수님 피드백) Track B tool-call 파서를 AgentDojo 기본값(`_make_system_prompt`/`_parse_model_output`)으로 되돌려 A/B 비교** | **신설·최우선 (2026-08-31)**. 지금 파서는 AgentDojo 자체 기본값이 아니라 P13에서 세 번 손댄 커스텀 파서였음이 확인됨 — banking/workspace 저성능(피드백 1번)이 진짜 값인지 파서 아티팩트인지 구분이 안 된 상태라 이것부터 통제해야 함. 상세는 **[feedback-2026-08-31.md](feedback-2026-08-31.md)** |
+| ~~P16~~ | ~~(교수님 피드백) Track B tool-call 파서를 AgentDojo 기본값(`_make_system_prompt`/`_parse_model_output`)으로 되돌려 A/B 비교~~ | **완료 (2026-08-31, aisec-king, Qwen2.5-7B + Llama-3.1-8B)**. banking/workspace 저성능은 **두 모델 다 파서 아티팩트가 아님** 확인, confound 해소. 1.5B 실패 전례도 8B에선 재현 안 됨(parse ok율 거의 동일) — **`agentdojo_default`를 기본값으로 채택 권장**. Llama+agentdojo_default에서 knockout 억제 실패 1건 발견(재현성 확인은 후속 과제). 상세는 **[feedback-2026-08-31.md](feedback-2026-08-31.md)** |
 | **P9** | **SSH 공용 서버 이전 + 3차 발표(8/26) 확장 실험** — 환경 이전, suite 균등화, 모델 스케일업, split 재설계 | **최우선.** 상세 계획은 **[plan-2026-08-26.md](plan-2026-08-26.md)** |
 | ~~P13~~ | ~~Track B(`run_agentdojo_eval.py`) tool-call 파서가 Qwen 전용 `<tool_call>` 태그에 family 무관하게 하드코딩됨 — Llama에서 파싱 0%~~ | **완료 (2026-08-26, 3차 재실행으로 검증).** S6(Llama-3.1-8B) eval을 무효로 만든 원인이었음. banking/slack/workspace 유효 결과 확보. P12(Llama 70B)의 선행 조건 해소 |
 | P14 | Llama travel suite에서 multi-call 체이닝(세미콜론으로 이은 JSON 여러 개) 파서 미지원 | **신설 (2026-08-26)**. P13 검증 중 발견, travel utility/security가 구조적으로 0%가 되는 원인. 발표 당일 판단으로 보류 — P9(8/26 발표) 이후. 상세는 P13 섹션 하단 |
@@ -33,7 +33,7 @@
 
 ---
 
-## P16. (교수님 피드백) Track B tool-call 파서를 AgentDojo 기본값으로 되돌려 A/B 비교 (신설·최우선 2026-08-31)
+## P16. (교수님 피드백) Track B tool-call 파서를 AgentDojo 기본값으로 되돌려 A/B 비교 (신설 2026-08-31, 완료 2026-08-31)
 
 **전체 배경·근거는 [feedback-2026-08-31.md](feedback-2026-08-31.md) 참고.** 요약:
 
@@ -56,14 +56,27 @@ AgentDojo 기본값을 `pip download agentdojo==0.1.35`로 받아 확인한 결�
 먼저 통제해야 할 confound.
 
 **할 일**:
-1. `agentdojo.agent_pipeline.llms.local_llm`의 `_make_system_prompt`/`_parse_model_output`을
-   import해서 `KnockoutLocalLLM`에 옵션으로 추가(`--tool_call_format agentdojo_default`
-   같은 플래그) — 기존 커스텀 경로는 비교군으로 유지
-2. 같은 모델·같은 held-out 표본으로 커스텀 파서 vs AgentDojo 기본 파서의 `parse_stats.ok`
-   비율과 attack/utility 수치 A/B 비교 (Qwen2.5-7B 먼저, 그다음 Llama-3.1-8B)
-   — ⚠️ 1.5B에서 실패했다는 전례가 7B 이상급에서도 재현되는지가 핵심 확인 포인트
-3. 결과에 따라 기본값 채택 여부 결정, 기존 수치(P13/P15)에 caveat 또는 재실행
-4. 이후 `feedback-2026-08-31.md` 2절(n 확대/모델 다양화, k 탐색)로 순서대로 진행
+1. ~~`agentdojo.agent_pipeline.llms.local_llm`의 `_make_system_prompt`/`_parse_model_output`을
+   import해서 `KnockoutLocalLLM`에 옵션으로 추가~~ **완료** — `--tool_call_format
+   agentdojo_default` 플래그, 실제 agentdojo==0.1.35로 로직 검증 완료
+2. ~~Qwen2.5-7B + Llama-3.1-8B A/B 비교~~ **완료 (2026-08-31, aisec-king)** —
+   parse ok율: Qwen 57.5% vs 59.4%, Llama 79.2% vs 79.1%(**거의 동일**, 1.5B 실패
+   전례가 8B에서는 재현 안 됨). **핵심 발견: banking=0%/workspace=0%/slack만 유의미라는
+   suite별 비대칭이 두 모델·두 파서 방식 전부 동일하게 재현** — "커스텀 파서 아티팩트"
+   confound 해소, "진짜 낮은 값"이라는 기존 진단이 두 모델 패밀리로 재확인됨. knockout
+   효과는 4개 조건 중 3개(Qwen custom/agentdojo_default, Llama custom)에서
+   kN_security=0%로 완전 억제, **Llama+agentdojo_default에서만 1쌍(banking) 억제
+   실패(잔여 ASR 2.3%)** — `status-2026-08-30.md`에 이미 기록된 "knockout 역효과"류
+   현상과 같은 종류, 표본 1건이라 재현성 확인 필요. 상세 수치는
+   `feedback-2026-08-31.md` 2.5/2.5.3절, 결과 파일은
+   `results/2026-08-31_p16_aisecking/{qwen7b,llama8b}_{custom,agentdojo_default}.json`.
+3. ~~결과에 따라 기본값 채택 여부 결정~~ **완료 — `agentdojo_default`를 기본값으로
+   채택 권장**. 두 모델 다 파서 선택이 핵심 결론(suite 비대칭, knockout 억제)에
+   실질적 차이를 안 만들었고, 교수님 피드백에도 부합. 기존 수치(P13/P15)는 재실행 없이
+   "커스텀 파서 기준"이라는 caveat만 달아두는 걸로 충분해 보임(A/B로 결론이 안 바뀌는
+   게 확인됐으므로).
+4. 이후 `feedback-2026-08-31.md` 2절(n 확대/모델 다양화, k 탐색)로 순서대로 진행 —
+   Llama+agentdojo_default banking backfire 1건의 재현성 확인도 이 단계에서 같이 볼 것
 
 ---
 
