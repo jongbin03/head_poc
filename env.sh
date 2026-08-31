@@ -1,17 +1,22 @@
-# env.sh — 공용 SSH 서버(연구실 Titan RTX x3)에서 매 세션 source 할 것.
+# env.sh — 공용 SSH 서버에서 매 세션 source 할 것.
 #
-#     source ~/jbwon/atlas_poc/env.sh
+#     source ~/head_poc/env.sh   (또는 이 저장소를 어디에 clone했든 그 경로)
 #
-# 목적: 파이썬 생태계가 기본으로 홈(~)에 쏟아붓는 캐시를 전부 ~/jbwon 안으로 접는다.
-# 교수님 규칙이 "~/jbwon 에서만 작업, 다른 곳 절대 수정 금지"인데, 기본값을 그대로 두면
-# HF 모델 가중치(수십 GB)가 ~/.cache/huggingface에, pip 패키지가 ~/.local에 깔린다.
-# 홈이 공용이면 그건 곧 남의 환경 오염이다.
+# 목적: 파이썬 생태계가 기본으로 홈(~)에 쏟아붓는 캐시를 전부 저장소 디렉토리 안으로 접는다.
+# 공용 서버에서 기본값을 그대로 두면 HF 모델 가중치(수십 GB)가 ~/.cache/huggingface에,
+# pip 패키지가 ~/.local에 깔려 남의 환경(같은 홈을 쓰는 다른 계정, 또는 이 계정의 다른 용도
+# ~/.local)을 오염시킬 수 있다.
 #
-# 자세한 배경: docs/plan-2026-08-26.md 1절.
+# 자세한 배경: docs/plan-2026-08-26.md 1절 (Titan RTX 서버 기준 원안).
+#
+# ⚠️ 2026-08-31, 서버 이전(aisec-king, RTX PRO 4500 32GB + RTX A6000 48GB)으로 $JB를
+# 하드코딩된 "$HOME/jbwon"에서 **"이 env.sh가 있는 디렉토리"(=저장소 루트)를 자동 감지**하는
+# 방식으로 바꿨다 — clone 위치가 서버마다 달라져도(이번엔 ~/head_poc, 예전엔 ~/jbwon/atlas_poc)
+# 이 파일을 고칠 필요가 없다. 캐시/venv를 저장소 안(.cache/, envs/, miniforge3/ — 전부
+# .gitignore 처리됨)에 가두면 "내 작업 공간 밖은 안 건드린다"는 원 취지도 그대로 지켜진다.
 
 # ---- 작업 루트 -------------------------------------------------------------
-# 저장소를 다른 곳에 뒀다면 JB만 고치면 된다.
-export JB="$HOME/jbwon"
+export JB="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # ---- 캐시 리다이렉트 -------------------------------------------------------
 # XDG_CACHE_HOME이 ~/.cache/* 대부분을 한 번에 포섭하지만, 아래 것들은 자체 기본값을
@@ -56,13 +61,14 @@ export CUDA_DEVICE_ORDER=PCI_BUS_ID
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 
 # ---- 파이썬 환경 -----------------------------------------------------------
-# 시스템 python은 3.8.19라 transformers 4.51.3(>=3.9)/agentdojo(>=3.10)가 안 깔린다.
-# pyenv는 소스 빌드라 시스템 패키지(libssl-dev 등)를 요구해 공용 서버에서 쓸 수 없다.
-# → Miniforge를 ~/jbwon 안에 넣고, 그 python으로 **평범한 venv**를 만든다.
+# 시스템 python이 너무 오래돼(예: 3.8.19) transformers 4.51.3(>=3.9)/agentdojo(>=3.10)가
+# 안 깔리는 서버가 있다. pyenv는 소스 빌드라 시스템 패키지(libssl-dev 등)를 요구해 공용
+# 서버에서 쓸 수 없다. → Miniforge를 $JB(=저장소 루트) 안에 넣고, 그 python으로
+# **평범한 venv**를 만든다.
 #
 # 왜 `conda create`가 아니라 venv인가: conda는 환경을 만들 때 ~/.conda/environments.txt를
-# 홈에 기록한다. "~/jbwon 밖 수정 금지" 규칙에 걸리므로 conda 명령 자체를 쓰지 않는다.
-# (설치 절차는 docs/run-guide.md 부록 A)
+# 홈에 기록한다. "내 작업 공간(저장소 디렉토리) 밖 수정 금지" 원칙에 걸리므로 conda 명령
+# 자체를 쓰지 않는다. (설치 절차는 docs/run-guide.md 부록 A/B)
 # 환경은 venv / conda env 둘 다 지원한다. Miniforge base가 3.13이라 핀과 안 맞는 경우
 # `conda create -p $JB/envs/atlas python=3.11`로 만들게 되는데, conda env에는 venv와 달리
 # `bin/activate`가 없어서 분기가 필요하다 (conda env는 `conda-meta/`로 식별).
@@ -81,7 +87,7 @@ elif [ -f "$JB/miniforge3/bin/activate" ]; then
     source "$JB/miniforge3/bin/activate"
     echo "[env.sh] 경고: $JB/envs/atlas 환경이 없다. miniforge base만 활성화됨." >&2
 else
-    echo "[env.sh] 경고: $JB/miniforge3 가 없다. docs/run-guide.md 부록 A를 먼저 진행할 것." >&2
+    echo "[env.sh] 경고: $JB/miniforge3 가 없다. docs/run-guide.md 부록 A/B를 먼저 진행할 것." >&2
 fi
 
 # ---- 확인 -----------------------------------------------------------------

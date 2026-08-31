@@ -31,6 +31,17 @@ chat_template이 실제로 지시하는 포맷**을 그대로 렌더링하게 �
   그대로 인정하는** 이유: agentdojo 기본 포맷을 1.5B에 강제했을 때도 안 먹혔던 전례가 있어,
   모델에게 파인튜닝 습관과 다른 포맷을 강제로 지시하는 쪽이 오히려 불안정할 위험이 크다고
   판단했다.
+
+**P16(2026-08-31, 교수님 피드백) — `tool_call_format="agentdojo_default"` 옵션 추가.**
+"파서를 우리가 계속 손대지 말고 AgentDojo 기본값으로 실험하라"는 피드백에 따라,
+위에서 설명한 커스텀 경로(모델별 native 포맷 + family별 파서) 옆에 **AgentDojo 자체
+기본값을 그대로 쓰는 경로**를 옵션으로 추가했다 — `agentdojo.agent_pipeline.llms.
+local_llm`의 `_make_system_prompt`/`_parse_model_output`을 그대로 import해서 재사용
+(model-agnostic 고정 지시문 프롬프트 + 단일 정규식 파서, family 분기 없음). 상세 근거는
+`docs/feedback-2026-08-31.md`, `docs/todo.md` P16 참고. 기존 커스텀 경로는 그대로 남겨
+`--tool_call_format {custom, agentdojo_default}`로 같은 모델·같은 표본에서 A/B 비교
+가능하게 했다 — 1.5B에서 agentdojo 기본값이 실패했던 전례가 지금 쓰는 7B~14B급에서도
+재현되는지가 핵심 확인 포인트.
 """
 import json
 import re
@@ -38,6 +49,8 @@ from typing import Dict, List, Optional, Sequence
 
 import torch
 from agentdojo.agent_pipeline.base_pipeline_element import BasePipelineElement
+from agentdojo.agent_pipeline.llms.local_llm import _make_system_prompt as _agentdojo_make_system_prompt
+from agentdojo.agent_pipeline.llms.local_llm import _parse_model_output as _agentdojo_parse_model_output
 from agentdojo.functions_runtime import EmptyEnv, Env, FunctionCall, FunctionsRuntime
 from agentdojo.types import ChatAssistantMessage, ChatMessage, get_text_content_as_str, text_content_block_from_string
 
@@ -55,6 +68,10 @@ _TOOL_CALL_CLOSE = "</tool_call>"
 # Llama 계열은 태그가 없다 — 마크다운 코드펜스로 감쌀 수 있어(관측된 적은 없지만 다른
 # 모델에서 흔한 패턴이라 방어적으로) 먼저 벗겨내고, 첫 '{'~마지막 '}' 사이를 통째로 뽑는다.
 _JSON_FENCE_RE = re.compile(r"^```(?:json)?\s*(.*?)\s*```$", re.DOTALL)
+
+# local_llm.py의 _parse_model_output 내부 정규식과 동일 — stats 집계용으로만 별도로 둔다
+# (원본 함수는 성공/실패 사유를 리턴하지 않으므로 "태그가 아예 없었는지"는 여기서 직접 봐야 함).
+_AGENTDOJO_OPEN_TAG_RE = re.compile(r"<function\s*=\s*([^>]+)>")
 
 
 def _extract_json_object(text: str) -> Optional[str]:
@@ -108,6 +125,59 @@ def _messages_to_qwen_format(messages: Sequence[ChatMessage]) -> List[dict]:
         else:
             raise ValueError(f"unexpected message role: {role!r}")
     return out
+
+
+def _messages_to_agentdojo_format(messages: Sequence[ChatMessage], tools) -> List[dict]:
+    """`agentdojo.agent_pipeline.llms.local_llm.LocalLLM.query()`(167-189행)의 메시지 변환을
+    그대로 재현. 커스텀 경로(`_messages_to_qwen_format`)와 다른 점 두 가지:
+      1. system 메시지 content를 `_make_system_prompt()`로 감싼다 — model-agnostic한 고정
+         tool-calling 지시문(`<function=name>{...}</function>`)이 여기서 주입된다.
+      2. tool 응답을 JSON(`{"result": ...}`/`{"error": ...}`)으로 감싼다 — 우리 커스텀
+         경로는 "Tool Response: <텍스트>" 평문을 그대로 넘겼지만, AgentDojo 기본값은
+         구조화된 JSON을 넘긴다.
+    이후 `apply_chat_template`에 `tools=` 없이 넘긴다 — tool 설명은 이미 system 텍스트 안에
+    들어있으므로, 모델 자신의 chat_template이 별도 tool-calling 지시문을 또 추가하면
+    지시문이 두 개(AgentDojo 것 + 모델 native 것) 겹쳐 혼란을 준다."""
+    out = []
+    for m in messages:
+        role = m["role"]
+        if role == "system":
+            content = get_text_content_as_str(m["content"]) if m["content"] else ""
+            out.append({"role": "system", "content": _agentdojo_make_system_prompt(content, tools)})
+        elif role == "user":
+            out.append({"role": "user", "content": get_text_content_as_str(m["content"])})
+        elif role == "tool":
+            if m.get("error"):
+                content = json.dumps({"error": m["error"]})
+            else:
+                func_result = get_text_content_as_str(m["content"])
+                if func_result == "None":
+                    func_result = "Success"
+                content = json.dumps({"result": func_result})
+            out.append({"role": "tool", "content": content})
+        elif role == "assistant":
+            out.append({"role": "assistant", "content": get_text_content_as_str(m["content"]) if m["content"] else ""})
+        else:
+            raise ValueError(f"unexpected message role: {role!r}")
+    return out
+
+
+def _parse_tool_calls_agentdojo_default(completion: str, stats: Optional[dict]) -> List[FunctionCall]:
+    """`agentdojo.agent_pipeline.llms.local_llm._parse_model_output`을 그대로 호출 —
+    family 분기 없는 단일 정규식(`<function=name>{...}</function>`), 턴당 호출 1개만 지원.
+    stats 판정만 우리 스키마(no_tag/ok/json_errors)에 맞춰 별도로 한다."""
+    has_open = bool(_AGENTDOJO_OPEN_TAG_RE.search(completion))
+    result = _agentdojo_parse_model_output(completion)
+    tool_calls = list(result["tool_calls"])
+
+    if stats is not None:
+        if not has_open:
+            stats["no_tag"] += 1
+        elif not tool_calls:
+            # 태그는 있는데 JSON 파싱/검증에 실패(원본 함수 내부에서 실패 사유를 안 돌려주므로
+            # truncated와 json_errors를 구분할 수 없다 — 전부 json_errors로 뭉뚱그린다).
+            stats["json_errors"] += 1
+    return tool_calls
 
 
 def _try_build_call(parsed: dict, args_key: str, stats: Optional[dict]) -> Optional[FunctionCall]:
@@ -184,8 +254,13 @@ def _parse_tool_calls_llama(completion: str, stats: Optional[dict]) -> List[Func
     return tool_calls
 
 
-def _parse_tool_calls(completion: str, stats: Optional[dict] = None, family: str = "qwen2") -> ChatAssistantMessage:
-    if family == "llama":
+def _parse_tool_calls(
+    completion: str, stats: Optional[dict] = None, family: str = "qwen2",
+    tool_call_format: str = "custom",
+) -> ChatAssistantMessage:
+    if tool_call_format == "agentdojo_default":
+        tool_calls = _parse_tool_calls_agentdojo_default(completion, stats)
+    elif family == "llama":
         tool_calls = _parse_tool_calls_llama(completion, stats)
     else:
         tool_calls = _parse_tool_calls_qwen(completion, stats)
@@ -217,7 +292,11 @@ class KnockoutLocalLLM(BasePipelineElement):
         max_new_tokens: int = 128,
         device: str = "cuda",
         family: str = "qwen2",
+        tool_call_format: str = "custom",
     ) -> None:
+        """tool_call_format: "custom"(기본, 모델별 native 포맷 + family별 파서) 또는
+        "agentdojo_default"(P16 — AgentDojo 자체 `_make_system_prompt`/`_parse_model_output`
+        그대로 사용, model-agnostic 고정 지시문 + 단일 파서). 모듈 docstring "P16" 절 참고."""
         self.model = model
         self.tok = tokenizer
         self.modeling_mod = modeling_mod
@@ -225,6 +304,7 @@ class KnockoutLocalLLM(BasePipelineElement):
         self.max_new_tokens = max_new_tokens
         self.device = device
         self.family = family
+        self.tool_call_format = tool_call_format
         self.name = "knockout-local-llm"
         self.parse_stats = {
             "n_calls": 0, "ok": 0, "no_tag": 0, "truncated": 0,
@@ -232,6 +312,12 @@ class KnockoutLocalLLM(BasePipelineElement):
         }
 
     def _render_prompt(self, messages: Sequence[ChatMessage], tools) -> str:
+        if self.tool_call_format == "agentdojo_default":
+            agentdojo_messages = _messages_to_agentdojo_format(messages, tools)
+            # tools= 를 안 넘긴다 — tool 설명은 이미 system 텍스트 안에 있다(위 함수 docstring).
+            return self.tok.apply_chat_template(
+                agentdojo_messages, add_generation_prompt=True, tokenize=False
+            )
         qwen_messages = _messages_to_qwen_format(messages)
         openai_tools = _tools_to_openai_format(tools)
         return self.tok.apply_chat_template(
@@ -283,5 +369,8 @@ class KnockoutLocalLLM(BasePipelineElement):
                 out_ids = self.model.generate(**gen_kwargs)
 
         completion = self.tok.decode(out_ids[0, input_ids.shape[-1]:], skip_special_tokens=True)
-        output = _parse_tool_calls(completion, stats=self.parse_stats, family=self.family)
+        output = _parse_tool_calls(
+            completion, stats=self.parse_stats, family=self.family,
+            tool_call_format=self.tool_call_format,
+        )
         return query, runtime, env, [*messages, output], extra_args

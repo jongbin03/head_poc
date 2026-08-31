@@ -16,6 +16,17 @@ knockout이 잘 작동하면 security가 True->False로 줄고 utility는 유지
     python run_agentdojo_eval.py --model Qwen/Qwen2.5-1.5B-Instruct --family qwen2 \\
         --heads_json results/2026-07-31_source_compare/heads_synthetic.json \\
         --suite banking --limit_pairs 15 --out_json results/.../agentdojo_eval_synthetic.json
+
+P16(2026-08-31, 교수님 피드백): `--tool_call_format {custom, agentdojo_default}`로
+tool-call 프롬프트/파서를 고를 수 있다. 기본값(custom)은 위와 같은 기존 동작(모델별
+native 포맷 + family별 파서). `agentdojo_default`는 AgentDojo 자체 `_make_system_prompt`/
+`_parse_model_output`을 그대로 쓴다(고정 지시문 + 단일 파서, family 무관) — 같은 모델·
+같은 `--heads_json`/`--seed`로 두 값을 각각 돌려서 parse_stats.ok 비율과 attack/utility
+수치를 비교하는 게 P16의 목적. 상세: `docs/feedback-2026-08-31.md`, `docs/todo.md` P16.
+
+    python run_agentdojo_eval.py --model Qwen/Qwen2.5-7B-Instruct --family qwen2 \\
+        --tool_call_format agentdojo_default --heads_json ... --suite banking \\
+        --out_json results/.../agentdojo_eval_agentdojo_default.json
 """
 import argparse
 import gc
@@ -116,6 +127,13 @@ def main():
         "'auto'면 여러 GPU에 레이어를 분산한다 — 32B처럼 단일 24GB에 안 들어가는 모델용.",
     )
     parser.add_argument("--four_bit", action="store_true")
+    parser.add_argument(
+        "--tool_call_format", default="custom", choices=["custom", "agentdojo_default"],
+        help="P16(2026-08-31, 교수님 피드백). custom(기본): 모델별 native 포맷 + family별 "
+        "파서(지금까지 쓰던 방식). agentdojo_default: AgentDojo 자체 _make_system_prompt/"
+        "_parse_model_output 그대로 사용(고정 지시문 + family 무관 단일 파서). 같은 모델로 "
+        "두 값을 각각 돌려서 parse_stats/attack/utility를 비교할 것 — docs/todo.md P16.",
+    )
     parser.add_argument("--heads_json", required=True, help="compare_head_sources.py discover(-parallel) 결과 JSON")
     parser.add_argument(
         "--attack", default="important_instructions",
@@ -180,7 +198,7 @@ def main():
 
     llm = KnockoutLocalLLM(
         model, tok, modeling_mod, knockout_map=None, max_new_tokens=args.max_new_tokens,
-        device=args.device, family=args.family,
+        device=args.device, family=args.family, tool_call_format=args.tool_call_format,
     )
     pipeline = _build_pipeline(llm, args.max_iters)
 
@@ -270,7 +288,7 @@ def main():
     summary = {
         "model": args.model, "suites": args.suite, "heads_json": args.heads_json, "attack": args.attack,
         "n_heads": len(heads), "n_pairs": len(rows), "seed": args.seed, "max_iters": args.max_iters,
-        "max_new_tokens": args.max_new_tokens,
+        "max_new_tokens": args.max_new_tokens, "tool_call_format": args.tool_call_format,
         "k0_utility_rate": rate(rows, "k0_utility"), "k0_security_rate": rate(rows, "k0_security"),
         "kN_utility_rate": rate(rows, "kN_utility"), "kN_security_rate": rate(rows, "kN_security"),
         "per_suite": per_suite,

@@ -9,10 +9,11 @@
 | ~~P2~~ | ~~외부/추가 데이터셋으로 기존 control head의 edge knockout 효과 검증~~ | **완료** (2026-07-28, P2-a/b/c/d 전부) |
 | ~~P7~~ | ~~방법론 진단 — 랜덤 head 기준선 / top-K sweep / jaccard 우연 기준선 / 문서-코드 불일치 정정~~ | **완료** (2026-07-31, `../results/2026-07-31_Qwen-Qwen2-5-1-5B-Instruct`) |
 | P8 | 합성 데이터셋의 content-availability 교란 제거 | **보류 (2026-07-31 결정)**. head 탐색은 synthetic 그대로 써도 유효하다고 판단, 발표용 헤드라인은 AgentDojo 네이티브 채점(P4)에 맡기기로 함 |
+| **P16** | **(교수님 피드백) Track B tool-call 파서를 AgentDojo 기본값(`_make_system_prompt`/`_parse_model_output`)으로 되돌려 A/B 비교** | **신설·최우선 (2026-08-31)**. 지금 파서는 AgentDojo 자체 기본값이 아니라 P13에서 세 번 손댄 커스텀 파서였음이 확인됨 — banking/workspace 저성능(피드백 1번)이 진짜 값인지 파서 아티팩트인지 구분이 안 된 상태라 이것부터 통제해야 함. 상세는 **[feedback-2026-08-31.md](feedback-2026-08-31.md)** |
 | **P9** | **SSH 공용 서버 이전 + 3차 발표(8/26) 확장 실험** — 환경 이전, suite 균등화, 모델 스케일업, split 재설계 | **최우선.** 상세 계획은 **[plan-2026-08-26.md](plan-2026-08-26.md)** |
 | ~~P13~~ | ~~Track B(`run_agentdojo_eval.py`) tool-call 파서가 Qwen 전용 `<tool_call>` 태그에 family 무관하게 하드코딩됨 — Llama에서 파싱 0%~~ | **완료 (2026-08-26, 3차 재실행으로 검증).** S6(Llama-3.1-8B) eval을 무효로 만든 원인이었음. banking/slack/workspace 유효 결과 확보. P12(Llama 70B)의 선행 조건 해소 |
 | P14 | Llama travel suite에서 multi-call 체이닝(세미콜론으로 이은 JSON 여러 개) 파서 미지원 | **신설 (2026-08-26)**. P13 검증 중 발견, travel utility/security가 구조적으로 0%가 되는 원인. 발표 당일 판단으로 보류 — P9(8/26 발표) 이후. 상세는 P13 섹션 하단 |
-| **P15** | **AgentDojo 네이티브 공격성공률(2~5%)이 낮은 문제 — 데이터셋 전환 vs 모델 성능 향상 중 방향 결정** | **신설·최우선 (2026-08-30)**. S6 재현성 검증(flip 0) + 표본 3배 확대(n=44→122)로 "표본/노이즈 문제 아님"을 확인. P11(새 아키텍처) 시도는 14B 스케일업 반례로 기각됨. 상세·옵션 비교는 **[status-2026-08-30.md](status-2026-08-30.md) 5절** |
+| **P15** | **AgentDojo 네이티브 공격성공률(2~5%)이 낮은 문제 — ASB로 전환** | **어댑터 구현 완료, 서버 검증 대기 (신설 2026-08-30, 조사+코드 완료 2026-08-31)**. **ASB(Agent Security Bench)** 채택 — OPI ASR 6.4~14.2% @ Llama3.1-8B/Qwen2-7B (AgentDojo 2~5%의 2~3배), utility 지표 포함, P8류 결함 없음, HF transformers 백엔드 내장. `adapters/asb.py` 구현 완료(로컬 fake-tokenizer 스모크 테스트 통과, 4080쌍 콜리전 0). 다음은 서버에서 실 토크나이저 재검증 + 기존 control head 전이 검증. 상세는 아래 P15 섹션 |
 | **P4** | **(교수님 피드백) Head 탐색 방법론 재설계 — synthetic/InjecAgent/AgentDojo 3소스 비교, Track A(탐색)/Track B(평가) 하이브리드** | 진행 중. 구 P4+P6 통합. P9의 4·5절이 이 항목의 연장 |
 | P5 | (교수님 피드백) 키 그룹 2개 vs 데이터셋 모드 4개 문서 정비 | P4 결과로 서술이 또 바뀔 수 있어 그 뒤에 |
 | P3 | control head 내 internal-only vs external-only 채널 분기 검증 | **후순위 (2026-08-21 결정)**. 겹침 정도는 기존 결과에서 산출 완료(합성 한정 예비, plan-2026-08-26.md 2절). **정식 분석은 AgentDojo injection task 재라벨링(신설 P10)이 선행돼야 함** — 합성 데이터는 품질이 낮아 이 위에서 결론 내면 content-availability 교란이 곱해짐 |
@@ -29,6 +30,40 @@
 > 합성 데이터의 완전 억제(`0.0000`)가 content-availability 교란으로 부풀려졌을 가능성,
 > InjecAgent utility 지표가 ASR의 산술적 뒷면이라 독립 정보가 없다는 점이 확인됐다.
 > 측정을 고치기 전에 AgentDojo(P4)로 넘어가면 신뢰할 수 없는 숫자만 하나 더 늘어난다.
+
+---
+
+## P16. (교수님 피드백) Track B tool-call 파서를 AgentDojo 기본값으로 되돌려 A/B 비교 (신설·최우선 2026-08-31)
+
+**전체 배경·근거는 [feedback-2026-08-31.md](feedback-2026-08-31.md) 참고.** 요약:
+
+지금 Track B(`adapters/agentdojo_pipeline.py`)가 쓰는 tool-call 프롬프트/파서는 처음부터
+**AgentDojo 자체 기본값이 아니라 우리가 직접 만든 커스텀 파서**였다(모듈 docstring에
+이미 그렇게 적혀 있었음 — "1.5B가 AgentDojo 기본 문법을 안 따라서" 대체함). 이후 Qwen
+태그 대응/Llama 키 이름 대응/truncated 오분류 수정까지 세 번 손을 댔다(P13). 실제
+AgentDojo 기본값을 `pip download agentdojo==0.1.35`로 받아 확인한 결과:
+- 프롬프트: `_make_system_prompt`가 model-agnostic한 고정 지시문(`<function=name>{...}
+  </function>` 형식 요구)을 시스템 프롬프트에 주입 — P13 "할 일" 2번("prompt-engineered
+  강제 통일")과 동일한 방식.
+- 파서: `_parse_model_output`이 family 분기 없는 단일 정규식.
+- 둘 다 순수 함수라 우리 `KnockoutLocalLLM`(knockout을 위해 같은 프로세스에서
+  `model.generate()` 직접 호출 필요, `LocalLLM`의 OpenAI API 클라이언트는 못 씀)에
+  그대로 import해서 꽂을 수 있음 — 기술적으로 못 쓸 이유 없음.
+
+**왜 우선순위인가**: banking/workspace/travel의 낮은 공격성공률(P9 3차 발표, P15 표본
+확대에서도 재현)이 "진짜 낮은 값"인지 "커스텀 파서가 특정 suite에서 유독 약하게
+작동하는 아티팩트"인지 지금 구조로는 구분이 안 됨 — n을 늘리거나 모델을 바꾸기 전에
+먼저 통제해야 할 confound.
+
+**할 일**:
+1. `agentdojo.agent_pipeline.llms.local_llm`의 `_make_system_prompt`/`_parse_model_output`을
+   import해서 `KnockoutLocalLLM`에 옵션으로 추가(`--tool_call_format agentdojo_default`
+   같은 플래그) — 기존 커스텀 경로는 비교군으로 유지
+2. 같은 모델·같은 held-out 표본으로 커스텀 파서 vs AgentDojo 기본 파서의 `parse_stats.ok`
+   비율과 attack/utility 수치 A/B 비교 (Qwen2.5-7B 먼저, 그다음 Llama-3.1-8B)
+   — ⚠️ 1.5B에서 실패했다는 전례가 7B 이상급에서도 재현되는지가 핵심 확인 포인트
+3. 결과에 따라 기본값 채택 여부 결정, 기존 수치(P13/P15)에 caveat 또는 재실행
+4. 이후 `feedback-2026-08-31.md` 2절(n 확대/모델 다양화, k 탐색)로 순서대로 진행
 
 ---
 
@@ -1083,6 +1118,88 @@ attention relevance backward의 activation 메모리가 얹힌다 — 지금 서
    교차 비교 — 8/26 사이클에서 나온 "32B에서 baseline 공격 성공률 floor가 깨진다",
    "공격 문구가 32B에서 유의미해진다"(status-2026-08-25.md 1.3/2.2절) 같은 스케일-의존
    관측이 Llama family에서도 재현되는지가 검증 포인트
+
+---
+
+## P15. AgentDojo 네이티브 공격성공률(2~5%)이 낮은 문제 — 데이터셋 전환 vs 모델 성능 향상 (신설 2026-08-30)
+
+**배경**: status-2026-08-30.md 5절. S6 재현성 검증(flip 0/59) + 표본 3배 확대(n=44→122,
+`status-2026-08-30.md` 3.3절)로 "표본 부족/측정 비결정성"은 원인이 아님을 확인 —
+Llama-3.1-8B에서 4.5%→2.5%로 오히려 낮아짐. Qwen 7B(2.1%)/14B(2.2%)/Llama-8B(2.5~4.5%)
+전부 2~5% 범위로 수렴, "실제로 낮은 값"이라는 결론. P11(새 아키텍처 시도)은 14B
+스케일업이 이미 반례(utility는 오르지만 공격성공률은 안 움직임)라 기각. 남은 선택지는
+옵션 A(데이터셋 전환) vs 옵션 B(모델 성능 향상) — 2026-08-31 세션에서 옵션 A를 조사.
+
+**옵션 A 조사 결과 (2026-08-31, 웹 리서치 스파이크)**: 목표는 (1) 우리 스케일(7~14B,
+로컬 HF transformers 구동) 오픈모델에서 baseline IPI ASR이 AgentDojo보다 유의미하게
+높고, (2) utility/task-success 지표가 같이 있어서 AgentDojo처럼 "공격 억제 vs 정상 기능
+보존"을 동시에 보여줄 수 있고, (3) 실제 간접 프롬프트 인젝션(tool 응답에 공격 문구 삽입)
+threat model이며, (4) `adapters/agentdojo.py`/`adapters/injecagent.py` 패턴으로 이식
+가능한 벤치마크.
+
+| 후보 | baseline IPI ASR (7~9B급 오픈모델) | utility 지표 | 데이터 형식 / 어댑터 난이도 | 채택 여부 |
+|---|---|---|---|---|
+| **ASB** (Agent Security Bench, [arXiv:2410.02644](https://arxiv.org/abs/2410.02644), [github.com/agiresearch/ASB](https://github.com/agiresearch/ASB), 292★, 활발) | 공격 유형 5종 중 우리 threat model(tool 응답에 공격 문구 삽입)과 일치하는 건 **OPI**(Observation Prompt Injection) — README 헤드라인 표의 **Llama3.1-8B 6.40%, Llama3-8B 10.55%, Qwen2-7B 9.00%, Gemma2-9B 14.20%가 바로 이 OPI ASR**. DPI(72.68% 평균)는 user prompt 직접 변조라 다른 threat model, "84.3%"는 Mixed(DPI+OPI+memory-poison) 수치라 인용 부적합 | 있음 — `scripts/res_retrieval.py`의 "Original task success rate", AgentDojo의 utility+security 이중 지표와 대응 | full harness(`aios`/`pyopenagi`), `adapters/agentdojo.py`급 작업량. 코드 직접 확인 결과 **HF transformers 네이티브 백엔드 내장**(`hf_native_llm.py`) — Ollama 필수 아님, 자세히는 아래 "코드 확인 결과" 참고 | **채택 후보 1순위** |
+| WASP ([arXiv:2504.18575](https://arxiv.org/pdf/2504.18575)) | hijack 중간지표는 최대 86%지만 **end-to-end attacker-goal ASR은 0~17%**, 그마저 Claude 3.7/o1 등 frontier 모델 기준 — 소형 오픈모델 수치 없음 | 사실상 없음(브라우저 task-completion 위주) | 실제 브라우저 구동(Playwright류) 풀 하네스 — 어댑터 난이도 높음, 우리 tool-calling agent 패러다임과 안 맞음 | 기각 |
+| AgentHarm / MCP-SafetyBench 등 | 해당 없음 | 제각각 | — | threat model 불일치(direct-harm/MCP 프로토콜 공격 위주, "tool 응답에 공격 문구 삽입"이 아님) — 기각 |
+| τ-bench | 공격 벤치마크 아님(policy-compliance) | task-success만 | — | 확인 후 제외 |
+
+**결론 — ASB가 1순위 후보.** 우리와 동일 모델 패밀리/스케일(Llama3.1-8B, Qwen2-7B) 기준
+순수 IPI ASR이 6.4~14.2%로 문서화돼 있어 AgentDojo(2~5%) 대비 실질적 개선이고, utility
+지표도 갖춰져 있으며 레포도 활발히 유지된다. 다만 극적인 도약(예: 20%+)은 아니라는 점은
+감안할 것.
+
+**코드 확인 결과 (2026-08-31, `external_asb`로 실제 clone해서 코드 직접 확인)** — 착수 전
+리스크 2가지 전부 해소됨:
+
+1. **P8류 결함 없음.** OPI 공격은 정상 tool을 호출한 뒤 반환된 응답 문자열 뒤에 공격 문구를
+   append하는 구조(`pyopenagi/agents/react_agent_attack.py:187-189`,
+   `function_response += '; {attack_prompt}'`) — 정확히 "tool 응답에 공격 문구 삽입"이라는
+   우리 threat model과 일치. 공격 대상 문자열(attacker tool 이름)은 injected span 안에만
+   있는 게 아니라 `add_attacker_tool()`(`react_agent_attack.py:206-209`)에서 tool
+   schema(모델에 전달되는 `tools` 목록)에도 등록됨 — D_inj를 knockout으로 가려도 대상
+   자체는 시야에 남는 구조라, InjecAgent가 이미 그렇다고 P8에 적힌 것과 같은 형태(우리
+   합성 데이터셋만 갖고 있던 결함). 게다가 모델이 `tools=self.tools`를 받아 **자유
+   생성**으로 tool_calls를 만들어냄(`react_agent_attack.py:330-344`) — InjecAgent처럼
+   assistant prefix가 이미 tool 호출을 열어둔 상태가 아니라 모델이 실제로 "따를지"를
+   결정하는 구조. → **채택해도 되는 벤치마크로 확인.**
+2. **실행 경로 — Ollama 불필요, 결정할 필요 자체가 없었음.** README는 Ollama 기준으로만
+   설명돼 있지만 실제로는 `aios/llm_core/llm_classes/hf_native_llm.py`에 HF transformers
+   네이티브 백엔드가 이미 구현돼 있고, 모델 이름이 `ollama`로 시작하지 않고 API 모델
+   목록에도 없으면 **기본값으로 이 백엔드가 선택됨**(`llms.py:22-50`). 내부적으로
+   `AutoModelForCausalLM.from_pretrained(model_name, device_map="auto", ...)`로 우리 기존
+   파이프라인과 완전히 같은 패턴이고, 모델 클래스 매핑(`constant.py`)도 아키텍처 제한 없이
+   전부 `causal_lm`(`AutoModelForCausalLM`) 처리라 Llama-3.1-8B/Qwen2-7B/Qwen2.5-14B 등
+   기존 모델 이름을 `ollama/` 접두어 없이 그대로 `llms:` 인자에 쓰면 됨. 다만
+   `requirements.txt`에 `bitsandbytes`가 없어 Qwen-14B에 쓰던 4bit 양자화는 기본
+   미지원 — 필요 시 `hf_native_llm.py`의 `load_llm_and_tokenizer()`에 `quantization_config`
+   추가하는 소규모 패치로 해결 가능.
+
+**`adapters/asb.py` 구현 완료 (2026-08-31)**. `adapters/injecagent.py`/`adapters/agentdojo.py`와
+같은 패턴 — OPI(공격 유형은 ASB 자체 기본값 `context_ignoring`) 공격 문구가 삽입된 tool 응답
+한 턴을 단일 프롬프트로 잘라 `{"clean": IPIExample, "injected": IPIExample}` 쌍을 만든다.
+`build_asb_pairs()`. 세부 설계는 파일 상단 docstring 참고 — 핵심은 ASB에 실제 multi-stage
+workflow(LLM이 생성)가 없어도 되는 이유(`SimulatedTool.run()`이 파라미터 무관 고정 문자열
+반환)와, ground-truth 다음 행동이 없어서 같은 agent의 정상 tool 두 개를 (응답 생성 tool,
+다음 정상 tool) 순열로 페어링하는 방식.
+
+**로컬 스모크 테스트 (2026-08-31)**: 이 개발 머신(Windows)에는 torch/transformers가 없음
+(`env.sh`에 명시된 대로 실제 실행은 SSH GPU 서버 전용, 로컬은 코드 편집만) — 그래서 fake
+torch.tensor + word-level fake tokenizer로 순수 로직만 검증. 결과: `external_asb` 실 데이터
+기준 10 agent × task(5~6개) × normal tool 순열(2) × attacker tool(40개) 조합에서 **콜리전
+없이 4080쌍 전부 생성**, span이 input_ids를 gap/overlap 없이 정확히 타일링, read_target/
+exec_target이 의도한 tool 이름으로 정확히 디코드됨을 확인. `tools/diag_asb_pairs.py`로 실제
+토크나이저(예: `Qwen/Qwen2.5-7B-Instruct`) 기준 재검증 가능 — 실 BPE에서는 일부
+first-token 콜리전으로 4080보다 줄어들 수 있음(agentdojo.py의 `first_token_collision`과
+동일한 현상, 코드에 이미 스킵 처리돼 있음).
+
+**다음 할 일**:
+1. 서버에서 `tools/diag_asb_pairs.py --model <실제 모델>`로 실 토크나이저 기준 재검증
+   (콜리전 스킵률 확인)
+2. 기존 control head(`heads_agentdojo.json` 등)로 전이 검증 — `run_pipeline.py`의
+   `--injecagent_headsplit` 플로우(`build_injecagent_pairs`/`split_pairs` 패턴)를 참고해
+   `adapters.asb.build_asb_pairs`/`split_pairs`로 같은 흐름 구성. 새 head 탐색은 그 다음
+3. (선택) Qwen-14B를 쓸 경우 `hf_native_llm.py`에 4bit `quantization_config` 패치
 
 ---
 

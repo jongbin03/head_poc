@@ -6,10 +6,13 @@ PowerShell을 쓸 경우 `source .venv/Scripts/activate` 대신
 
 모든 명령은 이 디렉토리(`atlas_poc/`)에서 실행한다.
 
-> 🖥️ **연구실 공용 SSH 서버(Titan RTX 24GB × 3)에서 돌리는 경우 아래 0~2단계를 그대로
-> 따르면 안 된다.** 시스템 python이 3.8.19라 `transformers==4.51.3`이 안 깔리고, pyenv는
-> 공용 서버에서 쓰면 안 되며, bf16이 없어 dtype도 달라진다.
-> → **[부록 A. 공용 SSH 서버 절차](#부록-a-공용-ssh-서버-titan-rtx-24gb--3-절차)** 로 갈 것.
+> 🖥️ **연구실 공용 SSH 서버에서 돌리는 경우 아래 0~2단계를 그대로 따르면 안 된다.**
+> pyenv/sudo/pip --user 등은 공용 서버에서 못 쓰고, 서버마다 python 버전·GPU 세대가
+> 달라 절차가 갈린다. 어느 서버인지에 따라 아래로 갈 것:
+> - Titan RTX 24GB × 3(Turing, bf16 하드웨어 없음, 시스템 python 3.8.19) →
+>   **[부록 A](#부록-a-공용-ssh-서버-titan-rtx-24gb--3-절차)**
+> - aisec-king(RTX PRO 4500 32GB + RTX A6000 48GB, 둘 다 bf16 네이티브 지원) →
+>   **[부록 B](#부록-b-공용-서버-aisec-king-rtx-pro-4500-32gb--rtx-a6000-48gb-절차-신설-2026-08-31)**
 
 ---
 
@@ -439,3 +442,158 @@ git add results/ && git commit -m "..." && git push
 ```
 
 `results/`는 실행마다 새 폴더라 로컬 작업과 구조적으로 충돌하지 않는다.
+
+---
+
+## 부록 B. 공용 서버 aisec-king (RTX PRO 4500 32GB + RTX A6000 48GB) 절차 (신설 2026-08-31)
+
+**서버 이전.** 기존 부록 A(Titan RTX 24GB×3, Turing sm_75)는 그 서버 재현용으로 남겨둔다.
+이 서버는 GPU 세대가 완전히 다르고(RTX PRO 4500=Blackwell급, A6000=Ampere sm_86 — 둘 다
+`major>=8`이라 **bf16 하드웨어 네이티브 지원**, Turing처럼 에뮬레이션이 아님), 계정(`jbwon`)이
+서버 홈 자체를 소유해 부록 A의 "~/jbwon 하위에서만" 강제가 그대로 적용되진 않는다. 그래도
+공용 서버(다른 사용자·GPU 존재, sudo 금지)라는 제약은 동일하다.
+
+### B-0. 지켜야 할 제약
+
+- 다른 사용자 GPU 프로세스가 있으면 그 GPU는 건드리지 않는다 (kill 절대 금지)
+- **`sudo` 금지**, **`pip install --user` 금지**, **`git config --global` 금지**(저장소 로컬만)
+- 홈(`/home/jbwon`)은 이 계정 전용이라 부록 A처럼 별도 하위 폴더를 강제할 필요는 없지만,
+  캐시/venv는 여전히 **저장소 디렉토리 안**(`.cache/`, `envs/`, `miniforge3/` — 전부
+  `.gitignore` 처리됨)에 가둔다 — `env.sh`가 2026-08-31부로 `$JB`를 하드코딩된 경로 대신
+  **자기 자신이 있는 디렉토리(=저장소 루트)를 자동 감지**하도록 바뀌어서 별도 설정 없이 됨.
+
+### B-1. 저장소
+
+이미 `~/head_poc`에 clone돼 있다면:
+
+```bash
+cd ~/head_poc
+git pull
+```
+
+처음이라면:
+
+```bash
+git clone http://github.com/jongbin03/head_poc ~/head_poc
+cd ~/head_poc
+```
+
+```bash
+source ~/head_poc/env.sh   # $JB=~/head_poc로 자동 잡힘, Miniforge 없다는 경고는 B-3 전까진 정상
+```
+
+### B-2. 시스템 python 버전부터 확인
+
+부록 A가 Miniforge를 강제했던 건 그 서버 시스템 python이 3.8.19였기 때문(transformers
+>=3.9, agentdojo >=3.10 요구). 이 서버는 다를 수 있으니 먼저 확인:
+
+```bash
+python3 --version
+```
+
+- **3.10 이상이면** B-3(Miniforge)을 건너뛰고 시스템 python으로 바로 venv를 만든다:
+  ```bash
+  python3 -m venv "$JB/envs/atlas"
+  source ~/head_poc/env.sh    # 방금 만든 venv를 활성화 분기가 자동으로 잡음
+  python --version             # 3.10+ 확인
+  which python                 # $JB/envs/atlas/bin/python 이어야 함
+  ```
+  이 경우 B-3은 건너뛰고 B-4로 간다.
+- **3.10 미만이면** B-3(Miniforge)으로 간다.
+
+### B-3. (시스템 python이 3.10 미만인 경우만) Miniforge + venv
+
+부록 A-2와 동일한 이유(conda create 대신 venv, `~/.conda/environments.txt` 오염 방지)로
+Miniforge의 python을 써서 평범한 venv를 만든다. 절차는 부록 A-2 그대로, 경로만 `$JB`
+(=`~/head_poc`)로 자동 치환된다:
+
+```bash
+cd "$JB"
+curl -L -O "https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh"
+bash Miniforge3-Linux-x86_64.sh -b -p "$JB/miniforge3"
+
+"$JB/miniforge3/bin/python" --version          # 3.10~3.12 범위여야 함
+"$JB/miniforge3/bin/python" -m venv "$JB/envs/atlas"
+
+source ~/head_poc/env.sh
+python --version                                 # 3.10~3.12 확인
+which python                                     # $JB/envs/atlas/bin/python 이어야 함
+```
+
+### B-4. PyTorch — 두 GPU 다 cu128 이상 하나로 충분
+
+RTX PRO 4500(Blackwell급)은 로컬 5070Ti와 같은 이유로 **cu128 이상 필수**(구버전 CUDA
+빌드는 커널이 없어 실패하거나 조용히 CPU로 폴백). RTX A6000(Ampere sm_86)은 cu128 wheel도
+하위 호환 커널을 포함하므로 **같은 설치 하나로 두 GPU 다 커버된다** — 부록 A처럼 GPU마다
+다른 index-url을 쓸 필요가 없다.
+
+```bash
+pip install --upgrade pip
+pip install torch --index-url https://download.pytorch.org/whl/cu128
+```
+
+**검증 — 두 GPU 다 확인할 것:**
+
+```bash
+python - <<'PY'
+import torch
+print("torch:", torch.__version__)
+print("cuda available:", torch.cuda.is_available())
+for i in range(torch.cuda.device_count()):
+    print(f"[{i}]", torch.cuda.get_device_name(i), torch.cuda.get_device_capability(i))
+    # major>=8이면 bf16 하드웨어 네이티브 지원 (부록 A의 Turing 에뮬레이션 경고는 여기 해당 없음)
+    print(f"    bf16 native:", torch.cuda.get_device_capability(i)[0] >= 8)
+PY
+```
+
+기대 출력 예: `[0] NVIDIA RTX PRO 4500 ... (12, 0)`, `[1] NVIDIA RTX A6000 ... (8, 6)`,
+둘 다 `bf16 native: True`. `cuda available`이 `False`거나 디바이스가 안 잡히면 여기서
+멈추고 드라이버(`nvidia-smi` 상단 CUDA 버전, 이 서버는 13.3으로 확인됨 — cu128보다
+훨씬 최신이라 호환 문제는 없어야 함)부터 재확인한다.
+
+### B-5. 나머지 의존성 — 부록 A-4와 동일
+
+```bash
+python -c "import site; print(site.ENABLE_USER_SITE)"   # False 여야 함 (env.sh의 PYTHONNOUSERSITE)
+pip install -r requirements.txt
+
+# ⚠️ 필수 후처리 — torchvision을 torch와 같은 인덱스에서 다시 받는다 (lxt가 import-time에
+# torchvision을 요구, ABI 불일치 시 "operator torchvision::nms does not exist"로 죽음.
+# 원인/증상 상세는 부록 A-4 참고 — GPU 세대와 무관하게 여전히 적용됨)
+pip uninstall -y torchvision
+pip install torchvision --index-url https://download.pytorch.org/whl/cu128
+```
+
+외부 벤치마크 clone(전부 저장소 안, gitignore 처리됨 — 이 서버엔 아직 없으므로 새로 받아야 함):
+
+```bash
+git clone https://github.com/uiuc-kang-lab/InjecAgent.git external_injecagent
+git clone https://github.com/agiresearch/ASB.git external_asb   # P15, docs/todo.md 참고
+```
+
+### B-6. `--dtype` — bf16 (부록 A와 같은 결론, 이유는 다름)
+
+`--dtype auto`가 CUDA에서 항상 bf16을 고른다. 부록 A는 "하드웨어엔 없지만 에뮬레이션
+오버헤드가 작아서" bf16을 택했지만, 이 서버는 **두 GPU 다 bf16 하드웨어를 실제로 갖고
+있어**(B-4 검증) 애초에 에뮬레이션 이슈 자체가 없다. fp16을 피해야 하는 이유(Qwen2 계열
+activation이 fp16 최대값을 넘어 NaN, `tools/diag_dtype.py`로 판별 가능)는 GPU 세대와
+무관하게 동일하게 적용된다 — 부록 A-5 참고.
+
+### B-7. GPU 점유 확인 — 두 장 다 매번 확인
+
+```bash
+gpu_free
+```
+
+이 서버는 GPU가 2장(PRO 4500 32GB, A6000 48GB)뿐이라 부록 A의 "3장 관성적으로 다 잡지
+않기" 조언이 더 중요하다 — 필요한 크기에 맞는 GPU 한 장만 고르고, 나머지는 남겨둔다.
+32B 4bit급이면 PRO 4500(32GB) 한 장으로 충분할 수 있고, 그보다 크면 A6000(48GB)을 쓴다.
+SSH 끊김 대비 tmux 사용은 부록 A-6와 동일.
+
+### B-8. 결과 회수 — 부록 A-7과 동일
+
+```bash
+git config user.name "Won"
+git config user.email "jongbinwon@gmail.com"
+git add results/ && git commit -m "..." && git push
+```
