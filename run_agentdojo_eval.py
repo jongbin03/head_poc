@@ -116,6 +116,15 @@ def _heads_to_knockout_map(heads: List[Tuple[int, int]]) -> Dict[int, List[int]]
     return km
 
 
+_PARSE_STATS_NUMERIC_KEYS = ("n_calls", "ok", "no_tag", "truncated", "json_errors", "non_dict_args")
+
+
+def _parse_stats_delta(before: dict, after: dict) -> dict:
+    """`llm.parse_stats`는 전체 실행에 걸쳐 누적되는 단일 dict라, suite 루프 시작 시점의
+    스냅샷(before)과 그 suite가 끝난 시점(after)의 차이만 떼어내면 suite별 내역이 된다."""
+    return {k: after[k] - before[k] for k in _PARSE_STATS_NUMERIC_KEYS}
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", default="Qwen/Qwen2.5-1.5B-Instruct")
@@ -207,8 +216,13 @@ def main():
     rng = random.Random(args.seed)
     rows = []
     split_report: dict = {}
+    per_suite_parse_stats: dict = {}
     total_idx = 0
     for suite_name in args.suite:
+        # llm.parse_stats는 전체 실행에 걸쳐 누적되는 단일 dict라 suite별 내역이 안 보였다
+        # (2026-08-31, 32B 실행에서 "slack만 파싱 실패가 많은지" 확인하려다 발견) — suite
+        # 루프 시작 시점의 스냅샷을 떠 두고, 끝나면 그 사이의 증가분만 그 suite의 몫으로 기록.
+        _parse_stats_before = dict(llm.parse_stats)
         suite = get_suite(args.benchmark_version, suite_name)
         # pipeline.name="knockout-local-llm"에 "local"이 포함돼 있어 agentdojo.models.MODEL_NAMES의
         # "local" -> "Local model" 매핑에 걸림 — ImportantInstructionsAttack/ToolKnowledgeAttack 등이
@@ -229,6 +243,7 @@ def main():
                   f"(user_task {len(excluded)}개 전부 head 탐색에 쓰임) — 건너뜀")
             split_report[suite_name] = {"n_all": n_before, "n_excluded": n_excluded,
                                         "n_evaluated": 0, "excluded_user_tasks": sorted(excluded)}
+            per_suite_parse_stats[suite_name] = _parse_stats_delta(_parse_stats_before, llm.parse_stats)
             continue
 
         rng.shuffle(all_pairs)
@@ -273,6 +288,8 @@ def main():
             rows.append(row)
             print(f"  [{total_idx}] {suite_name}/{ut.ID}+{it.ID}: k=0 utility={u0} security={s0}  |  k={len(heads)} utility={uk} security={sk}")
 
+        per_suite_parse_stats[suite_name] = _parse_stats_delta(_parse_stats_before, llm.parse_stats)
+
     llm.knockout_map = {}
 
     def rate(rs, key):
@@ -281,10 +298,13 @@ def main():
     per_suite = {}
     for suite_name in args.suite:
         rs = [r for r in rows if r["suite"] == suite_name]
+        ps = per_suite_parse_stats.get(suite_name, {})
+        ps_ok_rate = ps["ok"] / ps["n_calls"] if ps.get("n_calls") else 0.0
         per_suite[suite_name] = {
             "n_pairs": len(rs),
             "k0_utility_rate": rate(rs, "k0_utility"), "k0_security_rate": rate(rs, "k0_security"),
             "kN_utility_rate": rate(rs, "kN_utility"), "kN_security_rate": rate(rs, "kN_security"),
+            "parse_stats": ps, "parse_ok_rate": ps_ok_rate,
         }
 
     summary = {
@@ -310,6 +330,15 @@ def main():
         f"\n[tool_call parse stats] n_calls={ps['n_calls']}  ok={ps['ok']}  no_tag={ps['no_tag']}  "
         f"truncated(닫는태그 없음)={ps['truncated']}  json_errors={ps['json_errors']}  non_dict_args={ps['non_dict_args']}"
     )
+    for suite_name, s in per_suite.items():
+        sps = s["parse_stats"]
+        if not sps.get("n_calls"):
+            continue
+        print(
+            f"  [{suite_name}] parse_ok_rate={s['parse_ok_rate']:.3f}  n_calls={sps['n_calls']}  "
+            f"ok={sps['ok']}  no_tag={sps['no_tag']}  truncated={sps['truncated']}  "
+            f"json_errors={sps['json_errors']}"
+        )
 
     # out_json은 위(롤아웃 시작 전)에서 이미 정해지고 폴더까지 확보돼 있다.
     # 결과 폴더가 아니라 단일 JSON으로 나가는 경로라, env.json 대신 summary 안에 넣는다.
