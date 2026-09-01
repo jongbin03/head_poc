@@ -17,16 +17,26 @@
 # .gitignore 처리됨)에 가두면 "내 작업 공간 밖은 안 건드린다"는 원 취지도 그대로 지켜진다.
 
 # ---- 작업 루트 -------------------------------------------------------------
-# ⚠️ bash 전용 가드. $BASH_SOURCE는 zsh/dash/sh 등 다른 셸에서는 비어있는 변수라,
-# 가드 없이 쓰면 dirname ""이 "."로 조용히 떨어져 $JB가 "지금 cd해 있던 아무 디렉토리"가
-# 된다 — 이 파일이 막으려는 사고(HF 가중치 수십 GB가 workspace 밖에 떨어짐)가 경고 없이
-# 그대로 일어난다(2026-08-31 코드리뷰로 발견). bash로 source하지 않았으면 여기서 바로 중단.
-if [ -z "${BASH_SOURCE:-}" ]; then
-    echo "[env.sh] 에러: bash에서 source해야 한다 (\$BASH_SOURCE가 비어있음 — zsh/dash/sh" >&2
-    echo "  등에서 실행 중일 수 있다). 'bash'로 먼저 들어간 뒤 다시 source할 것." >&2
+# bash/zsh 겸용 가드. "지금 source되고 있는 이 파일의 경로"를 얻는 방법이 셸마다 다르다:
+#   bash: ${BASH_SOURCE[0]}
+#   zsh : ${(%):-%x}   ((%) 플래그로 %x(현재 실행 중인 파일명)를 prompt-expansion)
+# 가드 없이 $0 같은 걸 쓰면 dirname이 조용히 "."로 떨어져 $JB가 "지금 cd해 있던 아무
+# 디렉토리"가 된다 — 이 파일이 막으려는 사고(HF 가중치 수십 GB가 workspace 밖에 떨어짐)가
+# 경고 없이 그대로 일어난다(2026-08-31 코드리뷰로 발견, 이후 zsh 지원 추가). 아래 zsh
+# 분기는 bash에서는 절대 실행되지 않는 죽은 코드라 bash 파서가 `${(%):-%x}` 문법 자체를
+# 검증하지 않는다(실측 확인) — bash 쪽에서 이 파일이 깨질 걱정은 없다.
+# dash/sh 등 그 외 셸은 여전히 미지원 — 명시적으로 중단.
+if [ -n "${ZSH_VERSION:-}" ]; then
+    _env_sh_self="${(%):-%x}"
+elif [ -n "${BASH_SOURCE:-}" ]; then
+    _env_sh_self="${BASH_SOURCE[0]}"
+else
+    echo "[env.sh] 에러: bash 또는 zsh에서 source해야 한다 (\$BASH_SOURCE/\$ZSH_VERSION 둘 다" >&2
+    echo "  비어있음 — dash/sh 등에서 실행 중일 수 있다). bash나 zsh로 먼저 들어간 뒤 다시 source할 것." >&2
     return 1 2>/dev/null || exit 1
 fi
-export JB="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+export JB="$(cd "$(dirname "$_env_sh_self")" && pwd)"
+unset _env_sh_self
 
 # ---- 캐시 리다이렉트 -------------------------------------------------------
 # XDG_CACHE_HOME이 ~/.cache/* 대부분을 한 번에 포섭하지만, 아래 것들은 자체 기본값을
