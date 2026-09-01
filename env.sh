@@ -9,8 +9,9 @@
 #
 # 자세한 배경: docs/plan-2026-08-26.md 1절 (Titan RTX 서버 기준 원안).
 #
-# ⚠️ 2026-08-31, 서버 이전(aisec-king, RTX PRO 4500 32GB + RTX A6000 48GB)으로 $JB를
-# 하드코딩된 "$HOME/jbwon"에서 **"이 env.sh가 있는 디렉토리"(=저장소 루트)를 자동 감지**하는
+# ⚠️ 2026-08-31, 서버 이전(aisec-king, RTX PRO 4500 32GB + RTX A6000 48GB + RTX 4090 24GB —
+# 4090은 같은 날 중으로 추가됨)으로 $JB를 하드코딩된 "$HOME/jbwon"에서 **"이 env.sh가 있는
+# 디렉토리"(=저장소 루트)를 자동 감지**하는
 # 방식으로 바꿨다 — clone 위치가 서버마다 달라져도(이번엔 ~/head_poc, 예전엔 ~/jbwon/atlas_poc)
 # 이 파일을 고칠 필요가 없다. 캐시/venv를 저장소 안(.cache/, envs/, miniforge3/ — 전부
 # .gitignore 처리됨)에 가두면 "내 작업 공간 밖은 안 건드린다"는 원 취지도 그대로 지켜진다.

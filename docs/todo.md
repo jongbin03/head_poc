@@ -1117,15 +1117,19 @@ Llama 8B→70B)는 아직 없다. `meta-llama/Llama-3.1-70B-Instruct`(또는 더
 **보류 이유 — 지금 하드웨어로 OOM 위험이 크다**: 32B 4bit조차 `--device_map auto` +
 `batch_size=3` + `max_seq_len=1500`으로 낮춰서도 OOM 76/206(37%)이 났다(2026-08-24,
 `results/2026-08-24_s4_32b/`). 70B는 32B의 2배 이상이라 가중치만 4bit로 ~35GB, 여기에
-attention relevance backward의 activation 메모리가 얹힌다 — 지금 서버(Titan RTX 24GB×3
-또는 신규 Pro 4500 32GB/A6000 48GB, `status-2026-08-24.md` 3절)로 스모크 없이 바로
-안정적인 수율을 낼 수 있을지 불확실. 405B는 4bit로도 200GB대라 지금 하드웨어로는 논외.
+attention relevance backward의 activation 메모리가 얹힌다 — 지금 서버(aisec-king, Pro 4500
+32GB/A6000 48GB/RTX 4090 24GB — 4090은 2026-08-31 중 추가됨, `status-2026-08-24.md` 3절은
+4090 추가 전 옛 계획)로 스모크 없이 바로 안정적인 수율을 낼 수 있을지 불확실. 세 카드
+합계(32+48+24=104GB)는 `device_map auto`로 분산했을 때 여유가 커졌지만, 분산은 순차
+실행이라 느리다는 문제는 그대로다(아래 2번). 405B는 4bit로도 200GB대라 세 카드를 다 써도
+지금 하드웨어로는 논외.
 
 **할 일 (착수 시)**:
 1. 32B 때와 같은 순서 — **7B/8B 스모크 없이 바로 70B로 가지 말 것**. `head_n`을 작게
    줄인 소규모 스모크로 OOM 여부·수율 먼저 확인(plan-2026-08-26.md 0.1절 (b)와 동일 논리)
-2. 새 서버(A6000 48GB 단일 카드)가 있다면 분산(`device_map auto`) 없이 단일 카드 우선
-   시도 — 분산은 순차 실행이라 느림(status-2026-08-24.md 3절)
+2. A6000 48GB 단일 카드로 분산(`device_map auto`) 없이 우선 시도 — 분산은 순차 실행이라
+   느림(status-2026-08-24.md 3절). 안 들어가면 그때 A6000+RTX 4090(2026-08-31 추가) 분산도
+   고려 — PRO 4500(32GB)은 다른 실험(32B 등)에 쓰는 카드라 여기서는 우선순위 낮음
 3. S4(discover) → S5(eval) `--eval_split heldout` 파이프라인은 그대로 재사용 (코드 수정 0)
 4. Qwen2.5 32B 결과와 "스케일업 시 knockout 효과가 어떻게 변하는가"를 family 두 개로
    교차 비교 — 8/26 사이클에서 나온 "32B에서 baseline 공격 성공률 floor가 깨진다",

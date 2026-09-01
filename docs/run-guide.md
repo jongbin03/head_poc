@@ -11,8 +11,8 @@ PowerShell을 쓸 경우 `source .venv/Scripts/activate` 대신
 > 달라 절차가 갈린다. 어느 서버인지에 따라 아래로 갈 것:
 > - Titan RTX 24GB × 3(Turing, bf16 하드웨어 없음, 시스템 python 3.8.19) →
 >   **[부록 A](#부록-a-공용-ssh-서버-titan-rtx-24gb--3-절차)**
-> - aisec-king(RTX PRO 4500 32GB + RTX A6000 48GB, 둘 다 bf16 네이티브 지원) →
->   **[부록 B](#부록-b-공용-서버-aisec-king-rtx-pro-4500-32gb--rtx-a6000-48gb-절차-신설-2026-08-31)**
+> - aisec-king(RTX PRO 4500 32GB + RTX A6000 48GB + RTX 4090 24GB, 셋 다 bf16 네이티브 지원) →
+>   **[부록 B](#부록-b-공용-서버-aisec-king-rtx-pro-4500-32gb--rtx-a6000-48gb--rtx-4090-24gb-절차-신설-2026-08-31)**
 
 ---
 
@@ -445,13 +445,19 @@ git add results/ && git commit -m "..." && git push
 
 ---
 
-## 부록 B. 공용 서버 aisec-king (RTX PRO 4500 32GB + RTX A6000 48GB) 절차 (신설 2026-08-31)
+## 부록 B. 공용 서버 aisec-king (RTX PRO 4500 32GB + RTX A6000 48GB + RTX 4090 24GB) 절차 (신설 2026-08-31)
 
 **서버 이전.** 기존 부록 A(Titan RTX 24GB×3, Turing sm_75)는 그 서버 재현용으로 남겨둔다.
-이 서버는 GPU 세대가 완전히 다르고(RTX PRO 4500=Blackwell급, A6000=Ampere sm_86 — 둘 다
-`major>=8`이라 **bf16 하드웨어 네이티브 지원**, Turing처럼 에뮬레이션이 아님), 계정(`jbwon`)이
-서버 홈 자체를 소유해 부록 A의 "~/jbwon 하위에서만" 강제가 그대로 적용되진 않는다. 그래도
-공용 서버(다른 사용자·GPU 존재, sudo 금지)라는 제약은 동일하다.
+이 서버는 GPU 세대가 완전히 다르고(RTX PRO 4500=Blackwell급, A6000=Ampere sm_86, RTX
+4090=Ada Lovelace sm_89 — **셋 다 `major>=8`이라 bf16 하드웨어 네이티브 지원**, Turing처럼
+에뮬레이션이 아님), 계정(`jbwon`)이 서버 홈 자체를 소유해 부록 A의 "~/jbwon 하위에서만"
+강제가 그대로 적용되진 않는다. 그래도 공용 서버(다른 사용자·GPU 존재, sudo 금지)라는
+제약은 동일하다.
+
+> ⚠️ **2026-08-31 중 RTX 4090 24GB가 추가됨** — 처음 이 부록을 쓸 때는 GPU가 2장(PRO
+> 4500/A6000)뿐이었다. 아래 절차 자체는 그대로 적용되지만(같은 cu128 하나로 세 카드 다
+> 커버됨, B-4), GPU 인덱스(`CUDA_VISIBLE_DEVICES=N`)가 추가 전과 달라졌을 수 있으니
+> **명령을 그대로 재사용하지 말고 매번 `gpu_free`로 인덱스를 다시 확인할 것.**
 
 ### B-0. 지켜야 할 제약
 
@@ -520,19 +526,19 @@ python --version                                 # 3.10~3.12 확인
 which python                                     # $JB/envs/atlas/bin/python 이어야 함
 ```
 
-### B-4. PyTorch — 두 GPU 다 cu128 이상 하나로 충분
+### B-4. PyTorch — 세 GPU 다 cu128 이상 하나로 충분
 
 RTX PRO 4500(Blackwell급)은 로컬 5070Ti와 같은 이유로 **cu128 이상 필수**(구버전 CUDA
-빌드는 커널이 없어 실패하거나 조용히 CPU로 폴백). RTX A6000(Ampere sm_86)은 cu128 wheel도
-하위 호환 커널을 포함하므로 **같은 설치 하나로 두 GPU 다 커버된다** — 부록 A처럼 GPU마다
-다른 index-url을 쓸 필요가 없다.
+빌드는 커널이 없어 실패하거나 조용히 CPU로 폴백). RTX A6000(Ampere sm_86)·RTX 4090(Ada
+Lovelace sm_89)은 cu128 wheel도 하위 호환 커널을 포함하므로 **같은 설치 하나로 세 GPU
+다 커버된다** — 부록 A처럼 GPU마다 다른 index-url을 쓸 필요가 없다.
 
 ```bash
 pip install --upgrade pip
 pip install torch --index-url https://download.pytorch.org/whl/cu128
 ```
 
-**검증 — 두 GPU 다 확인할 것:**
+**검증 — 세 GPU 다 확인할 것:**
 
 ```bash
 python - <<'PY'
@@ -547,8 +553,9 @@ PY
 ```
 
 기대 출력 예: `[0] NVIDIA RTX PRO 4500 ... (12, 0)`, `[1] NVIDIA RTX A6000 ... (8, 6)`,
-둘 다 `bf16 native: True`. `cuda available`이 `False`거나 디바이스가 안 잡히면 여기서
-멈추고 드라이버(`nvidia-smi` 상단 CUDA 버전, 이 서버는 13.3으로 확인됨 — cu128보다
+`[2] NVIDIA GeForce RTX 4090 ... (8, 9)`(인덱스 순서는 실제로 다를 수 있음 — `gpu_free`로
+확인), 셋 다 `bf16 native: True`. `cuda available`이 `False`거나 디바이스가 안 잡히면
+여기서 멈추고 드라이버(`nvidia-smi` 상단 CUDA 버전, 이 서버는 13.3으로 확인됨 — cu128보다
 훨씬 최신이라 호환 문제는 없어야 함)부터 재확인한다.
 
 ### B-5. 나머지 의존성 — 부록 A-4와 동일
@@ -574,21 +581,27 @@ git clone https://github.com/agiresearch/ASB.git external_asb   # P15, docs/todo
 ### B-6. `--dtype` — bf16 (부록 A와 같은 결론, 이유는 다름)
 
 `--dtype auto`가 CUDA에서 항상 bf16을 고른다. 부록 A는 "하드웨어엔 없지만 에뮬레이션
-오버헤드가 작아서" bf16을 택했지만, 이 서버는 **두 GPU 다 bf16 하드웨어를 실제로 갖고
+오버헤드가 작아서" bf16을 택했지만, 이 서버는 **세 GPU 다 bf16 하드웨어를 실제로 갖고
 있어**(B-4 검증) 애초에 에뮬레이션 이슈 자체가 없다. fp16을 피해야 하는 이유(Qwen2 계열
 activation이 fp16 최대값을 넘어 NaN, `tools/diag_dtype.py`로 판별 가능)는 GPU 세대와
 무관하게 동일하게 적용된다 — 부록 A-5 참고.
 
-### B-7. GPU 점유 확인 — 두 장 다 매번 확인
+### B-7. GPU 점유 확인 — 세 장 다 매번 확인
 
 ```bash
 gpu_free
 ```
 
-이 서버는 GPU가 2장(PRO 4500 32GB, A6000 48GB)뿐이라 부록 A의 "3장 관성적으로 다 잡지
-않기" 조언이 더 중요하다 — 필요한 크기에 맞는 GPU 한 장만 고르고, 나머지는 남겨둔다.
-32B 4bit급이면 PRO 4500(32GB) 한 장으로 충분할 수 있고, 그보다 크면 A6000(48GB)을 쓴다.
-SSH 끊김 대비 tmux 사용은 부록 A-6와 동일.
+이 서버는 GPU가 3장(PRO 4500 32GB, A6000 48GB, RTX 4090 24GB)이라 부록 A의 "여러 장
+관성적으로 다 잡지 않기" 조언이 여전히 중요하다 — 필요한 크기에 맞는 GPU 한 장만 고르고,
+나머지는 남겨둔다.
+- **7~8B급**(bf16 기준 ~16GB)이면 **RTX 4090(24GB) 한 장**으로 충분 — 큰 카드를 안 묶어둠
+- **32B 4bit급**이면 PRO 4500(32GB) 한 장으로 충분할 수 있음
+- 그보다 크면 A6000(48GB)을 쓴다
+
+세 장이 다 비어 있으면 독립 실험 3개를 동시에 돌리는 것도 가능(부록 A-6와 같은 논리) —
+예: 7B는 4090, 32B는 PRO 4500, 그보다 큰 스케일업은 A6000. SSH 끊김 대비 tmux 사용은
+부록 A-6와 동일.
 
 ### B-8. 결과 회수 — 부록 A-7과 동일
 
