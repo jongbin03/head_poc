@@ -49,7 +49,7 @@ from runtime_env import add_runtime_args, collect_env_meta, describe
 
 
 def _load_model(model_path: str, family: str, four_bit: bool, device: str, dtype: str = "auto",
-                 device_map: str = None):
+                 device_map: str = None, bnb_quant_type: str = "fp4", bnb_double_quant: bool = False):
     # Track B는 forward-only(edge_knockout)라 attn_relevance.load_model_for_relevance의
     # lxt monkey-patch(backward 전용)가 필요 없다 — 그냥 eager attention으로만 로드한다.
     from runtime_env import resolve_dtype
@@ -67,15 +67,29 @@ def _load_model(model_path: str, family: str, four_bit: bool, device: str, dtype
     torch_dtype, dtype_name = resolve_dtype(dtype, resolved_device_map)
 
     kwargs = dict(torch_dtype=torch_dtype, device_map=resolved_device_map, attn_implementation="eager")
+    quant_meta = None
     if four_bit:
         from transformers import BitsAndBytesConfig
 
-        kwargs["quantization_config"] = BitsAndBytesConfig(load_in_4bit=True, bnb_4bit_compute_dtype=torch_dtype)
+        kwargs["quantization_config"] = BitsAndBytesConfig(
+            load_in_4bit=True,
+            bnb_4bit_compute_dtype=torch_dtype,
+            bnb_4bit_quant_type=bnb_quant_type,
+            bnb_4bit_use_double_quant=bnb_double_quant,
+        )
+        # 어느 4bit 설정으로 낸 숫자인지 사후에 가릴 수 있게 실제 쓴 값을 남긴다
+        # (2.1.13: fp4 기본값 + double_quant off가 knockout 불안정 원인 후보).
+        quant_meta = {
+            "load_in_4bit": True,
+            "bnb_4bit_quant_type": bnb_quant_type,
+            "bnb_4bit_use_double_quant": bool(bnb_double_quant),
+            "bnb_4bit_compute_dtype": str(torch_dtype),
+        }
 
     model = AutoModelForCausalLM.from_pretrained(model_path, **kwargs)
     model.eval()
     tok = AutoTokenizer.from_pretrained(model_path)
-    return model, tok, modeling_mod, dtype_name
+    return model, tok, modeling_mod, dtype_name, quant_meta
 
 
 def _build_pipeline(llm, max_iters: int) -> AgentPipeline:
@@ -138,6 +152,18 @@ def main():
         "'auto'면 여러 GPU에 레이어를 분산한다 — 32B처럼 단일 24GB에 안 들어가는 모델용.",
     )
     parser.add_argument("--four_bit", action="store_true")
+    parser.add_argument(
+        "--bnb_quant_type", default="fp4", choices=["fp4", "nf4"],
+        help="--four_bit일 때만 유효. bitsandbytes 4bit 양자화 방식. "
+        "fp4(기본, bitsandbytes 자체 기본값 그대로 — 지금까지 모든 4bit 실행이 이 값), "
+        "nf4(NormalFloat4, 보통 fp4보다 정확도 높음). "
+        "docs/feedback-2026-08-31.md 2.1.13 '4bit knockout 불안정' 추정 검증용.",
+    )
+    parser.add_argument(
+        "--bnb_double_quant", action="store_true",
+        help="--four_bit일 때만 유효. bnb_4bit_use_double_quant=True (양자화 상수도 한 번 "
+        "더 양자화). 기본 off = 지금까지 실행과 동일. 2.1.13 검증용.",
+    )
     parser.add_argument(
         "--tool_call_format", default="custom", choices=["custom", "agentdojo_default"],
         help="P16(2026-08-31, 교수님 피드백). custom(기본): 모델별 native 포맷 + family별 "
@@ -202,10 +228,15 @@ def main():
     print(f"[run_agentdojo_eval] {len(heads)} heads loaded from {args.heads_json}: {heads}")
 
     print(f"[run_agentdojo_eval] loading {args.model} ...")
-    model, tok, modeling_mod, dtype_name = _load_model(
-        args.model, args.family, args.four_bit, args.device, args.dtype, args.device_map
+    model, tok, modeling_mod, dtype_name, quant_meta = _load_model(
+        args.model, args.family, args.four_bit, args.device, args.dtype, args.device_map,
+        bnb_quant_type=args.bnb_quant_type, bnb_double_quant=args.bnb_double_quant,
     )
     print(describe(dtype_name))
+    if quant_meta:
+        print(f"[run_agentdojo_eval] 4bit: quant_type={quant_meta['bnb_4bit_quant_type']} "
+              f"double_quant={quant_meta['bnb_4bit_use_double_quant']} "
+              f"compute_dtype={quant_meta['bnb_4bit_compute_dtype']}")
 
     llm = KnockoutLocalLLM(
         model, tok, modeling_mod, knockout_map=None, max_new_tokens=args.max_new_tokens,
@@ -311,6 +342,7 @@ def main():
         "model": args.model, "suites": args.suite, "heads_json": args.heads_json, "attack": args.attack,
         "n_heads": len(heads), "n_pairs": len(rows), "seed": args.seed, "max_iters": args.max_iters,
         "max_new_tokens": args.max_new_tokens, "tool_call_format": args.tool_call_format,
+        "four_bit": args.four_bit, "quantization": quant_meta,
         "k0_utility_rate": rate(rows, "k0_utility"), "k0_security_rate": rate(rows, "k0_security"),
         "kN_utility_rate": rate(rows, "kN_utility"), "kN_security_rate": rate(rows, "kN_security"),
         "per_suite": per_suite,
@@ -349,7 +381,7 @@ def main():
         # 어느 user_task를 왜 뺐는지까지 남긴다 — 사후에 "정말 held-out이었나"를 검증 가능하게
         "per_suite": split_report,
     }
-    summary["env"] = collect_env_meta(dtype_name)
+    summary["env"] = collect_env_meta(dtype_name, extra={"quantization": quant_meta})
     with open(out_json, "w", encoding="utf-8") as f:
         json.dump(summary, f, indent=2)
     print(f"\nsummary saved to {out_json}")
