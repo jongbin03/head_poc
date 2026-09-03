@@ -49,7 +49,7 @@ from runtime_env import add_runtime_args, collect_env_meta, describe
 
 
 def _load_model(model_path: str, family: str, four_bit: bool, device: str, dtype: str = "auto",
-                 device_map: str = None, bnb_quant_type: str = "fp4", bnb_double_quant: bool = False):
+                 device_map: str = None, bnb_quant_type: str = "nf4", bnb_double_quant: bool = True):
     # Track B는 forward-only(edge_knockout)라 attn_relevance.load_model_for_relevance의
     # lxt monkey-patch(backward 전용)가 필요 없다 — 그냥 eager attention으로만 로드한다.
     from runtime_env import resolve_dtype
@@ -153,17 +153,25 @@ def main():
     )
     parser.add_argument("--four_bit", action="store_true")
     parser.add_argument(
-        "--bnb_quant_type", default="fp4", choices=["fp4", "nf4"],
+        "--bnb_quant_type", default="nf4", choices=["fp4", "nf4"],
         help="--four_bit일 때만 유효. bitsandbytes 4bit 양자화 방식. "
-        "fp4(기본, bitsandbytes 자체 기본값 그대로 — 지금까지 모든 4bit 실행이 이 값), "
-        "nf4(NormalFloat4, 보통 fp4보다 정확도 높음). "
-        "docs/feedback-2026-08-31.md 2.1.13 '4bit knockout 불안정' 추정 검증용.",
+        "nf4(기본, 2026-09-03~ — NormalFloat4, fp4보다 정확도 높음), "
+        "fp4(bitsandbytes 자체 기본값 — 2026-09-02까지의 모든 4bit 실행이 이 값). "
+        "기본값 교체 근거: docs/feedback-2026-08-31.md 2.1.14 (fp4가 7B knockout "
+        "backfire·utility 붕괴의 원인, nf4+double_quant로 대부분 해소).",
     )
-    parser.add_argument(
-        "--bnb_double_quant", action="store_true",
+    dq_group = parser.add_mutually_exclusive_group()
+    dq_group.add_argument(
+        "--bnb_double_quant", dest="bnb_double_quant", action="store_true",
         help="--four_bit일 때만 유효. bnb_4bit_use_double_quant=True (양자화 상수도 한 번 "
-        "더 양자화). 기본 off = 지금까지 실행과 동일. 2.1.13 검증용.",
+        "더 양자화). 2026-09-03~ 기본 on. 근거: 2.1.14.",
     )
+    dq_group.add_argument(
+        "--no_bnb_double_quant", dest="bnb_double_quant", action="store_false",
+        help="double_quant off. fp4/no-dq (2026-09-02까지의 4bit 실행) 재현: "
+        "--bnb_quant_type fp4 --no_bnb_double_quant.",
+    )
+    parser.set_defaults(bnb_double_quant=True)
     parser.add_argument(
         "--tool_call_format", default="custom", choices=["custom", "agentdojo_default"],
         help="P16(2026-08-31, 교수님 피드백). custom(기본): 모델별 native 포맷 + family별 "
