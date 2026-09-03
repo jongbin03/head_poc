@@ -49,7 +49,8 @@ from runtime_env import add_runtime_args, collect_env_meta, describe
 
 
 def _load_model(model_path: str, family: str, four_bit: bool, device: str, dtype: str = "auto",
-                 device_map: str = None, bnb_quant_type: str = "nf4", bnb_double_quant: bool = True):
+                 device_map: str = None, bnb_quant_type: str = "nf4", bnb_double_quant: bool = True,
+                 max_memory: list = None):
     # Track B는 forward-only(edge_knockout)라 attn_relevance.load_model_for_relevance의
     # lxt monkey-patch(backward 전용)가 필요 없다 — 그냥 eager attention으로만 로드한다.
     from runtime_env import resolve_dtype
@@ -67,6 +68,17 @@ def _load_model(model_path: str, family: str, four_bit: bool, device: str, dtype
     torch_dtype, dtype_name = resolve_dtype(dtype, resolved_device_map)
 
     kwargs = dict(torch_dtype=torch_dtype, device_map=resolved_device_map, attn_implementation="eager")
+    # --device_map auto일 때 accelerate가 GPU0에 가중치를 몰아넣어 eager-attention 활성값
+    # 스파이크에서 OOM나는 걸 막는다 (feedback 2.1.11: 32B bf16 slack 23/35만 완주).
+    if max_memory and resolved_device_map == "auto":
+        mm = {}
+        for spec in max_memory:
+            idx, sep, size = spec.partition(":")
+            if not sep:
+                raise SystemExit(f"--max_memory 항목은 'IDX:SIZE' 형식이어야 함 (받음: {spec!r})")
+            mm[int(idx)] = size
+        mm["cpu"] = "0GiB"  # CPU 오프로딩 금지 — 느리게 도느니 빨리 실패
+        kwargs["max_memory"] = mm
     quant_meta = None
     if four_bit:
         from transformers import BitsAndBytesConfig
@@ -152,6 +164,12 @@ def main():
         "'auto'면 여러 GPU에 레이어를 분산한다 — 32B처럼 단일 24GB에 안 들어가는 모델용.",
     )
     parser.add_argument("--four_bit", action="store_true")
+    parser.add_argument(
+        "--max_memory", nargs="+", default=None, metavar="IDX:SIZE",
+        help="--device_map auto일 때만 유효. GPU별 가중치 상한 (예: --max_memory 0:40GiB 1:26GiB "
+        "2:18GiB). accelerate auto가 GPU0에 몰아 활성값 스파이크에서 OOM나는 걸 방지 "
+        "(feedback 2.1.11 — 32B bf16). cpu는 자동으로 0GiB(오프로딩 금지).",
+    )
     parser.add_argument(
         "--bnb_quant_type", default="nf4", choices=["fp4", "nf4"],
         help="--four_bit일 때만 유효. bitsandbytes 4bit 양자화 방식. "
@@ -239,6 +257,7 @@ def main():
     model, tok, modeling_mod, dtype_name, quant_meta = _load_model(
         args.model, args.family, args.four_bit, args.device, args.dtype, args.device_map,
         bnb_quant_type=args.bnb_quant_type, bnb_double_quant=args.bnb_double_quant,
+        max_memory=args.max_memory,
     )
     print(describe(dtype_name))
     if quant_meta:
