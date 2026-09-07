@@ -449,7 +449,9 @@ table(s, M_L, Y_BODY, M_W,
 
 card(s, M_L, 4.30, M_W, 2.05, CARD_HL)
 tf = textbox(s, 1.00, 4.50, 11.33, 1.70)
-para(tf, [("두 nf4dq 실행이 교집합 136쌍 중 24쌍 불일치(18쌍이 baseline 차이) → ", {}),
+para(tf, [("두 nf4dq 실행(둘 다 slack 풀 35쌍 전수) 비교 시 ", {}),
+          B("slack 12/35쌍(34%) 불일치, 그중 8쌍이 baseline 차이", RED),
+          (" (user_task_0·2가 k0 붕괴) → ", {}),
           B("32B-4bit 평가는 run-to-run 비결정적", RED), (" — 이 경로로는 스케일 판정 불가.", {})],
      size=12, first=True)
 para(tf, [B("bf16으로 우회", BLUE),

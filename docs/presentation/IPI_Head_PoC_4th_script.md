@@ -221,8 +221,10 @@ slack 성공 공격의 injection_task별 분해(held-out 35쌍 전수, `k0_sec �
 | **32B bf16** | A6000+2 / **bf16** | 0.257 | **0.143** | 5 | **1** | 4 |
 | (대조) 7B·8B bf16 | 4090 / bf16 | ~0.18 | **0.000** | 전량 | **0** | — |
 
-- 두 nf4dq 실행이 교집합 136쌍 중 24쌍 불일치(18쌍이 baseline 자체 차이) → **32B-4bit
-  평가는 run-to-run 비결정적** — 이 경로로는 스케일 판정 불가.
+- 두 nf4dq 실행(둘 다 slack held-out 풀 35쌍 전수) 비교 시 **slack 35쌍 중 12쌍(34%)
+  불일치**, 그중 8쌍이 baseline(k0) 필드 — knockout을 꺼도 안 맞음(주로 `user_task_0`의
+  injection 5변형 전부 + `user_task_2`가 k0_util 붕괴). → **32B-4bit 평가는 run-to-run
+  비결정적** — 이 경로로는 스케일 판정 불가. (7B-4bit는 같은 GPU 2회 152/152 완전 일치와 대조.)
 - **bf16으로 우회**: 완주율 100%·결정론적인데도 kN_sec 0.143(≠0) + backfire 1 — 7B·8B
   bf16(전량 억제·backfire 0)과 질적으로 다름 → **fp4와 무관한 스케일 기여 확인**.
 
