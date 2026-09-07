@@ -3,8 +3,8 @@
 > 3차 발표(`IPI_Head_PoC_3rd_script.md`, 2026-08-26) 이후 교수님 피드백 대응 사이클(P16,
 > 2026-08-31~09-06) 결과를 담은 4차 발표 자료. 3차와 같은 톤으로 **최대한 간단하게** —
 > 서론 두 슬라이드(3차 요약 → 이번 사이클 개요), 세 개의 실험 라인(파서 A/B → 표본 확대
-> → 양자화 규명)을 배경→결과 순으로, 공격 성공 분석 한 슬라이드, 대조 실험 한 슬라이드,
-> 한계 한 슬라이드, 마무리 한 슬라이드로 구성(총 15슬라이드).
+> → 양자화 규명)을 배경→결과 순으로, 공격 성공 분석 한 슬라이드,
+> 마지막에 결과 요약 + 다음 단계 한 슬라이드로 구성(총 12슬라이드).
 > 발표 스크립트 전체 서술이 아니라, 슬라이드에 들어갈 내용을 그대로 정리한 문서 —
 > `build_deck_4th.py`가 이 문서 순서·수치를 그대로 pptx로 옮길 예정(아직 미작성, 2nd/3rd의
 > `build_deck_{2nd,3rd}.py` 패턴 참고해서 신설 필요).
@@ -16,8 +16,9 @@
 > `results/2026-09-02_p16b_4bit/`·`2026-09-02_p16c_32b_nf4dq/`·`2026-09-03_p16d_32b_bf16/`
 > (양자화 실험), `results/2026-09-05_p16e_32b_bf16_banking/`(대조 실험).
 >
-> ✅ **확정 (2026-09-07)** — 서론 2슬라이드 분리 + S8 공격 성공 분석을 4모델 injection_task
-> 분해표로 재작성(fp4 32B·bf16 32B·7B·Llama 실측). `build_deck_4th.py` 신설·pptx 산출만 남음.
+> ✅ **확정 (2026-09-07)** — 서론 2슬라이드 분리 + S8 공격 성공 분석 4모델 injection_task
+> 분해표 + 옛 S12~S15(종합·대조·한계·마무리)를 S12 한 장(결과 요약 + 다음 단계)으로 통합.
+> `build_deck_4th.py`·pptx 반영 완료.
 
 ---
 
@@ -230,61 +231,25 @@ slack 성공 공격의 injection_task별 분해(held-out 35쌍 전수, `k0_sec �
 
 ---
 
-## S12. 종합 결론
+## S12. 결과 요약 & 다음 단계
 
-1. ✅ **파서는 confound 아님** — banking/workspace 저조는 커스텀 파서 탓이 아니라
-   모델·suite 자체의 성질. `agentdojo_default`로 전환 완료.
-2. ✅ **스케일업 반례 재확정(n=148)** — 스케일을 키워도 전체 ASR은 안 오름(6.8%). 단
-   slack suite에서만 knockout 억제가 불완전(달성 가능한 공격 1/3/5 중 절반 이상 persist).
-3. ✅ **원인 두 갈래로 분리 규명**:
-   - `fp4` 4bit 양자화 아티팩트(확정) — `nf4+double_quant`로 대부분 해소, 기본값 교체 완료.
-   - 32B 스케일 효과(약하게 확정) — bf16 단독에서도 slack knockout 불완전 + backfire 1건.
-4. 단 순효과는 여전히 방어적(suppressed 5 > backfire 1) — **"못 막는다"가 아니라
-   "불완전 + 가끔 backfire".**
+**실험 결과 요약**
 
----
+- **파서** — confound 아님. banking/workspace 저조는 모델·suite 자체 성질(두 파서 모두
+  같은 비대칭). `agentdojo_default`를 기본값으로 채택.
+- **표본 확대 (n=148)** — 스케일업 반례 재확정(전체 ASR 6.8%). 성공한 공격은 전부 단순
+  공격(injection_task 1/3/5) — 그 범위에서 **8B는 전량 억제, 32B만 절반 이상 persist**.
+- **양자화** — `fp4` 아티팩트 확정(`nf4+double_quant`로 해소, 기본값 교체 완료).
+  32B 스케일 효과 약하게 확정 — bf16 단독(양자화 배제)에서도 slack knockout 불완전 + backfire 1.
+- **대조 (32B bf16 banking)** — backfire 0/42 → 스케일 취약은 **slack에만 국한**, banking엔 전이 안 됨.
+- **순효과는 끝까지 방어적** (suppressed 5 > backfire 1) — "못 막는다"가 아니라
+  "특정 suite의 단순 공격에서만, 가끔 불완전 + backfire".
 
-## S13. 대조 실험 — 32B bf16 banking, "slack 특유" 확정
+**다음 진행하면 좋을 태스크**
 
-같은 32B bf16 스택(A6000+2, 동일 heads·설정)에서 `--suite`만 slack→banking으로 교체
-(`results/2026-09-05_p16e_32b_bf16_banking/qwen32b_bf16_banking.json`).
-
-| suite | k0_sec | kN_sec | backfire | 판정 |
-|---|---|---|---|---|
-| slack (S11 재인용) | 0.257 | 0.143 | **1/9** | 스케일 효과로 불완전 억제 |
-| banking | 0.0 | 0.0 | **0/42** | baseline부터 공격 실패, knockout도 새 leak 없음 |
-
-- banking은 42쌍 전부 baseline(`k0`)부터 공격이 실패해서 "억제율"이라는 틀 자체가 안
-  맞음 — 대신 판정 근거는 **backfire**: `k0=False`(42쌍 전부 해당)인데 knockout 후
-  `kN=True`로 뒤집힌 쌍이 있는지. **0/42로 하나도 없음.**
-- 같은 32B bf16 스택에서 slack만 backfire 1건이 나왔던 것과 대비 → **32B 스케일 효과는
-  slack에 국한, banking엔 전이 안 됨 = "slack 특유의 스케일 취약" 확정.**
-- ⚠️ 완주율 42/45(93.3%, `user_task_10`의 injection_task 3쌍 원인불명 누락)·banking
-  자체가 baseline 공격 성공률이 원래 낮은 suite라는 점은 caveat(feedback 2.1.19).
-
----
-
-## S14. 한계 및 다음 단계
-
-| # | 한계 | 향후 방향 |
-|---|---|---|
-| 1 | 32B-4bit 평가의 run-to-run 비결정성 원인 미규명(별개 이슈로 남김) | bnb 4bit 커널/디바이스 배치 조건 추가 조사 |
-| 2 | slack knockout 불안정의 최종 원인이 "단순 공격의 실행 관성" 가설 수준(확정 아님) | k-sweep(§2.2, head 개수 늘려 억제력 보강)으로 완화 여부 확인 |
-| 3 | 복합 공격(injection_task 2/4)은 채점이 near-unwinnable이라 knockout 효과를 측정할 축이 없음 | AgentDojo 외 벤치마크 or 자체 시나리오로 다단계 공격 채점 보완 |
-| 4 | Llama-3.1-8B의 banking 1건 backfire(표본 1건)는 표본 확대로 미확인 | 필요 시 Llama도 n=148급 확대 |
-| 5 | 다른 아키텍처(Qwen3, Llama-70B) 교차검증은 후순위로 보류 중 | 다음 사이클 후보 |
-| 6 | banking 대조(S13)는 baseline 공격 성공이 0/42라 backfire 검증력이 약함 + 완주율 93.3%(3쌍 원인불명 누락, `.log` 미보존) | k-sweep 등으로 banking 공격 성공률을 올려 재검증 / 재실행 시 로그 보존 필수 |
-
----
-
-## S15. 마무리
-
-- **파서 전환**: confound 아니었음, `agentdojo_default` 기본값 채택.
-- **표본 확대(n=148)**: 스케일업 반례 최종 확정 + slack 특이 패턴 정밀 포착 —
-  성공한 공격은 전부 단일/소수 스텝(injection_task 1/3/5), 그 범위에서 8B는 전량 억제,
-  32B만 절반 이상 통과.
-- **양자화 규명**: fp4 아티팩트 확정(기본값 교체 완료) + 32B 스케일 효과 확정,
-  순효과는 방어적 유지.
-- **대조 실험(S13)**: banking 대조로 32B 스케일 효과가 **slack에 국한**됨을 확정 —
-  "모델을 키우면 전반적으로 위험해진다"가 아니라 "특정 suite의 단순 공격에서만, 가끔
-  불완전 + backfire".
+- **k-sweep** — head 개수(k)를 늘려 slack 1/3/5 억제력이 보강되는지. Track B용 신규 구현 필요.
+- **복합 공격 채점 축 확보** — injection_task 2/4는 채점이 near-unwinnable → AgentDojo 외
+  벤치마크/자체 시나리오로 다단계 공격 knockout 효과를 측정.
+- **32B-4bit 비결정성 규명** — GPU 고정 시 결정론적인지 (진행 중, 2026-09-07: Blackwell 커널이
+  모델 손상, A6000은 bf16과 baseline 일치).
+- **다른 아키텍처 교차검증** — Qwen3-8B, Llama-70B (후순위, 다음 사이클).

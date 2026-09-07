@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """4차 발표 deck 생성 — 파서 정합성 검증 + 양자화 아티팩트 규명.
 
-내용은 IPI_Head_PoC_4th_script.md(S1~S15)를 그대로 옮긴 것. 디자인 토큰/헬퍼는
+내용은 IPI_Head_PoC_4th_script.md(S1~S12)를 그대로 옮긴 것. 디자인 토큰/헬퍼는
 build_deck_3rd.py와 동일 — import하면 그쪽 deck이 재빌드되므로 의도적으로 복제했다
 (build_deck_addendum_0819.py / build_deck_3rd.py와 같은 이유).
 """
@@ -459,104 +459,37 @@ para(tf, [B("bf16으로 우회", BLUE),
            "bf16(전량 억제·backfire 0)과 질적으로 다름 → ", {}),
           B("fp4와 무관한 스케일 기여 확인.", INK)], size=12, space_before=8)
 
-# ================================================================ S12 종합 결론
-s = new_slide("05 · 종합", "종합 결론")
+# ================================================================ S12 결과 요약 & 다음 단계
+s = new_slide("05 · 마무리", "결과 요약 & 다음 단계")
 
-items = [
-    [B("파서는 confound 아님", BLUE),
-     (" — banking/workspace 저조는 커스텀 파서 탓이 아니라 모델·suite 자체의 성질. "
-      "agentdojo_default로 전환 완료.", {})],
-    [B("스케일업 반례 재확정 (n=148)", BLUE),
-     (" — 스케일을 키워도 전체 ASR은 안 오름(6.8%). 단 slack에서만 달성 가능한 공격 "
-      "1/3/5 중 절반 이상 persist.", {})],
-    [B("원인 두 갈래로 분리 규명", BLUE),
-     (" — (a) fp4 4bit 양자화 아티팩트(확정, nf4+dq로 해소·기본값 교체)  "
-      "(b) 32B 스케일 효과(약하게 확정, bf16 단독에서도 불완전 + backfire 1).", {})],
-    [B("순효과는 여전히 방어적", INK),
-     (" (suppressed 5 > backfire 1) — \"못 막는다\"가 아니라 \"불완전 + 가끔 backfire\".", {})],
-]
-tf = textbox(s, M_L, Y_BODY + 0.15, M_W, 4.6)
-for i, sp in enumerate(items):
-    para(tf, [("%d.  " % (i + 1), {"bold": True, "color": ORANGE, "size": 14})] + sp,
-         size=12.5, first=(i == 0), space_before=0 if i == 0 else 15, line_spacing=1.32)
+card(s, M_L, Y_BODY, M_W, 2.55, CARD_HL)
+tf = textbox(s, 1.00, Y_BODY + 0.18, 11.33, 2.30)
+para(tf, "실험 결과 요약", size=13.5, bold=True, color=BLUE, first=True)
+for sp in [
+    [B("파서", INK), (" — confound 아님. banking/workspace 저조는 모델·suite 자체 성질. "
+                      "agentdojo_default 기본값 채택.", {})],
+    [B("표본 확대 (n=148)", INK), (" — 스케일업 반례 재확정(전체 ASR 6.8%). 성공한 공격은 전부 "
+        "단순 공격(injection_task 1/3/5) — 8B는 전량 억제, 32B만 절반 이상 persist.", {})],
+    [B("양자화", INK), (" — fp4 아티팩트 확정(nf4+dq로 해소·기본값 교체). 32B 스케일 효과 약하게 "
+        "확정 — bf16 단독에서도 slack knockout 불완전 + backfire 1.", {})],
+    [B("대조 (32B bf16 banking)", INK), (" — backfire 0/42 → 스케일 취약은 slack에만 국한.", {})],
+    [B("순효과는 끝까지 방어적", RED), (" (suppressed 5 > backfire 1) — \"못 막는다\"가 아니라 "
+        "\"특정 suite의 단순 공격에서만, 가끔 불완전 + backfire\".", {})],
+]:
+    para(tf, [("·  ", {"color": BLUE, "bold": True})] + sp, size=10.5, space_before=6, line_spacing=1.2)
 
-# ================================================================ S13 대조 실험
-s = new_slide("06 · 대조 실험", "32B bf16 banking — \"slack 특유\" 확정")
-
-para(textbox(s, M_L, Y_BODY - 0.05, M_W, 0.35),
-     "같은 32B bf16 스택(동일 heads·설정)에서 --suite 만 slack → banking 으로 교체",
-     size=11, color=MUTED, first=True)
-
-table(s, M_L, 2.25, M_W,
-      [["suite", "k0 ASR", "kN ASR", "backfire", "판정"],
-       ["slack (S11 재인용)", "0.257", "0.143", [B("1 / 9", RED)], "스케일 효과로 불완전 억제"],
-       ["banking", "0.0", "0.0", [B("0 / 42", BLUE)],
-        "baseline부터 공격 실패, knockout도 새 leak 없음"]],
-      col_w=[2.6, 1.5, 1.5, 1.5, 4.83], row_h=0.55, head_h=0.40,
-      sizes=[11, 10.5, 10.5, 10.5, 10.5], aligns=["l", "r", "r", "c", "l"])
-
-card(s, M_L, 4.20, M_W, 2.30, CARD_HL)
-tf = textbox(s, 1.00, 4.40, 11.33, 1.95)
-para(tf, [("banking은 42쌍 전부 baseline부터 공격 실패라 \"억제율\" 틀이 안 맞음 → 판정 근거는 ", {}),
-          B("backfire", INK), (": k0=False인데 knockout 후 kN=True로 뒤집힌 쌍이 있는지. ", {}),
-          B("0/42로 하나도 없음.", BLUE)], size=12, first=True)
-para(tf, [("같은 스택에서 slack만 backfire 1건이 나왔던 것과 대비 → ", {}),
-          B("32B 스케일 효과는 slack에 국한, banking엔 전이 안 됨.", RED)],
-     size=12, space_before=8)
-para(tf, [B("⚠️ caveat", MUTED),
-          (": 완주율 42/45(3쌍 원인불명 누락) · banking 자체가 baseline 성공률 낮은 suite.", {})],
-     size=10.5, color=MUTED, space_before=8)
-
-# ================================================================ S14 한계
-s = new_slide("07 · 한계", "한계 및 다음 단계")
-
-table(s, M_L, Y_BODY, M_W,
-      [["#", "한계", "향후 방향"],
-       ["1", [B("32B-4bit 평가의 run-to-run 비결정성", RED), (" 원인 미규명(별개 이슈)", {})],
-        "bnb 4bit 커널 / 디바이스 배치 조건 추가 조사"],
-       ["2", [B("slack knockout 불안정의 최종 원인", RED),
-              (" 이 \"단순 공격의 실행 관성\" 가설 수준", {})],
-        "k-sweep(head 개수 ↑)으로 억제력 보강되는지 확인"],
-       ["3", [B("복합 공격(2/4)은 채점이 near-unwinnable", RED), (" — knockout 효과 측정 축이 없음", {})],
-        "AgentDojo 외 벤치마크 / 자체 시나리오로 다단계 채점 보완"],
-       ["4", [B("Llama-8B banking backfire 1건", RED), (" (표본 1건) 미확인", {})],
-        "필요 시 Llama도 n=148급 확대"],
-       ["5", "다른 아키텍처(Qwen3, Llama-70B) 교차검증 보류 중", "다음 사이클 후보"],
-       ["6", [B("banking 대조 검증력 약함", RED),
-              (" (baseline 성공 0/42) + 완주율 93.3%(로그 미보존)", {})],
-        "k-sweep으로 banking 성공률 ↑ 후 재검증 / 재실행 시 로그 보존"]],
-      col_w=[0.45, 6.6, 4.88], row_h=0.72, head_h=0.38, aligns=["c", "l", "l"],
-      sizes=[10.5, 10, 10])
-
-# ================================================================ S15 마무리
-s = new_slide("08 · 마무리", "마무리")
-
-cw, gap = 3.7767, 0.30
-for i, (head, lines, col) in enumerate([
-    ("파서 전환", ["confound 아니었음", "agentdojo_default 기본값 채택"], BLUE),
-    ("표본 확대 (n=148)", ["스케일업 반례 최종 확정",
-                          "성공 공격은 전부 단순(1/3/5), 8B 전량 억제 / 32B만 절반 통과"], BLUE),
-    ("양자화 규명", ["fp4 아티팩트 확정(기본값 교체)",
-                   "+ 32B 스케일 효과 확정, 순효과는 방어적"], ORANGE)]):
-    x = M_L + i * (cw + gap)
-    card(s, x, Y_BODY, cw, 1.95)
-    tf = textbox(s, x + 0.24, 2.05, cw - 0.48, 1.65)
-    para(tf, head, size=13, bold=True, color=col, first=True)
-    for t in lines:
-        para(tf, [("·  ", {"color": col}), (t, {})], size=10.5, space_before=7, line_spacing=1.22)
-
-card(s, M_L, 4.10, M_W, 1.85, CARD_HL)
-tf = textbox(s, 1.00, 4.30, 11.33, 1.50)
-para(tf, [B("대조 실험 — ", INK),
-          ("banking 대조로 32B 스케일 효과가 ", {}), B("slack에 국한", RED),
-          ("됨을 확정.", {})], size=13, first=True)
-para(tf, [("\"모델을 키우면 전반적으로 위험해진다\"가 아니라 ", {}),
-          B("\"특정 suite의 단순 공격에서만, 가끔 불완전 + backfire\".", BLUE)],
-     size=13, space_before=8)
-
-foot(s, [B("다음: ", ORANGE),
-         ("이 deck의 pptx 산출 완료 · k-sweep 착수 / Qwen3-8B 진단은 다음 사이클", {})],
-     y=6.20)
+card(s, M_L, 4.60, M_W, 2.15)
+tf = textbox(s, 1.00, 4.78, 11.33, 1.85)
+para(tf, "다음 진행하면 좋을 태스크", size=13.5, bold=True, color=ORANGE, first=True)
+for sp in [
+    [B("k-sweep", INK), (" — head 개수 ↑로 slack 1/3/5 억제력 보강되는지 (Track B용 신규 구현).", {})],
+    [B("복합 공격 채점 축 확보", INK), (" — injection_task 2/4는 near-unwinnable → AgentDojo 외 "
+        "벤치마크/자체 시나리오로 다단계 knockout 효과 측정.", {})],
+    [B("32B-4bit 비결정성 규명", INK), (" — GPU 고정 시 결정론적인지 (진행 중: Blackwell 커널이 "
+        "모델 손상, A6000은 bf16과 일치).", {})],
+    [B("다른 아키텍처 교차검증", INK), (" — Qwen3-8B, Llama-70B (후순위, 다음 사이클).", {})],
+]:
+    para(tf, [("·  ", {"color": ORANGE, "bold": True})] + sp, size=10.5, space_before=5, line_spacing=1.2)
 
 # ----------------------------------------------------------------
 prs.save(OUT)
