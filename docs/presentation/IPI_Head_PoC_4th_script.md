@@ -10,7 +10,7 @@
 > `build_deck_{2nd,3rd}.py` 패턴 참고해서 신설 필요).
 >
 > 수치 출처: `docs/status-2026-09-06.md`(§1), `docs/status-2026-09-01.md`(§1, §3.0),
-> `docs/feedback-2026-08-31.md`(§1, §2.1.4~2.1.9, §2.1.13~2.1.19, §2.5, §2.5.3),
+> `docs/feedback-2026-08-31.md`(§1, §2.1.4~2.1.9, §2.1.13~2.1.20, §2.5, §2.5.3),
 > `docs/presentation/IPI_Head_PoC_3rd_script.md`(S11~S13, 3차 요약),
 > `results/2026-08-31_p16_aisecking/`(파서 A/B + n=148 확대 + injection 분해),
 > `results/2026-09-02_p16b_4bit/`·`2026-09-02_p16c_32b_nf4dq/`·`2026-09-03_p16d_32b_bf16/`
@@ -211,23 +211,29 @@ slack 성공 공격의 injection_task별 분해(held-out 35쌍 전수, `k0_sec �
 
 ---
 
-## S11. 실험③ 결과 — 32B: fp4 / nf4dq(비결정적) / bf16
+## S11. 실험③ 결과 — 32B: 4bit는 GPU 고정 시 결정론적, bf16으로 스케일 효과 확정
 
-`results/2026-09-02_p16c_32b_nf4dq/`, `results/2026-09-03_p16d_32b_bf16/`
+`results/2026-09-02_p16c_32b_nf4dq/`, `2026-09-03_p16d_32b_bf16/`, `2026-09-07_p16f_32b_nf4dq_samegpu/`
 
-| 실행 | GPU / quant | slack k0_sec | slack kN_sec | suppressed | backfire | persist |
+| 실행 | GPU / quant | slack k0_sec | slack kN_sec | slack k0_util | backfire | persist |
 |---|---|---|---|---|---|---|
-| 32B nf4dq #1 | A6000 / nf4dq | 0.229 | 0.229 | 2 | 2 | 6 |
-| 32B nf4dq #2 | Blackwell / nf4dq | 0.171 | 0.114 | 2 | 0 | 4 |
-| **32B bf16** | A6000+2 / **bf16** | 0.257 | **0.143** | 5 | **1** | 4 |
-| (대조) 7B·8B bf16 | 4090 / bf16 | ~0.18 | **0.000** | 전량 | **0** | — |
+| 32B nf4dq (×3 동일) | A6000 (sm_86) / nf4dq | 0.229 | 0.229 | 0.286 | 2 | 6 |
+| 32B nf4dq (×5 동일) | Blackwell (sm_120) / nf4dq | 0.171 | 0.114 | **0.09** ⚠️ | 0 | 4 |
+| **32B bf16** | A6000 / **bf16** | 0.257 | **0.143** | 0.286 | **1** | 4 |
+| (대조) 7B·8B bf16 | 4090 / bf16 | ~0.18 | **0.000** | 0.31 | **0** | 0 |
 
-- 두 nf4dq 실행(둘 다 slack held-out 풀 35쌍 전수) 비교 시 **slack 35쌍 중 12쌍(34%)
-  불일치**, 그중 8쌍이 baseline(k0) 필드 — knockout을 꺼도 안 맞음(주로 `user_task_0`의
-  injection 5변형 전부 + `user_task_2`가 k0_util 붕괴). → **32B-4bit 평가는 run-to-run
-  비결정적** — 이 경로로는 스케일 판정 불가. (7B-4bit는 같은 GPU 2회 152/152 완전 일치와 대조.)
-- **bf16으로 우회**: 완주율 100%·결정론적인데도 kN_sec 0.143(≠0) + backfire 1 — 7B·8B
-  bf16(전량 억제·backfire 0)과 질적으로 다름 → **fp4와 무관한 스케일 기여 확인**.
+- **4bit는 GPU 고정 시 결정론적** (7B와 동일) — A6000 3회·Blackwell 5회 각각 slack 35쌍 전부
+  4필드 일치. 이전에 본 "nf4dq 실행 간 12/35 불일치"는 run-to-run 노이즈가 아니라
+  **A6000 ↔ Blackwell 아키텍처 차이**였음.
+- **원인: Blackwell(sm_120)의 bnb nf4 dequant 커널이 32B를 손상** — slack k0_util이 0.286
+  (A6000, bf16과 동일)에서 0.09로 붕괴(`user_task_0`·`user_task_2`가 baseline 과업 자체를
+  실패). bnb 0.50.1의 신규 아키 커널 미성숙. → **A6000 nf4dq가 신뢰 가능한 4bit 실행**
+  (bf16과 baseline 일치).
+- **스케일 효과 확정 (bf16, 양자화 완전 배제)** — 32B bf16 slack knockout이 kN_sec 0.143
+  (≠0) + backfire 1. 7B·8B bf16(전량 억제·backfire 0)과 질적으로 다름.
+- A6000에서 양자화만 바꾼 결정론적 비교로도 방향 일치 — nf4dq는 knockout 순효과 0
+  (kN_sec = k0_sec), bf16은 순효과 −4. 4bit 잔여 손상이 knockout을 더 나빠 보이게 하지만
+  **두 경우 다 8B(전량 억제)에 못 미침** = 스케일 효과 실재.
 
 ---
 
@@ -241,6 +247,8 @@ slack 성공 공격의 injection_task별 분해(held-out 35쌍 전수, `k0_sec �
   공격(injection_task 1/3/5) — 그 범위에서 **8B는 전량 억제, 32B만 절반 이상 persist**.
 - **양자화** — `fp4` 아티팩트 확정(`nf4+double_quant`로 해소, 기본값 교체 완료).
   32B 스케일 효과 약하게 확정 — bf16 단독(양자화 배제)에서도 slack knockout 불완전 + backfire 1.
+  4bit는 GPU 고정 시 결정론적 — 이전 "비결정성"은 GPU 아키 차이(Blackwell 커널이 32B 손상,
+  A6000은 bf16과 일치).
 - **대조 (32B bf16 banking)** — backfire 0/42 → 스케일 취약은 **slack에만 국한**, banking엔 전이 안 됨.
 - **순효과는 끝까지 방어적** (suppressed 5 > backfire 1) — "못 막는다"가 아니라
   "특정 suite의 단순 공격에서만, 가끔 불완전 + backfire".
@@ -250,6 +258,4 @@ slack 성공 공격의 injection_task별 분해(held-out 35쌍 전수, `k0_sec �
 - **k-sweep** — head 개수(k)를 늘려 slack 1/3/5 억제력이 보강되는지. Track B용 신규 구현 필요.
 - **복합 공격 채점 축 확보** — injection_task 2/4는 채점이 near-unwinnable → AgentDojo 외
   벤치마크/자체 시나리오로 다단계 공격 knockout 효과를 측정.
-- **32B-4bit 비결정성 규명** — GPU 고정 시 결정론적인지 (진행 중, 2026-09-07: Blackwell 커널이
-  모델 손상, A6000은 bf16과 baseline 일치).
 - **다른 아키텍처 교차검증** — Qwen3-8B, Llama-70B (후순위, 다음 사이클).

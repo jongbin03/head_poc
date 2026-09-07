@@ -435,35 +435,38 @@ para(tf, [B("비결정성 아님", INK),
      size=12, space_before=8)
 
 # ================================================================ S11 실험③ 결과 32B
-s = new_slide("04 · 실험 ③  양자화", "32B: fp4 / nf4dq (비결정적) / bf16")
+s = new_slide("04 · 실험 ③  양자화", "32B: nf4dq는 GPU 의존 · bf16으로 스케일 효과 확정", title_size=23)
 
 table(s, M_L, Y_BODY, M_W,
-      [["실행", "GPU / quant", "slack k0", "slack kN", "supp", "backfire", "persist"],
-       ["32B nf4dq #1", "A6000 / nf4dq", "0.229", "0.229", "2", "2", "6"],
-       ["32B nf4dq #2", "Blackwell / nf4dq", "0.171", "0.114", "2", "0", "4"],
-       [[B("32B bf16", BLUE)], [B("A6000+2 / bf16", INK)], "0.257", [B("0.143", RED)], "5",
+      [["실행", "GPU / quant", "slack k0", "slack kN", "slack k0_util", "backfire", "persist"],
+       ["32B nf4dq  (×3 동일)", "A6000 sm_86 / nf4dq", "0.229", "0.229", "0.286", "2", "6"],
+       ["32B nf4dq  (×5 동일)", "Blackwell sm_120 / nf4dq", "0.171", "0.114",
+        [B("0.09", RED)], "0", "4"],
+       [[B("32B bf16", BLUE)], [B("A6000 / bf16", INK)], "0.257", [B("0.143", RED)], "0.286",
         [B("1", RED)], "4"],
-       ["(대조) 7B·8B bf16", "4090 / bf16", "~0.18", [B("0.000", BLUE)], "전량", [B("0", BLUE)], "—"]],
-      col_w=[2.7, 2.9, 1.4, 1.4, 1.0, 1.4, 1.13], row_h=0.46, head_h=0.40,
-      sizes=[10, 9.5, 10, 10, 10, 10, 10], aligns=["l", "l", "r", "r", "c", "c", "c"])
+       ["(대조) 7B·8B bf16", "4090 / bf16", "~0.18", [B("0.000", BLUE)], "0.31", [B("0", BLUE)], "0"]],
+      col_w=[2.75, 3.05, 1.25, 1.25, 1.55, 1.15, 1.13], row_h=0.46, head_h=0.40,
+      sizes=[9.5, 9, 10, 10, 9.5, 10, 10], aligns=["l", "l", "r", "r", "r", "c", "c"])
 
-card(s, M_L, 4.30, M_W, 2.05, CARD_HL)
-tf = textbox(s, 1.00, 4.50, 11.33, 1.70)
-para(tf, [("두 nf4dq 실행(둘 다 slack 풀 35쌍 전수) 비교 시 ", {}),
-          B("slack 12/35쌍(34%) 불일치, 그중 8쌍이 baseline 차이", RED),
-          (" (user_task_0·2가 k0 붕괴) → ", {}),
-          B("32B-4bit 평가는 run-to-run 비결정적", RED), (" — 이 경로로는 스케일 판정 불가.", {})],
-     size=12, first=True)
-para(tf, [B("bf16으로 우회", BLUE),
-          (": 완주율 100%·결정론적인데도 kN ASR 0.143(≠0) + backfire 1 — 7B·8B "
-           "bf16(전량 억제·backfire 0)과 질적으로 다름 → ", {}),
-          B("fp4와 무관한 스케일 기여 확인.", INK)], size=12, space_before=8)
+card(s, M_L, 4.30, M_W, 2.35, CARD_HL)
+tf = textbox(s, 1.00, 4.48, 11.33, 2.00)
+para(tf, [B("4bit는 GPU 고정 시 결정론적", BLUE),
+          (" (7B와 동일) — A6000 3회·Blackwell 5회 각각 slack 35쌍 전부 일치. 이전에 본 "
+           "\"nf4dq 실행 간 12/35 불일치\"는 run-to-run 노이즈가 아니라 ", {}),
+          B("A6000 ↔ Blackwell 아키텍처 차이", RED), (".", {})], size=11.5, first=True)
+para(tf, [B("원인: Blackwell sm_120의 bnb nf4 커널이 32B 손상", RED),
+          (" — slack k0_util 0.286(=bf16) → 0.09 붕괴. → ", {}),
+          B("A6000 nf4dq가 신뢰 가능한 4bit 실행.", INK)], size=11.5, space_before=7)
+para(tf, [B("스케일 효과 확정", BLUE),
+          (": bf16(양자화 배제)에서 kN 0.143(≠0) + backfire 1 vs 7B·8B bf16 전량 억제. "
+           "A6000에서 nf4dq·bf16 둘 다 8B에 못 미침.", {})],
+     size=11.5, space_before=7)
 
 # ================================================================ S12 결과 요약 & 다음 단계
 s = new_slide("05 · 마무리", "결과 요약 & 다음 단계")
 
-card(s, M_L, Y_BODY, M_W, 2.55, CARD_HL)
-tf = textbox(s, 1.00, Y_BODY + 0.18, 11.33, 2.30)
+card(s, M_L, Y_BODY, M_W, 2.85, CARD_HL)
+tf = textbox(s, 1.00, Y_BODY + 0.18, 11.33, 2.60)
 para(tf, "실험 결과 요약", size=13.5, bold=True, color=BLUE, first=True)
 for sp in [
     [B("파서", INK), (" — confound 아님. banking/workspace 저조는 모델·suite 자체 성질. "
@@ -471,22 +474,21 @@ for sp in [
     [B("표본 확대 (n=148)", INK), (" — 스케일업 반례 재확정(전체 ASR 6.8%). 성공한 공격은 전부 "
         "단순 공격(injection_task 1/3/5) — 8B는 전량 억제, 32B만 절반 이상 persist.", {})],
     [B("양자화", INK), (" — fp4 아티팩트 확정(nf4+dq로 해소·기본값 교체). 32B 스케일 효과 약하게 "
-        "확정 — bf16 단독에서도 slack knockout 불완전 + backfire 1.", {})],
+        "확정 — bf16 단독에서도 slack knockout 불완전 + backfire 1. 4bit는 GPU 고정 시 결정론적 "
+        "(이전 \"비결정성\"은 Blackwell 커널이 32B 손상시킨 것, A6000은 bf16과 일치).", {})],
     [B("대조 (32B bf16 banking)", INK), (" — backfire 0/42 → 스케일 취약은 slack에만 국한.", {})],
     [B("순효과는 끝까지 방어적", RED), (" (suppressed 5 > backfire 1) — \"못 막는다\"가 아니라 "
         "\"특정 suite의 단순 공격에서만, 가끔 불완전 + backfire\".", {})],
 ]:
     para(tf, [("·  ", {"color": BLUE, "bold": True})] + sp, size=10.5, space_before=6, line_spacing=1.2)
 
-card(s, M_L, 4.60, M_W, 2.15)
-tf = textbox(s, 1.00, 4.78, 11.33, 1.85)
+card(s, M_L, 4.95, M_W, 1.70)
+tf = textbox(s, 1.00, 5.13, 11.33, 1.40)
 para(tf, "다음 진행하면 좋을 태스크", size=13.5, bold=True, color=ORANGE, first=True)
 for sp in [
     [B("k-sweep", INK), (" — head 개수 ↑로 slack 1/3/5 억제력 보강되는지 (Track B용 신규 구현).", {})],
     [B("복합 공격 채점 축 확보", INK), (" — injection_task 2/4는 near-unwinnable → AgentDojo 외 "
         "벤치마크/자체 시나리오로 다단계 knockout 효과 측정.", {})],
-    [B("32B-4bit 비결정성 규명", INK), (" — GPU 고정 시 결정론적인지 (진행 중: Blackwell 커널이 "
-        "모델 손상, A6000은 bf16과 일치).", {})],
     [B("다른 아키텍처 교차검증", INK), (" — Qwen3-8B, Llama-70B (후순위, 다음 사이클).", {})],
 ]:
     para(tf, [("·  ", {"color": ORANGE, "bold": True})] + sp, size=10.5, space_before=5, line_spacing=1.2)
