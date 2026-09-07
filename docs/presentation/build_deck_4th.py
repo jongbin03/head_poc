@@ -331,25 +331,26 @@ para(tf, [("•  ", {"color": ORANGE, "bold": True}),
      size=13.5, first=True, line_spacing=1.35)
 para(tf, [("•  ", {"color": ORANGE, "bold": True}),
           ("우연(표본이 작아서)인지 실재하는 패턴인지 가리려면 표본을 최대치로 → ", {}),
-          B("4개 suite held-out 후보 풀 전부 사용", INK)],
+          B("banking/slack/travel은 held-out 풀 전수", INK),
+          (", workspace만 풀 392쌍 중 45로 캡(", {}), M("--limit_pairs 45"), (")", {})],
      size=13.5, space_before=18, line_spacing=1.35)
 
 # ================================================================ S7 실험② 결과
-s = new_slide("03 · 실험 ②  표본 확대", "Qwen2.5-32B 4-suite 전수 확대 (n=148)")
+s = new_slide("03 · 실험 ②  표본 확대", "Qwen2.5-32B 4-suite held-out 풀 확대 (n=148)")
 
 table(s, M_L, Y_BODY, M_W,
-      [["suite", "n", "k0 util", "k0 ASR", "kN util", "kN ASR", "parse ok"],
-       ["banking", "45", "66.7%", "2.2%", "73.3%", [B("0.0%", BLUE)], "52.9%"],
-       [[B("slack", RED)], "35", "25.7%", [B("22.9%", RED)], "22.9%", [B("14.3%", RED)], "73.4%"],
-       ["travel", "28", "25.0%", "3.6%", "25.0%", [B("0.0%", BLUE)], "83.8%"],
-       ["workspace", "40", "20.0%", "0.0%", "0.0%", [B("0.0%", BLUE)], "44.4%"],
+      [["suite", "n / held-out 풀", "k0 util", "k0 ASR", "kN util", "kN ASR", "parse ok"],
+       ["banking", "45 / 45  전수", "66.7%", "2.2%", "73.3%", [B("0.0%", BLUE)], "52.9%"],
+       [[B("slack", RED)], "35 / 35  전수", "25.7%", [B("22.9%", RED)], "22.9%", [B("14.3%", RED)], "73.4%"],
+       ["travel", "28 / 28  전수", "25.0%", "3.6%", "25.0%", [B("0.0%", BLUE)], "83.8%"],
+       ["workspace", [B("40 / 392", RED), ("  (45 샘플)", {})], "20.0%", "0.0%", "0.0%", [B("0.0%", BLUE)], "44.4%"],
        [[B("전체")], [B("148")], [B("36.5%")], [B("6.8%", RED)], [B("37.8%")],
         [B("3.4%", RED)], [B("68.3%")]]],
-      col_w=[2.0, 0.75, 1.7, 1.7, 1.7, 1.7, 1.7], row_h=0.44, head_h=0.38,
-      sizes=[10.5, 10.5, 10, 10, 10, 10, 10], aligns=["l", "c", "r", "r", "r", "r", "r"])
+      col_w=[1.7, 2.3, 1.55, 1.55, 1.55, 1.55, 1.6], row_h=0.44, head_h=0.38,
+      sizes=[10.5, 9.5, 10, 10, 10, 10, 10], aligns=["l", "l", "r", "r", "r", "r", "r"])
 
-card(s, M_L, 5.05, M_W, 1.60, CARD_HL)
-tf = textbox(s, 1.00, 5.23, 11.33, 1.30)
+card(s, M_L, 4.62, M_W, 2.05, CARD_HL)
+tf = textbox(s, 1.00, 4.80, 11.33, 1.75)
 para(tf, [B("스케일업 반례 최종 확정", BLUE),
           (" — 지금까지 가장 큰 표본에서도 전체 ASR 6.8%. 표본 크기 문제일 여지 소멸.", {})],
      size=12, first=True)
@@ -357,6 +358,9 @@ para(tf, [B("slack만 특이", RED),
           (" — held-out 35쌍 전수 기준 성공한 공격 8건 중 5건을 knockout이 못 막음"
            "(억제 3, persist 5). banking/travel/workspace는 완벽 억제(0%).", {})],
      size=12, space_before=7)
+para(tf, [("banking·slack·travel은 held-out 풀 전수라 표본 논란 없음. workspace는 392쌍 중 "
+           "40쌍만 봤지만 k0 ASR 자체가 0%라 결론에 영향 없음.", {})],
+     size=10.5, color=MUTED, space_before=6)
 
 # ================================================================ S8 실험② 분석
 s = new_slide("03 · 실험 ②  표본 확대", "성공한 공격은 전부 \"단순 공격\"이었다")
