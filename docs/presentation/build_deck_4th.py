@@ -437,30 +437,34 @@ para(tf, [B("비결정성 아님", INK),
 # ================================================================ S11 실험③ 결과 32B
 s = new_slide("04 · 실험 ③  양자화", "32B: nf4dq는 GPU 의존 · bf16으로 스케일 효과 확정", title_size=23)
 
-table(s, M_L, Y_BODY, M_W,
-      [["실행", "GPU / quant", "slack k0", "slack kN", "slack k0_util", "backfire", "persist"],
-       ["32B nf4dq  (×3 동일)", "A6000 sm_86 / nf4dq", "0.229", "0.229", "0.286", "2", "6"],
-       ["32B nf4dq  (×5 동일)", "Blackwell sm_120 / nf4dq", "0.171", "0.114",
-        [B("0.09", RED)], "0", "4"],
-       [[B("32B bf16", BLUE)], [B("A6000 / bf16", INK)], "0.257", [B("0.143", RED)], "0.286",
-        [B("1", RED)], "4"],
-       ["(대조) 7B·8B bf16", "4090 / bf16", "~0.18", [B("0.000", BLUE)], "0.31", [B("0", BLUE)], "0"]],
-      col_w=[2.75, 3.05, 1.25, 1.25, 1.55, 1.15, 1.13], row_h=0.46, head_h=0.40,
-      sizes=[9.5, 9, 10, 10, 9.5, 10, 10], aligns=["l", "l", "r", "r", "r", "c", "c"])
+para(textbox(s, M_L, Y_BODY - 0.08, M_W, 0.30),
+     "모든 수치는 slack held-out 35쌍 기준", size=10, color=MUTED, first=True)
 
-card(s, M_L, 4.30, M_W, 2.35, CARD_HL)
-tf = textbox(s, 1.00, 4.48, 11.33, 2.00)
+table(s, M_L, Y_BODY + 0.28, M_W,
+      [["실행", "GPU / quant", "k0_sec", "kN_sec", "k0_util", "kN_util", "bf", "per"],
+       ["32B nf4dq  (×3 동일)", "A6000 sm_86 / nf4dq", "0.229", "0.229", "0.286", "0.314", "2", "6"],
+       ["32B nf4dq  (×5 동일)", "Blackwell sm_120 / nf4dq", "0.171", "0.114",
+        [B("0.086", RED)], "0.114", "0", "4"],
+       [[B("32B bf16", BLUE)], [B("A6000 / bf16", INK)], "0.257", [B("0.143", RED)], "0.286", "0.314",
+        [B("1", RED)], "4"],
+       ["(대조) 7B bf16", "4090 / bf16", "0.171", [B("0.000", BLUE)], "0.371", "0.429", [B("0", BLUE)], "0"],
+       ["(대조) Llama-8B bf16", "A6000 / bf16", "0.200", [B("0.000", BLUE)], "0.314", "0.286", [B("0", BLUE)], "0"]],
+      col_w=[2.5, 2.95, 1.15, 1.15, 1.15, 1.15, 0.72, 0.72], row_h=0.44, head_h=0.38,
+      sizes=[9, 8.5, 9.5, 9.5, 9.5, 9.5, 9.5, 9.5], aligns=["l", "l", "r", "r", "r", "r", "c", "c"])
+
+card(s, M_L, 4.95, M_W, 1.95, CARD_HL)
+tf = textbox(s, 1.00, 5.11, 11.33, 1.70)
 para(tf, [B("4bit는 GPU 고정 시 결정론적", BLUE),
-          (" (7B와 동일) — A6000 3회·Blackwell 5회 각각 slack 35쌍 전부 일치. 이전에 본 "
-           "\"nf4dq 실행 간 12/35 불일치\"는 run-to-run 노이즈가 아니라 ", {}),
-          B("A6000 ↔ Blackwell 아키텍처 차이", RED), (".", {})], size=11.5, first=True)
+          (" (7B와 동일) — A6000 3회·Blackwell 5회 각각 35쌍 일치. 기존 \"12/35 불일치\"는 "
+           "run-to-run 노이즈가 아니라 ", {}),
+          B("A6000 ↔ Blackwell 아키텍처 차이", RED), (".", {})], size=11, first=True)
 para(tf, [B("원인: Blackwell sm_120의 bnb nf4 커널이 32B 손상", RED),
-          (" — slack k0_util 0.286(=bf16) → 0.09 붕괴. → ", {}),
-          B("A6000 nf4dq가 신뢰 가능한 4bit 실행.", INK)], size=11.5, space_before=7)
+          (" — slack k0_util 0.286(=bf16) → 0.086 붕괴. → ", {}),
+          B("A6000 nf4dq가 신뢰 가능한 4bit 실행.", INK)], size=11, space_before=6)
 para(tf, [B("스케일 효과 확정", BLUE),
-          (": bf16(양자화 배제)에서 kN 0.143(≠0) + backfire 1 vs 7B·8B bf16 전량 억제. "
-           "A6000에서 nf4dq·bf16 둘 다 8B에 못 미침.", {})],
-     size=11.5, space_before=7)
+          (": bf16에서 kN 0.143(≠0) + backfire 1 vs 8B 전량 억제. A6000에서 nf4dq·bf16 둘 다 "
+           "8B에 못 미침.", {})],
+     size=11, space_before=6)
 
 # ================================================================ S12 결과 요약 & 다음 단계
 s = new_slide("05 · 마무리", "결과 요약 & 다음 단계")

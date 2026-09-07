@@ -215,20 +215,23 @@ slack 성공 공격의 injection_task별 분해(held-out 35쌍 전수, `k0_sec �
 
 `results/2026-09-02_p16c_32b_nf4dq/`, `2026-09-03_p16d_32b_bf16/`, `2026-09-07_p16f_32b_nf4dq_samegpu/`
 
-| 실행 | GPU / quant | slack k0_sec | slack kN_sec | slack k0_util | backfire | persist |
-|---|---|---|---|---|---|---|
-| 32B nf4dq (×3 동일) | A6000 (sm_86) / nf4dq | 0.229 | 0.229 | 0.286 | 2 | 6 |
-| 32B nf4dq (×5 동일) | Blackwell (sm_120) / nf4dq | 0.171 | 0.114 | **0.09** ⚠️ | 0 | 4 |
-| **32B bf16** | A6000 / **bf16** | 0.257 | **0.143** | 0.286 | **1** | 4 |
-| (대조) 7B·8B bf16 | 4090 / bf16 | ~0.18 | **0.000** | 0.31 | **0** | 0 |
+모든 수치는 slack held-out 35쌍 기준.
+
+| 실행 | GPU / quant | k0_sec | kN_sec | k0_util | kN_util | backfire | persist |
+|---|---|---|---|---|---|---|---|
+| 32B nf4dq (×3 동일) | A6000 sm_86 / nf4dq | 0.229 | 0.229 | 0.286 | 0.314 | 2 | 6 |
+| 32B nf4dq (×5 동일) | Blackwell sm_120 / nf4dq | 0.171 | 0.114 | **0.086** ⚠️ | 0.114 | 0 | 4 |
+| **32B bf16** | A6000 / **bf16** | 0.257 | **0.143** | 0.286 | 0.314 | **1** | 4 |
+| (대조) 7B bf16 | 4090 / bf16 | 0.171 | **0.000** | 0.371 | 0.429 | **0** | 0 |
+| (대조) Llama-8B bf16 | A6000 / bf16 | 0.200 | **0.000** | 0.314 | 0.286 | **0** | 0 |
 
 - **4bit는 GPU 고정 시 결정론적** (7B와 동일) — A6000 3회·Blackwell 5회 각각 slack 35쌍 전부
   4필드 일치. 이전에 본 "nf4dq 실행 간 12/35 불일치"는 run-to-run 노이즈가 아니라
   **A6000 ↔ Blackwell 아키텍처 차이**였음.
 - **원인: Blackwell(sm_120)의 bnb nf4 dequant 커널이 32B를 손상** — slack k0_util이 0.286
-  (A6000, bf16과 동일)에서 0.09로 붕괴(`user_task_0`·`user_task_2`가 baseline 과업 자체를
-  실패). bnb 0.50.1의 신규 아키 커널 미성숙. → **A6000 nf4dq가 신뢰 가능한 4bit 실행**
-  (bf16과 baseline 일치).
+  (A6000, bf16과 동일)에서 0.086으로 붕괴(`user_task_0`·`user_task_2`가 baseline 과업
+  자체를 실패). bnb 0.50.1의 신규 아키 커널 미성숙. → **A6000 nf4dq가 신뢰 가능한 4bit
+  실행** (bf16과 baseline 일치).
 - **스케일 효과 확정 (bf16, 양자화 완전 배제)** — 32B bf16 slack knockout이 kN_sec 0.143
   (≠0) + backfire 1. 7B·8B bf16(전량 억제·backfire 0)과 질적으로 다름.
 - A6000에서 양자화만 바꾼 결정론적 비교로도 방향 일치 — nf4dq는 knockout 순효과 0
