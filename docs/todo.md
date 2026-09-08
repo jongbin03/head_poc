@@ -1114,6 +1114,18 @@ workspace 3개 suite(n=44)만으로 지시 2번(패밀리 축)에 충분히 답�
 
 ## P12. Llama family 내부 스케일 축 — 8B vs 70B(/405B) (신설 2026-08-26)
 
+> **진행 상황 (2026-09-08, `results/2026-09-08_p12_llama70b/` + status-2026-09-08 §2.5):**
+> - **Track B(knockout 전이 평가) 완료** — Llama-3.1-70B nf4dq(A6000), 8B 헤드 20개 전이,
+>   slack held-out 35쌍. **스케일업 반례 재현, 더 강하게** (net 억제 0: 1 억제 / 4 persist
+>   / 1 backfire vs 8B의 6→0 전량 억제 / 32B의 8~9→5). P13은 2026-08-31에 이미 서버
+>   재검증됨(feedback 2.5.3, parse ok 79%).
+> - **Track A(70B 자체 헤드) 불가** — nf4 가중치 ~40GB + AttnLRP backward 활성값이
+>   3장(104GB)에 안 들어감. 수동 device_map으로 T=1000만 겨우(A6000 45/48GB), T=1400 OOM.
+>   6가지 구성 실측(RUN_NOTES.md). → **대안: Qwen2.5-32B Track A nf4dq**(status §3-A-1).
+> - **다음**: 70B Track B 확장(`--eval_split all`·타 suite, run.sh `slack-all`),
+>   또는 32B Track A로 "자체 헤드 vs 전이 헤드" 모호성 해소.
+> - 405B는 여전히 논외.
+
 **배경**: S6(Llama-3.1-8B, 8/25~26)로 "패밀리 축"(Qwen2 vs Llama, ~7-8B 스케일 고정)을
 시도했지만, Qwen 쪽처럼 **같은 family 안에서 스케일만 올린 대조**(Qwen2.5 7B→32B에 대응하는
 Llama 8B→70B)는 아직 없다. `meta-llama/Llama-3.1-70B-Instruct`(또는 더 최신·고성능인
