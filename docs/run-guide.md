@@ -610,3 +610,53 @@ git config user.name "Won"
 git config user.email "jongbinwon@gmail.com"
 git add results/ && git commit -m "..." && git push
 ```
+
+### B-9. Claude Code가 서버에서 직접 실행 (신설 2026-09-08)
+
+**서버(aisec-king)에 Claude Code가 설치됐다** (`~/.local/bin/claude`, node v22). 그전까지는
+"AI가 명령어를 적어주면 사람이 SSH로 붙어 실행하고 결과를 붙여넣는" 왕복이었는데, 이제
+세션이 서버에서 직접 돌므로 **AI가 실험을 실행하고 완주를 기다렸다가 결과를 회수·커밋**할
+수 있다. B-1~B-8은 그대로 유효하고, 아래는 세션에서 직접 돌릴 때의 운영 규칙.
+
+**셸 규칙 — 매 명령마다 `env.sh`를 다시 source 한다.**
+Bash 도구 호출은 매번 새 non-interactive 셸이라 이전 호출의 venv 활성화·환경변수가
+남지 않는다. 모든 실행 명령을 이렇게 시작한다:
+
+```bash
+cd ~/head_poc && source env.sh >/dev/null 2>&1 && CUDA_VISIBLE_DEVICES=1 python run_agentdojo_eval.py ...
+```
+
+⚠️ `source env.sh`를 **파이프에 물리면 안 된다** (`source env.sh | tail` 등). 파이프
+우변은 서브셸이라 활성화가 부모 셸에 반영되지 않아 바로 다음 `python`이
+"command not found"로 죽는다. 리다이렉트(`>/dev/null 2>&1`)는 괜찮다.
+
+**긴 실행은 tmux 안에서.** suite 전체 롤아웃은 수십 분~수 시간이다. 세션이
+백그라운드로 명령을 띄워 완주 알림을 받을 수도 있지만, SSH/세션이 끊겨도 살아남도록
+tmux를 쓰는 편이 안전하다:
+
+```bash
+tmux new -d -s jb-eval 'cd ~/head_poc && source env.sh >/dev/null 2>&1 && \
+  CUDA_VISIBLE_DEVICES=1 python run_agentdojo_eval.py ... 2>&1 | tee results/<run>/console.log'
+tmux capture-pane -t jb-eval -p | tail -40   # 진행 상황 확인
+```
+
+**GPU 인덱스는 매번 검증.** `gpu_free`로 빈 카드 확인 + 반드시 이름까지 확인
+(부록 B 경고, `CUDA_DEVICE_ORDER=PCI_BUS_ID`는 env.sh가 잡지만 4090 추가 이후 인덱스
+이력이 있다):
+
+```bash
+source env.sh >/dev/null 2>&1 && CUDA_VISIBLE_DEVICES=1 \
+  python -c "import torch; print(torch.cuda.get_device_name(0))"   # 'RTX A6000' 확인
+```
+
+- **4bit 32B 평가는 반드시 A6000** (Blackwell nf4 커널이 32B 손상, status-2026-09-07 §1.B).
+  `gpu_free` 출력에서 A6000의 인덱스를 확인해 그 번호를 쓴다.
+- 7~8B bf16은 4090(24GB), 그 외 큰 스케일업은 A6000(48GB).
+
+**커밋.** 결과·문서 모두 이제 이 세션에서 커밋·push 한다 (`git config` 로컬 스코프는
+이미 `Won`/`jongbinwon03@gmail.com`으로 설정돼 있음). "코드/문서는 로컬에서만" 관례는
+완화 — 서버에서 편집·커밋해도 되지만, 로컬 클론과 갈리지 않게 push 후 로컬에서 pull.
+
+**환경 현황 (2026-09-08 실측):** venv `envs/atlas` = Python 3.14.6, `torch 2.11.0+cu128`,
+GPU 3장(PRO 4500 Blackwell / A6000 / 4090) 전부 유휴. 이전 status 문서의 "3.10~3.12"
+서술은 낡음 — venv가 3.14로 재구성됨.
