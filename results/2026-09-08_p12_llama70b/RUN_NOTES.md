@@ -15,9 +15,14 @@ P12 (docs/todo.md) / feedback-2026-09-06.md §1. **스케일 축**: Llama-3.1-8B
 - ✅ `meta-llama/Llama-3.1-70B-Instruct` HF 접근 OK (`jongbeen212` 계정)
   - ⚠️ `Llama-3.3-70B-Instruct`는 403 (gated 승인 안 됨). 3.1이 스케일 축엔 오히려 정답
     (8B도 3.1이라 버전 고정됨).
-- ✅ P13(llama tool-call 파서 0% 버그) **이미 서버 재검증됨** — 2026-08-31 Llama-3.1-8B
-  A/B에서 parse ok 79%(custom)·79%(agentdojo_default). feedback 2.5.3. status-09-07/P12의
-  "서버 재검증 전" 서술은 낡음.
+- ✅ **파서는 `--tool_call_format agentdojo_default` 사용** (P16 확정, 교수님 피드백).
+  `--family llama`는 파서와 무관 — attention knockout(`edge_ablation`)의 아키텍처 패치용,
+  반드시 필요. `agentdojo_default`이면 `edge_ablation`은 llama로 패치하되 tool-call
+  파싱/시스템 프롬프트는 AgentDojo 자체 것을 쓴다(family 분기 skip, 코드 `agentdojo_pipeline.py:261`).
+- ✅ P13(llama가 custom 경로에서 파싱 0%였던 버그)은 **서버 재검증 완료** — 2026-08-31
+  Llama-3.1-8B A/B에서 parse ok 79%(custom)·79%(agentdojo_default). feedback 2.5.3.
+  (우리는 agentdojo_default를 쓰므로 P13은 직접 관계 없고, "llama tool-calling이 서버에서
+  된다"는 정황 확인용.) status-09-07/P12의 "서버 재검증 전" 서술은 낡음.
 - ✅ 디스크 1.5T 여유 (fp16 70B ~140GB 받아도 됨)
 
 ## 방침
