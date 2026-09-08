@@ -410,6 +410,12 @@ utility 측정용 2 baselines(read_clean/read_injected, 정상 스팬)" 구조�
 > 요지: synthetic 헤드 → AgentDojo 평가는 2026-07~08에 3번 돌아갔으나 전부 구 하드웨어·구
 > 파서·표본 1건이라 결론 불가. 헤드 겹침 jaccard 0.21~0.31(우연 8~12배), **교집합은 전부
 > layer 0**. 서버(P16 방법론)로 재실행 + layer-0-only knockout 대조 필요.
+>
+> 🔎 **Track A 양자화 대조 (bf16 vs fp4 vs nf4dq) — [feedback-2026-09-06.md](feedback-2026-09-06.md) §3, 미실행.**
+> 현재 헤드가 모델마다 양자화 조건이 다름(7B·32B=fp4, Llama-8B=bf16). `attn_relevance.py`의
+> 4bit는 First Commit부터 fp4/no-dq 고정(`run_agentdojo_eval.py`만 P16에서 nf4dq로 교체됨).
+> fp4가 knockout *평가*를 과손상시킨 건 확인됐는데(2.1.14) *탐색*에도 영향 있는지 미확인.
+> 가장 싼 대조 = Llama-8B bf16(기존) ↔ fp4 재실행. 선행: `attn_relevance.py` nf4dq 배선(~5줄).
 
 **배경**: 2026-07-29 피드백 — (a) AgentDojo로 재현 + utility 측정 방법 정비, (b) attention
 head 탐색 방법 체계화, 두 요구를 논의 끝에 하나로 통합. 이유: P2-d에서 이미 synthetic-only/
