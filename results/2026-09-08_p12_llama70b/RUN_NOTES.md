@@ -128,6 +128,28 @@ nf4+dq 배선 완료(`attn_relevance.py` + `compare_head_sources.py`, commit 별
 
 → **70B Track A(backward)는 불가.** Track B(forward-only knockout)는 정상 동작(위 결과).
 
+**멀티-GPU + max_memory 재시도 (2026-09-08, "32B bf16 Track B처럼 해보라" 요청):**
+- 32B bf16 Track B는 `--device_map auto --max_memory 0:34 1:24 2:18`(76GiB 예산, ~65GB
+  bf16, Blackwell 포함)로 성공. 하지만 그건 **forward-only** — backward 활성값이 없다.
+- 70B nf4(~40GB)를 3장에 올리는 것 자체는 됨: 평범한 `device_map=auto`면 disk offload
+  없이 `{dev0:20L+embed, dev1:26L, dev2:34L+lm_head}` 배치. **`--max_memory`를 타이트하게
+  주면 `ValueError: modules dispatched on CPU/disk`** (accelerate가 예산 여유를 크게
+  요구, <75GiB면 거부).
+- **backward가 안 됨**: accelerate 자동 배치는 한 device에 34층+lm_head를 몰고, embed
+  backward는 root device에 집중됨 → 그 device가 OOM. `balanced_low_0`은 root(A6000)를
+  통째로 비워버려 역효과.
+- **수동 device_map**(A6000 32L+embed+lm_head / Blackwell 30L / 4090 18L)으로 **T=1000은
+  완주**(6s) — 단 A6000 peak **45.1GB/48** (94%), T=1400은 OOM. 게다가 랜덤 입력에서
+  relevance `finite=False`(실제 프롬프트에선 괜찮을 수 있으나 미검증).
+- 산술: 80층 × (0.47 weight + ~0.7 backend@T1400) + embed ~15GB ≈ **109GB > 104GB 총 VRAM**.
+  T≈900~1000으로 낮춰야 겨우 들어가는데, 그러면 agentdojo 풀이 137/307(45%)로 줄어
+  head_n 제약 + A6000이 94% 점유라 실제 다양한 입력에서 OOM 빈발 예상.
+
+**부가 발견 — Blackwell nf4 손상(2.1.20) 재검토 필요**: 32B nf4를 Blackwell vs A6000에서
+greedy 생성 → **출력 완전 동일**(byte-identical). 2.1.20의 "Blackwell nf4가 32B 손상"은
+raw 생성에서는 재현 안 됨 — task-specific/미묘하거나, 당시 GPU 인덱스 혼동 가능성.
+별도 재조사 가치 있음(logit 레벨 비교).
+
 **대안 (다음 세션에서 결정):**
 - **A. Qwen2.5-32B Track A를 nf4dq로 재탐색** — 32B nf4dq ~18GB → A6000 여유 30GB, backward 넉넉.
   기존 32B 헤드는 fp4라 **feedback-2026-09-06 §3(fp4 vs nf4dq 대조)도 동시 해결**. 그다음
