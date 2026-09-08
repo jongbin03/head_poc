@@ -18,8 +18,8 @@
 | P5 | (교수님 피드백) 키 그룹 2개 vs 데이터셋 모드 4개 문서 정비 | P4 결과로 서술이 또 바뀔 수 있어 그 뒤에 |
 | P3 | control head 내 internal-only vs external-only 채널 분기 검증 | **후순위 (2026-08-21 결정)**. 겹침 정도는 기존 결과에서 산출 완료(합성 한정 예비, plan-2026-08-26.md 2절). **정식 분석은 AgentDojo injection task 재라벨링(신설 P10)이 선행돼야 함** — 합성 데이터는 품질이 낮아 이 위에서 결론 내면 content-availability 교란이 곱해짐 |
 | P10 | **AgentDojo에 internal/external 채널 축 이식 — injection task 재라벨링** | **신설 (2026-08-21)**. P3의 선행 조건. P9의 1·2·4 항목이 끝난 뒤 다음 사이클. 설계는 plan-2026-08-26.md 2.6절 |
-| P11 | lxt 미지원 아키텍처로 head 탐색 확장 (Mistral/DeepSeek 등) | **신설 (2026-08-25)**. 표준 아키텍처는 config 추가로 저렴, MoE/MLA/SSM은 규칙 유도 필요. P9(8/26 발표) 이후 |
-| P12 | Llama family 내부 스케일 축 — 8B vs 70B(/405B) | **신설 (2026-08-26)**. `--family llama` 코드 수정 0, 모델 인자만 교체. 현재 하드웨어로 OOM 위험 큼(아래 상세). P9(8/26 발표) 이후 |
+| **P11** | lxt 미지원 아키텍처로 head 탐색 확장 (Mistral/DeepSeek 등) + **Qwen3-8B(세대 축)** | **신설 (2026-08-25)**. **4차 발표(2026-09-06) 후속으로 Qwen3-8B가 "다음주 태스크"로 승격 → [feedback-2026-09-06.md](feedback-2026-09-06.md) §1.** `--family qwen3` 배선됨(`29b81c9`), lxt first-token skew 경고 → `tools/diag_qwen3_relevance.py` 선행 |
+| **P12** | Llama family 내부 스케일 축 — 8B vs 70B(/405B) | **신설 (2026-08-26)**. **4차 발표(2026-09-06) 후속으로 "다음주 태스크" 승격 → [feedback-2026-09-06.md](feedback-2026-09-06.md) §1.** `--family llama` 코드 수정 0. P13 서버 재검증 선행. OOM 위험(아래 상세) |
 
 아래는 우선순위 순서대로 자세한 내용, 그 뒤에 보류 항목.
 자세한 대응 계획(특히 "키 그룹" 정의 재확인)은 `feedback-2026-07-29.md`,
@@ -405,6 +405,11 @@ utility 측정용 2 baselines(read_clean/read_injected, 정상 스팬)" 구조�
 데이터셋 커버리지(스타일x도메인) 표 추가. 자세한 내용: `feedback-2026-07-29.md` 0절, 2절.
 
 ## P4. (교수님 피드백, 구 P4+P6 통합) Head 탐색 방법론 재설계 — AgentDojo를 탐색 소스로
+
+> 🔎 **4차 발표(2026-09-06) 후속 — 소스 비교 현황 실사 결과는 [feedback-2026-09-06.md](feedback-2026-09-06.md) §2.**
+> 요지: synthetic 헤드 → AgentDojo 평가는 2026-07~08에 3번 돌아갔으나 전부 구 하드웨어·구
+> 파서·표본 1건이라 결론 불가. 헤드 겹침 jaccard 0.21~0.31(우연 8~12배), **교집합은 전부
+> layer 0**. 서버(P16 방법론)로 재실행 + layer-0-only knockout 대조 필요.
 
 **배경**: 2026-07-29 피드백 — (a) AgentDojo로 재현 + utility 측정 방법 정비, (b) attention
 head 탐색 방법 체계화, 두 요구를 논의 끝에 하나로 통합. 이유: P2-d에서 이미 synthetic-only/
