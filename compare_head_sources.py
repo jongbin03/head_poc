@@ -306,10 +306,15 @@ def cmd_discover(args):
     model, tok, dtype_name = load_model_for_relevance(
         model_path=args.model, four_bit=args.four_bit, device=args.device,
         model_family=args.family, dtype=args.dtype, device_map=args.device_map,
+        bnb_quant_type=args.bnb_quant_type, bnb_double_quant=args.bnb_double_quant,
+        max_memory=args.max_memory,
     )
     print(describe(dtype_name))
     result = _DISCOVER_FNS[args.source](args, model, tok)
     result["model"] = args.model
+    result["quant"] = ({"bnb_4bit_quant_type": args.bnb_quant_type,
+                        "bnb_4bit_use_double_quant": bool(args.bnb_double_quant)}
+                       if args.four_bit else None)
     # heads JSON은 결과 폴더가 아니라 단독 파일로 나가므로 환경을 안에 넣는다
     result["env"] = collect_env_meta(dtype_name)
 
@@ -331,6 +336,8 @@ def cmd_discover_batch(args):
     model, _, dtype_name = load_model_for_relevance(
         model_path=args.model, four_bit=args.four_bit, device=args.device,
         model_family=args.family, dtype=args.dtype, device_map=args.device_map,
+        bnb_quant_type=args.bnb_quant_type, bnb_double_quant=args.bnb_double_quant,
+        max_memory=args.max_memory,
     )
     print(describe(dtype_name))
     num_layers = model.config.num_hidden_layers
@@ -419,11 +426,17 @@ def cmd_discover_parallel(args):
                 "--start", str(start), "--end", str(end), "--out_partial", out_partial,
             ]
             if args.four_bit:
-                cmd.append("--four_bit")
+                cmd += ["--four_bit", "--bnb_quant_type", args.bnb_quant_type]
+                # 자식 기본값도 double_quant on이라 off일 때만 명시 (dtype처럼 부모-자식
+                # 설정이 어긋나면 안 됨).
+                if not args.bnb_double_quant:
+                    cmd.append("--no_bnb_double_quant")
             # device_map을 안 넘기면 자식이 단일 GPU로 로드해 32B는 그대로 OOM이다
             # (dtype/split 인자와 같은 이유 — 자식이 부모와 다른 설정으로 계산하면 안 된다).
             if args.device_map is not None:
                 cmd += ["--device_map", args.device_map]
+            if args.max_memory:
+                cmd += ["--max_memory", *args.max_memory]
             if args.max_seq_len is not None:
                 cmd += ["--max_seq_len", str(args.max_seq_len)]
             if args.agentdojo_suites:
@@ -489,6 +502,9 @@ def cmd_discover_parallel(args):
         "topk": args.topk,
         "model": args.model,
         "batch_size": args.batch_size,
+        "quant": ({"bnb_4bit_quant_type": args.bnb_quant_type,
+                   "bnb_4bit_use_double_quant": bool(args.bnb_double_quant)}
+                  if args.four_bit else None),
         "env": collect_env_meta(resolved_dtype),
     }
     with open(out_json, "w", encoding="utf-8") as f:
@@ -597,6 +613,26 @@ def _add_common_discover_args(p):
         "⚠️ 3장을 다 쓰면 공용 서버에서 남이 못 쓰므로 gpu_free로 먼저 확인할 것.",
     )
     p.add_argument("--four_bit", action="store_true")
+    p.add_argument(
+        "--bnb_quant_type", default="nf4", choices=["fp4", "nf4"],
+        help="--four_bit일 때만. bnb 4bit 방식. nf4(기본, 2026-09-08~ — NormalFloat4) / "
+        "fp4(2026-09-07까지의 모든 Track A 탐색이 이 값 — 7B·32B 헤드가 fp4로 찾은 것). "
+        "run_agentdojo_eval.py는 P16(feedback 2.1.14)에서 이미 nf4로 교체됨. "
+        "근거·대조 실험 설계: docs/feedback-2026-09-06.md §3.",
+    )
+    _dq = p.add_mutually_exclusive_group()
+    _dq.add_argument("--bnb_double_quant", dest="bnb_double_quant", action="store_true",
+                     help="--four_bit일 때만. double_quant on (기본, 2026-09-08~).")
+    _dq.add_argument("--no_bnb_double_quant", dest="bnb_double_quant", action="store_false",
+                     help="double_quant off. fp4/no-dq(구 Track A) 재현: "
+                     "--bnb_quant_type fp4 --no_bnb_double_quant.")
+    p.set_defaults(bnb_double_quant=True)
+    p.add_argument(
+        "--max_memory", nargs="+", default=None, metavar="IDX:SIZE",
+        help="--device_map auto일 때만. GPU별 가중치 상한 (예: --max_memory 0:40GiB 1:20GiB). "
+        "accelerate auto가 GPU0에 가중치를 몰아 backward activation 스파이크에서 OOM나는 걸 "
+        "방지 (run_agentdojo_eval.py와 동일, feedback 2.1.11). cpu는 자동 0GiB(오프로딩 금지).",
+    )
     add_runtime_args(p)
     p.add_argument("--topk", type=int, default=20)
     p.add_argument(

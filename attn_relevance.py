@@ -36,6 +36,9 @@ def load_model_for_relevance(
     model_family: str = "qwen2",
     dtype: str = "auto",
     device_map: Optional[str] = None,
+    bnb_quant_type: str = "nf4",
+    bnb_double_quant: bool = True,
+    max_memory: Optional[list] = None,
 ):
     """
     model_family: "qwen2" | "llama" | "qwen3"  (lxt가 공식 지원하는 아키텍처만).
@@ -49,6 +52,15 @@ def load_model_for_relevance(
     device_map: 모델 가중치 배치. None이면 `device`를 그대로 쓴다(기존 동작).
            **"auto"를 주면 여러 GPU에 레이어를 분산**한다 — 32B처럼 단일 카드에
            안 들어가는 모델용. 이때 `device`는 "cuda:0"으로 두는 게 안전하다.
+    bnb_quant_type/bnb_double_quant: four_bit일 때 bnb 4bit 설정. 기본 nf4+double_quant
+           (2026-09-08~ — 그 전엔 bnb 암묵 기본값 fp4/no-dq였다. run_agentdojo_eval.py는
+           P16(feedback 2.1.14)에서 이미 nf4로 바꿨는데 여기(Track A)만 fp4로 남아
+           탐색/평가 양자화가 불일치했다, docs/feedback-2026-09-06.md §3). 구 동작
+           재현: bnb_quant_type="fp4", bnb_double_quant=False.
+    max_memory: device_map="auto"일 때 GPU별 가중치 상한 리스트(["0:40GiB", "1:20GiB"]).
+           accelerate가 GPU0에 가중치를 몰아 backward activation 스파이크에서 OOM나는
+           걸 막는다 (run_agentdojo_eval._load_model과 동일, feedback 2.1.11). cpu는
+           자동 0GiB(오프로딩 금지 — 느리게 도느니 빨리 실패).
     checkpointing은 여기서 켜지 않는다 — head-level relevance와 상극이기 때문.
 
     반환: (model, tokenizer, dtype_name) — dtype_name은 "auto"가 실제로 무엇으로
@@ -79,10 +91,22 @@ def load_model_for_relevance(
 
     kwargs = dict(torch_dtype=torch_dtype, device_map=resolved_device_map,
                   attn_implementation="eager")
+    if max_memory and resolved_device_map == "auto":
+        mm = {}
+        for spec in max_memory:
+            idx, sep, size = spec.partition(":")
+            if not sep:
+                raise SystemExit(f"max_memory 항목은 'IDX:SIZE' 형식이어야 함 (받음: {spec!r})")
+            mm[int(idx)] = size
+        mm["cpu"] = "0GiB"  # CPU 오프로딩 금지 — 느리게 도느니 빨리 실패
+        kwargs["max_memory"] = mm
     if four_bit:
         from transformers import BitsAndBytesConfig
         kwargs["quantization_config"] = BitsAndBytesConfig(
-            load_in_4bit=True, bnb_4bit_compute_dtype=torch_dtype
+            load_in_4bit=True,
+            bnb_4bit_compute_dtype=torch_dtype,
+            bnb_4bit_quant_type=bnb_quant_type,
+            bnb_4bit_use_double_quant=bnb_double_quant,
         )
 
     model = model_cls.from_pretrained(model_path, **kwargs)
