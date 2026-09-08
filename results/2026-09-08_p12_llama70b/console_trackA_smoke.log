@@ -1,0 +1,60 @@
+  [agentdojo] filtered by max_seq_len=1000: 307 -> 137 pairs
+  [agentdojo] 137 total pairs
+[split] head_n=20 seed=42 group_key=user_task stratify_key=suite quota/stratum=6
+[split]   banking     head=   6  eval=  55  (head_groups=2/11)
+[split]   slack       head=   8  eval=  66  (head_groups=2/20)
+[split]   travel      head=   2  eval=   0  (head_groups=1/1)  ⚠ shortfall=4
+[split] 합계 head=16 eval=121  head turn_idx={0: 12, 1: 4}
+[discover-parallel:agentdojo] 16 head_pairs total, batch_size=2
+[discover-parallel:agentdojo] batch [0:2]/16 -> new subprocess ...
+  [agentdojo] filtered by max_seq_len=1000: 307 -> 137 pairs
+  [agentdojo] 137 total pairs
+[split] head_n=20 seed=42 group_key=user_task stratify_key=suite quota/stratum=6
+[split]   banking     head=   6  eval=  55  (head_groups=2/11)
+[split]   slack       head=   8  eval=  66  (head_groups=2/20)
+[split]   travel      head=   2  eval=   0  (head_groups=1/1)  ⚠ shortfall=4
+[split] 합계 head=16 eval=121  head turn_idx={0: 12, 1: 4}
+[discover-batch:agentdojo] loading meta-llama/Llama-3.1-70B-Instruct for batch [0:2] ...
+Traceback (most recent call last):
+  File "/home/jbwon/head_poc/compare_head_sources.py", line 731, in <module>
+    main()
+    ~~~~^^
+  File "/home/jbwon/head_poc/compare_head_sources.py", line 727, in main
+    args.func(args)
+    ~~~~~~~~~^^^^^^
+  File "/home/jbwon/head_poc/compare_head_sources.py", line 336, in cmd_discover_batch
+    model, _, dtype_name = load_model_for_relevance(
+                           ~~~~~~~~~~~~~~~~~~~~~~~~^
+        model_path=args.model, four_bit=args.four_bit, device=args.device,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<2 lines>...
+        max_memory=args.max_memory,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/home/jbwon/head_poc/attn_relevance.py", line 112, in load_model_for_relevance
+    model = model_cls.from_pretrained(model_path, **kwargs)
+  File "/home/jbwon/head_poc/envs/atlas/lib/python3.14/site-packages/transformers/modeling_utils.py", line 279, in _wrapper
+    return func(*args, **kwargs)
+  File "/home/jbwon/head_poc/envs/atlas/lib/python3.14/site-packages/transformers/modeling_utils.py", line 4380, in from_pretrained
+    device_map = _get_device_map(model, device_map, max_memory, hf_quantizer, torch_dtype, keep_in_fp32_regex)
+  File "/home/jbwon/head_poc/envs/atlas/lib/python3.14/site-packages/transformers/modeling_utils.py", line 1304, in _get_device_map
+    hf_quantizer.validate_environment(device_map=device_map)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jbwon/head_poc/envs/atlas/lib/python3.14/site-packages/transformers/quantizers/quantizer_bnb_4bit.py", line 104, in validate_environment
+    raise ValueError(
+    ...<6 lines>...
+    )
+ValueError: Some modules are dispatched on the CPU or the disk. Make sure you have enough GPU RAM to fit the quantized model. If you want to dispatch the model on the CPU or the disk while keeping these modules in 32-bit, you need to set `llm_int8_enable_fp32_cpu_offload=True` and pass a custom `device_map` to `from_pretrained`. Check https://huggingface.co/docs/transformers/main/en/main_classes/quantization#offload-between-cpu-and-gpu for more details. 
+Traceback (most recent call last):
+  File "/home/jbwon/head_poc/compare_head_sources.py", line 731, in <module>
+    main()
+    ~~~~^^
+  File "/home/jbwon/head_poc/compare_head_sources.py", line 727, in main
+    args.func(args)
+    ~~~~~~~~~^^^^^^
+  File "/home/jbwon/head_poc/compare_head_sources.py", line 452, in cmd_discover_parallel
+    raise RuntimeError(
+        f"discover-batch subprocess failed (batch [{start}:{end}], exit={proc.returncode})"
+    )
+RuntimeError: discover-batch subprocess failed (batch [0:2], exit=1)

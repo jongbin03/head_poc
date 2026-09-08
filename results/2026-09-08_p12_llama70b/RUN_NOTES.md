@@ -112,3 +112,27 @@ utility는 1쌍 손상(user_task_8/inj_3, 공격 무관).
 4. held-out 35쌍만. `--eval_split all` 미실행. banking/travel/workspace는 8B split에
    held-out이 0이라 별도(--eval_split all 또는 8B 헤드 재탐색) 필요.
 5. important_instructions 공격, slack만.
+
+---
+
+## Track A (70B 자체 헤드 탐색) — **이 하드웨어에서 불가능** (2026-09-08 실측)
+
+nf4+dq 배선 완료(`attn_relevance.py` + `compare_head_sources.py`, commit 별도) 후 시도:
+
+| 구성 | 결과 |
+|---|---|
+| Llama-3.1-70B nf4dq 가중치 | **~39.5GB** |
+| A6000 단독(48GB) | 가중치 후 여유 7.9GB. AttnLRP backward는 최소 ~10GB 필요 — **T=500에서도 OOM**(peak 49.8GB). 80층 residual stream + lxt 유지 텐서가 seq len과 거의 무관하게 바닥값을 만듦 |
+| A6000+4090(72GB, device_map auto) | accelerate가 예산을 실사용(~38GB)보다 훨씬 크게 줘야 로드되고, 그래도 **1개 모듈 disk offload** → backward 불가. 예산 46+20GiB이면 `ValueError: modules dispatched on CPU/disk` |
+| PRO4500(Blackwell) 포함 | **금지** — nf4 dequant 커널이 forward 손상(2.1.20), 헤드가 garbage됨 |
+
+→ **70B Track A(backward)는 불가.** Track B(forward-only knockout)는 정상 동작(위 결과).
+
+**대안 (다음 세션에서 결정):**
+- **A. Qwen2.5-32B Track A를 nf4dq로 재탐색** — 32B nf4dq ~18GB → A6000 여유 30GB, backward 넉넉.
+  기존 32B 헤드는 fp4라 **feedback-2026-09-06 §3(fp4 vs nf4dq 대조)도 동시 해결**. 그다음
+  32B eval을 "32B 자체 헤드(nf4dq)" vs "8B 전이 헤드"로 → "big model이 저항하는가 vs
+  틀린 헤드를 껐는가" 판정. 이 통찰을 70B Track B 결과 해석에 전이.
+- **B. Llama-8B 헤드를 nf4dq + held-out 풀 확대로 재탐색** → 70B Track B 재실행. (단 "70B
+  자체 헤드"는 여전히 못 봄)
+- **C. 70B Track B 확장** — `--eval_split all`, 타 suite, 타 공격. 헤드 이슈는 그대로 둠.
