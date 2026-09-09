@@ -307,7 +307,7 @@ def cmd_discover(args):
         model_path=args.model, four_bit=args.four_bit, device=args.device,
         model_family=args.family, dtype=args.dtype, device_map=args.device_map,
         bnb_quant_type=args.bnb_quant_type, bnb_double_quant=args.bnb_double_quant,
-        max_memory=args.max_memory,
+        max_memory=args.max_memory, device_map_plan=args.device_map_plan,
     )
     print(describe(dtype_name))
     result = _DISCOVER_FNS[args.source](args, model, tok)
@@ -337,7 +337,7 @@ def cmd_discover_batch(args):
         model_path=args.model, four_bit=args.four_bit, device=args.device,
         model_family=args.family, dtype=args.dtype, device_map=args.device_map,
         bnb_quant_type=args.bnb_quant_type, bnb_double_quant=args.bnb_double_quant,
-        max_memory=args.max_memory,
+        max_memory=args.max_memory, device_map_plan=args.device_map_plan,
     )
     print(describe(dtype_name))
     num_layers = model.config.num_hidden_layers
@@ -437,6 +437,8 @@ def cmd_discover_parallel(args):
                 cmd += ["--device_map", args.device_map]
             if args.max_memory:
                 cmd += ["--max_memory", *args.max_memory]
+            if args.device_map_plan is not None:
+                cmd += ["--device_map_plan", args.device_map_plan]
             if args.max_seq_len is not None:
                 cmd += ["--max_seq_len", str(args.max_seq_len)]
             if args.agentdojo_suites:
@@ -632,6 +634,12 @@ def _add_common_discover_args(p):
         help="--device_map auto일 때만. GPU별 가중치 상한 (예: --max_memory 0:40GiB 1:20GiB). "
         "accelerate auto가 GPU0에 가중치를 몰아 backward activation 스파이크에서 OOM나는 걸 "
         "방지 (run_agentdojo_eval.py와 동일, feedback 2.1.11). cpu는 자동 0GiB(오프로딩 금지).",
+    )
+    p.add_argument(
+        "--device_map_plan", default=None, metavar="DEV:N,DEV:N,...",
+        help="수동 device_map 축약형 (예: 0:32,1:30,2:18 — dev0에 32층+embed+norm+lm_head, "
+        "dev1 30층, dev2 18층). --device_map auto가 층 편중+root 집중으로 backward OOM날 때 "
+        "(70B Track A, 2026-09-08 RUN_NOTES). 지정 시 --device_map/--max_memory는 무시된다.",
     )
     add_runtime_args(p)
     p.add_argument("--topk", type=int, default=20)

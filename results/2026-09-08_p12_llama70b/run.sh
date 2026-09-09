@@ -66,26 +66,35 @@ slack-heldout-split)
   ;;
 
 ## ── Track A: 70B 자체 헤드 탐색 (discover-parallel) ──────────────────
-## nf4+dq(2026-09-08 배선). Blackwell(PRO4500) 제외 → A6000(idx0)+4090(idx1) 분산.
-## CUDA_VISIBLE_DEVICES=1,2 → 프로세스 안에서 0=A6000, 1=4090.
+## nf4+dq. 2026-09-09: --device_map_plan(수동 device_map) 신설 — auto 배치는 층 편중+
+## root 집중으로 backward OOM (09-08 확인). 09-08에 T=1000 완주했던 수동 배치를 재현:
+## A6000 32L+embed+norm+lm_head / Blackwell 30L / 4090 18L.
+## CUDA_VISIBLE_DEVICES=1,0,2 → 프로세스 안 0=A6000(48G,root), 1=Blackwell(32G), 2=4090(24G).
+## ⚠️ Blackwell nf4 커널 손상 이력(2.1.20) — 단 09-08에 32B greedy byte-identical.
+## 스모크가 실제 프롬프트에서 relevance finite 확인하는 것이 목적.
 
 trackA-smoke)
-  # head_n 20, max_seq_len 1000, batch_size 2. OOM율/수율/시간 확인용.
-  CUDA_VISIBLE_DEVICES=1,2 python compare_head_sources.py discover-parallel \
+  # head_n 20, max_seq_len 1000, batch_size 4. OOM율/수율/시간 + finite 확인용.
+  # batch_size=1 예비 확인: 첫 3배치 clean(1ok/0oom/0nan) — plumbing·finite OK, 재로드가
+  # 배치당 ~8분이라 느림. batch_size=4로 본 탐색 배치값도 함께 검증(A6000 headroom 확인됨).
+  CUDA_VISIBLE_DEVICES=1,0,2 python compare_head_sources.py discover-parallel \
     --source agentdojo --model "$MODEL" --family llama \
     --four_bit --dtype bf16 \
-    --device cuda:0 --device_map auto --max_memory 0:32GiB 1:15GiB \
-    --head_n 20 --max_seq_len 1000 --batch_size 2 \
+    --device cuda:0 --device_map_plan 0:32,1:30,2:18 \
+    --head_n 20 --max_seq_len 1000 --batch_size 4 \
     --out_json "$OUT/heads_agentdojo_SMOKE.json" 2>&1 | tee "$OUT/console_trackA_smoke.log"
   ;;
 
 trackA)
-  # 본 탐색. head_n/max_seq_len/batch_size는 스모크 결과 보고 조정. tmux 필수.
-  CUDA_VISIBLE_DEVICES=1,2 python compare_head_sources.py discover-parallel \
+  # 본 탐색. 스모크(2026-09-09): 16/16 ok, 0 oom, 0 nan, heads layer 26-44
+  # (8B는 layer 11-22/32 ≈ 같은 상대 깊이 40% — sanity OK). batch_size=4 leak 없음 확인.
+  # head_n 200 = 8B 탐색과 동일 (8B: head_n 200 → 실제 149쌍, eval 31쌍). T=1000 → 137 all_pairs.
+  # 예상 ~6시간 (배치당 ~12분, 모델 재로드가 병목). tmux 필수.
+  CUDA_VISIBLE_DEVICES=1,0,2 python compare_head_sources.py discover-parallel \
     --source agentdojo --model "$MODEL" --family llama \
     --four_bit --dtype bf16 \
-    --device cuda:0 --device_map auto --max_memory 0:32GiB 1:15GiB \
-    --head_n 150 --max_seq_len 1400 --batch_size 2 \
+    --device cuda:0 --device_map_plan 0:32,1:30,2:18 \
+    --head_n 200 --max_seq_len 1000 --batch_size 4 \
     --out_json "$OUT/heads_agentdojo.json" 2>&1 | tee "$OUT/console_trackA.log"
   ;;
 

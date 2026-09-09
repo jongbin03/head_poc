@@ -29,6 +29,42 @@ import torch
 from transformers import AutoTokenizer
 
 
+def expand_device_map_plan(plan: str, num_hidden_layers: int) -> dict:
+    """"0:32,1:30,2:18" 같은 축약형을 HF device_map dict로 편다.
+
+    `embed_tokens` / `rotary_emb` / `norm` / `lm_head` 는 **첫 번째로 나열된 device**에
+    둔다 — AttnLRP backward가 lm_head(타깃 로짓)에서 시작해 embed로 수렴하므로 그 양 끝을
+    여유가 큰 카드 하나에 몰아둔다. 레이어는 나열 순서대로 순차 배정.
+
+    `--device_map auto`가 accelerate 자동 배치의 층 편중 + root device 집중 때문에
+    backward 스파이크에서 OOM날 때 쓴다 (70B Track A, docs 2026-09-08 RUN_NOTES).
+    """
+    segs = []
+    for part in plan.split(","):
+        dev, sep, n = part.partition(":")
+        if not sep:
+            raise SystemExit(
+                f"--device_map_plan 항목은 'DEV:층수' 형식이어야 함 (받음: {part!r})")
+        segs.append((int(dev), int(n)))
+    total = sum(n for _, n in segs)
+    if total != num_hidden_layers:
+        raise SystemExit(
+            f"--device_map_plan 층 합계 {total} != 모델 층수 {num_hidden_layers}")
+    root = segs[0][0]
+    dm = {
+        "model.embed_tokens": root,
+        "model.rotary_emb": root,
+        "model.norm": root,
+        "lm_head": root,
+    }
+    li = 0
+    for dev, n in segs:
+        for _ in range(n):
+            dm[f"model.layers.{li}"] = dev
+            li += 1
+    return dm
+
+
 def load_model_for_relevance(
     model_path: str = "Qwen/Qwen2.5-1.5B-Instruct",
     four_bit: bool = False,
@@ -39,6 +75,7 @@ def load_model_for_relevance(
     bnb_quant_type: str = "nf4",
     bnb_double_quant: bool = True,
     max_memory: Optional[list] = None,
+    device_map_plan: Optional[str] = None,
 ):
     """
     model_family: "qwen2" | "llama" | "qwen3"  (lxt가 공식 지원하는 아키텍처만).
@@ -61,6 +98,9 @@ def load_model_for_relevance(
            accelerate가 GPU0에 가중치를 몰아 backward activation 스파이크에서 OOM나는
            걸 막는다 (run_agentdojo_eval._load_model과 동일, feedback 2.1.11). cpu는
            자동 0GiB(오프로딩 금지 — 느리게 도느니 빨리 실패).
+    device_map_plan: "0:32,1:30,2:18" 축약형 수동 device_map (expand_device_map_plan 참고).
+           지정 시 device_map/max_memory를 무시하고 이 배치를 그대로 쓴다. `--device_map
+           auto`가 층 편중 + root 집중으로 backward OOM날 때 (70B Track A, 2026-09-08).
     checkpointing은 여기서 켜지 않는다 — head-level relevance와 상극이기 때문.
 
     반환: (model, tokenizer, dtype_name) — dtype_name은 "auto"가 실제로 무엇으로
@@ -84,10 +124,17 @@ def load_model_for_relevance(
 
     monkey_patch(modeling_mod, verbose=False)
 
-    resolved_device_map = device_map or device
+    if device_map_plan:
+        from transformers import AutoConfig
+        _cfg = AutoConfig.from_pretrained(model_path)
+        resolved_device_map = expand_device_map_plan(device_map_plan, _cfg.num_hidden_layers)
+    else:
+        resolved_device_map = device_map or device
     # dtype 판정에는 **device_map**을 넘긴다. "auto"를 device처럼 취급해 fp32로 떨어지면
     # 분산 로드의 목적(메모리 절감) 자체가 무너지기 때문 (runtime_env.resolve_dtype 주석 참고).
-    torch_dtype, dtype_name = resolve_dtype(dtype, resolved_device_map)
+    # dict(수동 배치)도 다중 GPU라 "auto"와 동일 취급 — str(dict)면 fp32로 떨어진다.
+    _dtype_probe = "auto" if isinstance(resolved_device_map, dict) else resolved_device_map
+    torch_dtype, dtype_name = resolve_dtype(dtype, _dtype_probe)
 
     kwargs = dict(torch_dtype=torch_dtype, device_map=resolved_device_map,
                   attn_implementation="eager")
