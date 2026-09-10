@@ -1114,17 +1114,19 @@ workspace 3개 suite(n=44)만으로 지시 2번(패밀리 축)에 충분히 답�
 
 ## P12. Llama family 내부 스케일 축 — 8B vs 70B(/405B) (신설 2026-08-26)
 
-> **진행 상황 (2026-09-08, `results/2026-09-08_p12_llama70b/` + status-2026-09-08 §2.5):**
-> - **Track B(knockout 전이 평가) 완료** — Llama-3.1-70B nf4dq(A6000), 8B 헤드 20개 전이,
->   slack held-out 35쌍. **스케일업 반례 재현, 더 강하게** (net 억제 0: 1 억제 / 4 persist
->   / 1 backfire vs 8B의 6→0 전량 억제 / 32B의 8~9→5). P13은 2026-08-31에 이미 서버
->   재검증됨(feedback 2.5.3, parse ok 79%).
-> - **Track A(70B 자체 헤드) 불가** — nf4 가중치 ~40GB + AttnLRP backward 활성값이
->   3장(104GB)에 안 들어감. 수동 device_map으로 T=1000만 겨우(A6000 45/48GB), T=1400 OOM.
->   6가지 구성 실측(RUN_NOTES.md). → **대안: Qwen2.5-32B Track A nf4dq**(status §3-A-1).
-> - **다음**: 70B Track B 확장(`--eval_split all`·타 suite, run.sh `slack-all`),
->   또는 32B Track A로 "자체 헤드 vs 전이 헤드" 모호성 해소.
-> - 405B는 여전히 논외.
+> **진행 상황 (2026-09-10 갱신, `results/2026-09-08_p12_llama70b/` + status-2026-09-09):**
+> - **Track A(70B 자체 헤드) 완료** — 09-08 "불가"는 `--device_map auto` 한정이었음.
+>   `--device_map_plan`(수동 device_map, commit `3fa0148`)으로 통과: 130/130, 0 oom/nan,
+>   ~75분. 20 heads layer 26-44 (8B는 11-22/32 — 같은 상대 깊이). smoke∩full=17/20.
+> - **09-08 모호성 판정** — 09-08 Track B의 "70B가 slack knockout에 저항(net 0)"은
+>   **8B 전이 헤드가 틀렸기 때문**. 70B **자체** 헤드로 끄면:
+>   - important_instructions: ASR 0.276→0.181 (all105) / 0.533→0.200 (heldout 15)
+>   - tool_knowledge: ASR 0.402→0.223 (all) / 0.733→0.400 (heldout), backfire 0
+>   - 8B 전이 헤드는 두 공격 다 net≈0. utility 무손상.
+> - → **P16 "스케일업 반례" 서술 수정**: "대형 모델이 저항"이 아니라 **"전이 헤드는
+>   스케일 안 됨 — knockout은 모델별 헤드 탐색 필요"**. status-2026-09-09 §3.
+> - **다음**: (a) Qwen2.5-32B 자체 헤드(nf4dq)로 같은 판정 재확인 [최우선],
+>   (b) 70B k-sweep, (c) slack head_n 낮춰 heldout 표본 확대. 405B는 논외.
 
 **배경**: S6(Llama-3.1-8B, 8/25~26)로 "패밀리 축"(Qwen2 vs Llama, ~7-8B 스케일 고정)을
 시도했지만, Qwen 쪽처럼 **같은 family 안에서 스케일만 올린 대조**(Qwen2.5 7B→32B에 대응하는
