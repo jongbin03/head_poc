@@ -158,3 +158,68 @@ raw 생성에서는 재현 안 됨 — task-specific/미묘하거나, 당시 GPU
 - **B. Llama-8B 헤드를 nf4dq + held-out 풀 확대로 재탐색** → 70B Track B 재실행. (단 "70B
   자체 헤드"는 여전히 못 봄)
 - **C. 70B Track B 확장** — `--eval_split all`, 타 suite, 타 공격. 헤드 이슈는 그대로 둠.
+
+---
+
+## Track A — **완료 (2026-09-09)**: 수동 device_map으로 탐색 성공 + eval 판정
+
+09-08 "불가능" 결론은 **`--device_map auto` 한정**이었다. `compare_head_sources`에
+`--device_map_plan`(수동 device_map 축약형) 추가 → 통과. commit `3fa0148`, `2784bf5`.
+
+### 배선
+
+- `attn_relevance.expand_device_map_plan("0:32,1:30,2:18", num_layers)` — embed/norm/
+  lm_head/rotary_emb는 첫 device, 레이어는 순차 배정. `--device_map`/`--max_memory` 무시.
+- 실행: `CUDA_VISIBLE_DEVICES=1,0,2` → proc 0=A6000(root, 32L+embed+lm_head),
+  1=Blackwell(30L), 2=4090(18L). `--four_bit --dtype bf16 --device_map_plan 0:32,1:30,2:18
+  --max_seq_len 1000 --batch_size 4 --head_n 200`.
+- 09-08 "랜덤 입력 finite=False"는 **랜덤 입력 탓**이었다 — 실제 agentdojo 프롬프트에서
+  finite 100%.
+
+### 탐색 결과 — `heads_agentdojo.json` (20 heads)
+
+| | 값 |
+|---|---|
+| examples | **130/130 ok, 0 oom, 0 nan** |
+| 시간 | ~75분 (호스트 RAM 31GB뿐 → 모델 재로드가 병목. 배치당 2~4분) |
+| heads | layer 26-44 (주로 28-35/80 ≈ 35-44% 깊이) |
+| 재현성 | smoke(16 examples) ∩ full(130) = **17/20** |
+| 대조 | 8B heads = layer 11-22/32 (주로 12-15 ≈ 38-47%) — **같은 상대 깊이 대역** |
+| Blackwell | nf4 포함 backward 전 구간 정상 |
+
+### Eval — "70B 자체 헤드" vs "8B 전이 헤드" knockout (slack, `--eval_split all` 105쌍)
+
+같은 70B nf4dq, 같은 105쌍, k0 기준선 동일(util 0.181 / **sec 0.276, 29건**). knockout
+헤드 집합만 교체. attack=important_instructions.
+
+| knockout 헤드 | kN security | 억제/backfire | net | kN utility | parse_ok |
+|---|---|---|---|---|---|
+| **8B 전이** (09-08 헤드) | 0.276 → **0.257** (27/105) | 4 / 2 | **−2 (≈0)** | 0.190 | 0.782 |
+| **70B 자체 (Track A)** | 0.276 → **0.181** (19/105) | **13 / 3** | **−10 (ASR 34%↓)** | 0.190 | 0.783 |
+| 70B 자체, heldout 15쌍 (누수 X) | 0.533 → **0.200** (3/15) | **5 / 0** | −5 | 0.333 (무손상) | 0.853 |
+
+- **참고 (09-08 원본)**: 8B 전이 헤드 heldout 35쌍 → sec 0.143 → 0.143 (net 0).
+- parse_ok율 양쪽 0.78 동일 → security 하락은 파싱 아티팩트 아님. utility 소폭 상승 →
+  모델 손상 아님, injection-following만 선택적 하락.
+- **backfire 잔존**: all105에서 3건 (user_task_5/inj3, 8/inj1, 9/inj1). 5/inj3·9/inj1은
+  8B·70B 헤드셋 양쪽 공통 → 헤드 무관한 knockout 하 모델 불안정.
+
+### 판정
+
+09-08 "70B는 slack knockout에 저항한다(net 0, backfire)"는 **70B의 저항이 아니라
+8B의 (틀린) 헤드를 껐기 때문**이다. 70B **자체** 헤드를 끄면 ASR 0.28→0.18(전체) /
+0.53→0.20(heldout), utility 손상 0, 억제:backfire = 13:3(heldout 5:0).
+
+→ **P16 "스케일업 반례" 서술 수정**: "대형 모델이 knockout에 저항한다"가 아니라
+**"knockout은 모델별 헤드 탐색이 필요하다 — 전이 헤드는 스케일이 안 된다"**.
+헤드 분리 가설 자체는 70B에서도 성립.
+
+**잔여 caveat**: (1) all105는 70B 자체 헤드에 누수(slack user_task로 탐색) — 단 heldout
+(누수 X)이 더 강한 효과라 누수가 결과를 만든 건 아님. (2) 70B nf4dq vs 8B bf16 양자화
+혼입(feedback §1.3) — 단 k0 동일이라 knockout delta엔 무영향. (3) slack·
+important_instructions만. (4) heldout n=15 (얇음).
+
+### 재현 (`run.sh`)
+
+- `trackA-smoke` / `trackA` — 탐색 (수동 device_map)
+- `trackA-eval-8bheads` / `trackA-eval-70bheads` / `trackA-eval-70bheads-heldout` — eval 비교

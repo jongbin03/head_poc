@@ -54,6 +54,39 @@ slack-all)
     --out_json "$OUT/eval_slack_all.json" 2>&1 | tee "$OUT/console_slack_all.log"
   ;;
 
+## ── Track A eval: "70B 자체 헤드" vs "8B 전이 헤드" knockout 비교 (2026-09-09) ──
+## 같은 모델·같은 slack 105쌍(--eval_split all), knockout 헤드 집합만 교체.
+## 09-08 모호성 판정: 70B가 저항하는가 vs 8B의 (틀린) 헤드를 껐던 것인가.
+## ⚠️ 70B 자체 헤드는 slack user_task로 탐색됨 → --eval_split all은 eval B에 누수.
+##    heldout(7쌍)도 같이 보되 표본이 얇음. A6000 단독, tmux, 각 ~2시간.
+
+trackA-eval-8bheads)
+  CUDA_VISIBLE_DEVICES=$A6000 python run_agentdojo_eval.py \
+    --model "$MODEL" --family llama --four_bit \
+    --tool_call_format agentdojo_default \
+    --heads_json results/2026-08-25_s6_llama8b/heads_agentdojo.json \
+    --suite slack --eval_split all --limit_pairs 200 \
+    --out_json "$OUT/eval_slack_all_8bheads.json" 2>&1 | tee "$OUT/console_slack_all_8bheads.log"
+  ;;
+
+trackA-eval-70bheads)
+  CUDA_VISIBLE_DEVICES=$A6000 python run_agentdojo_eval.py \
+    --model "$MODEL" --family llama --four_bit \
+    --tool_call_format agentdojo_default \
+    --heads_json "$OUT/heads_agentdojo.json" \
+    --suite slack --eval_split all --limit_pairs 200 \
+    --out_json "$OUT/eval_slack_all_70bheads.json" 2>&1 | tee "$OUT/console_slack_all_70bheads.log"
+  ;;
+
+trackA-eval-70bheads-heldout)
+  CUDA_VISIBLE_DEVICES=$A6000 python run_agentdojo_eval.py \
+    --model "$MODEL" --family llama --four_bit \
+    --tool_call_format agentdojo_default \
+    --heads_json "$OUT/heads_agentdojo.json" \
+    --suite slack --eval_split heldout --limit_pairs 50 \
+    --out_json "$OUT/eval_slack_heldout_70bheads.json" 2>&1 | tee "$OUT/console_slack_heldout_70bheads.log"
+  ;;
+
 slack-heldout-split)
   # A6000 단독 OOM 시: A6000(0)+4090(1) 분산. CUDA_VISIBLE_DEVICES 순서에 맞춰 max_memory 인덱스.
   CUDA_VISIBLE_DEVICES=1,2 python run_agentdojo_eval.py \
