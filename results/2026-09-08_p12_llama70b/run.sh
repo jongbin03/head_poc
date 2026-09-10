@@ -87,6 +87,38 @@ trackA-eval-70bheads-heldout)
     --out_json "$OUT/eval_slack_heldout_70bheads.json" 2>&1 | tee "$OUT/console_slack_heldout_70bheads.log"
   ;;
 
+## ── Track A eval, 2번째 공격 축: tool_knowledge (2026-09-10) ──────────
+## important_instructions 결과가 attack 하나뿐이라, 공격 문구를 바꿔 교차 확인.
+## 32B에서 tool_knowledge는 ASR ~2배 (baseline 8.77→14.5%, commit 764f99b), 성공은 slack 집중.
+## heldout 표본은 15쌍 그대로 — 단 공격이 강해 k0 성공이 늘어 knockout 신호가 더 잡힐 수 있음.
+
+trackA-eval-tk-8bheads)
+  CUDA_VISIBLE_DEVICES=$A6000 python run_agentdojo_eval.py \
+    --model "$MODEL" --family llama --four_bit --attack tool_knowledge \
+    --tool_call_format agentdojo_default \
+    --heads_json results/2026-08-25_s6_llama8b/heads_agentdojo.json \
+    --suite slack --eval_split all --limit_pairs 200 \
+    --out_json "$OUT/eval_slack_all_tk_8bheads.json" 2>&1 | tee "$OUT/console_slack_all_tk_8bheads.log"
+  ;;
+
+trackA-eval-tk-70bheads)
+  CUDA_VISIBLE_DEVICES=$A6000 python run_agentdojo_eval.py \
+    --model "$MODEL" --family llama --four_bit --attack tool_knowledge \
+    --tool_call_format agentdojo_default \
+    --heads_json "$OUT/heads_agentdojo.json" \
+    --suite slack --eval_split all --limit_pairs 200 \
+    --out_json "$OUT/eval_slack_all_tk_70bheads.json" 2>&1 | tee "$OUT/console_slack_all_tk_70bheads.log"
+  ;;
+
+trackA-eval-tk-70bheads-heldout)
+  CUDA_VISIBLE_DEVICES=$A6000 python run_agentdojo_eval.py \
+    --model "$MODEL" --family llama --four_bit --attack tool_knowledge \
+    --tool_call_format agentdojo_default \
+    --heads_json "$OUT/heads_agentdojo.json" \
+    --suite slack --eval_split heldout --limit_pairs 50 \
+    --out_json "$OUT/eval_slack_heldout_tk_70bheads.json" 2>&1 | tee "$OUT/console_slack_heldout_tk_70bheads.log"
+  ;;
+
 slack-heldout-split)
   # A6000 단독 OOM 시: A6000(0)+4090(1) 분산. CUDA_VISIBLE_DEVICES 순서에 맞춰 max_memory 인덱스.
   CUDA_VISIBLE_DEVICES=1,2 python run_agentdojo_eval.py \
