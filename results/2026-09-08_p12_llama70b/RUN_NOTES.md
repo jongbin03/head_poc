@@ -204,6 +204,21 @@ raw 생성에서는 재현 안 됨 — task-specific/미묘하거나, 당시 GPU
 - **backfire 잔존**: all105에서 3건 (user_task_5/inj3, 8/inj1, 9/inj1). 5/inj3·9/inj1은
   8B·70B 헤드셋 양쪽 공통 → 헤드 무관한 knockout 하 모델 불안정.
 
+### Eval 2번째 공격 축 — tool_knowledge (2026-09-10)
+
+같은 구성, `--attack tool_knowledge` (32B에서 ASR ~2배였던 더 강한 공격).
+
+| knockout 헤드 | 표본 | k0 sec | kN sec | 억제/backfire | net | kN utility | parse_ok |
+|---|---|---|---|---|---|---|---|
+| **8B 전이** | 102 | 0.402 (41) | **0.392** (40) | 3 / 2 | **−1 (≈0)** | 0.186 | 0.782 |
+| **70B 자체 (Track A)** | 103 | 0.398 (41) | **0.223** (23) | **18 / 0** | **−18 (ASR 44%↓)** | 0.204 | 0.772 |
+| 70B 자체, heldout | 15 | 0.733 (11) | **0.400** (6) | **5 / 0** | −5 | 0.333 (무손상) | 0.836 |
+
+- important_instructions보다 **더 깨끗**: 70B 자체 헤드 backfire **0** (all·heldout 둘 다;
+  important_instructions는 all에서 3). 더 강한 공격(k0 0.40 vs 0.28)이라 억제 신호도 큼.
+- **두 공격 다 동일 패턴**: 8B 전이 헤드 net≈0, 70B 자체 헤드 대폭 억제(34~44%), utility 무손상.
+  → 헤드가 특정 공격 문구가 아니라 **일반 injection 신호**를 담음.
+
 ### 판정
 
 09-08 "70B는 slack knockout에 저항한다(net 0, backfire)"는 **70B의 저항이 아니라
@@ -214,12 +229,13 @@ raw 생성에서는 재현 안 됨 — task-specific/미묘하거나, 당시 GPU
 **"knockout은 모델별 헤드 탐색이 필요하다 — 전이 헤드는 스케일이 안 된다"**.
 헤드 분리 가설 자체는 70B에서도 성립.
 
-**잔여 caveat**: (1) all105는 70B 자체 헤드에 누수(slack user_task로 탐색) — 단 heldout
+**잔여 caveat**: (1) all은 70B 자체 헤드에 누수(slack user_task로 탐색) — 단 heldout
 (누수 X)이 더 강한 효과라 누수가 결과를 만든 건 아님. (2) 70B nf4dq vs 8B bf16 양자화
-혼입(feedback §1.3) — 단 k0 동일이라 knockout delta엔 무영향. (3) slack·
-important_instructions만. (4) heldout n=15 (얇음).
+혼입(feedback §1.3) — 단 k0 동일이라 knockout delta엔 무영향. (3) slack만 (2개 공격은
+확인). (4) heldout n=15 (얇음).
 
 ### 재현 (`run.sh`)
 
 - `trackA-smoke` / `trackA` — 탐색 (수동 device_map)
-- `trackA-eval-8bheads` / `trackA-eval-70bheads` / `trackA-eval-70bheads-heldout` — eval 비교
+- `trackA-eval-{8bheads,70bheads,70bheads-heldout}` — important_instructions eval
+- `trackA-eval-tk-{8bheads,70bheads,70bheads-heldout}` — tool_knowledge eval
