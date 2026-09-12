@@ -4,12 +4,10 @@
 > 교차검증 — Qwen3-8B, Llama-70B"(`feedback-2026-09-06.md` §0)에 대응한 사이클의 결과.
 > 4차와 같은 톤 — 배경→결과 순, 표 중심, 슬라이드당 결론 한 줄.
 >
-> ⚠️ **이 문서는 초안이다.** S10-S13(2026-09-12 세션에서 시작한 실험)은 세션 진행 중
-> 작성됐다 — **남은 건 §S10의 70B tool_knowledge heldout 재평가 1건뿐**(A6000에서 실행
-> 중, 다음 세션 시작 시 `results/2026-09-12_p12_llama70b_headn80/eval_slack_heldout_tk.json`
-> 존재 여부로 완료 확인). 그 외 전부(4-3 important_instructions, 4-4 Qwen3-8B Track A/B
-> 양쪽 공격축)는 완료·수치 반영됨. `build_deck_5th.py`는 아직 없음 — 남은 수치까지
-> 확정된 뒤 4th 패턴을 본떠 작성.
+> ⚠️ **이 문서는 초안이다.** S3~S13 전부 2026-09-12 세션의 실험 결과가 반영·확정됨
+> (important_instructions·tool_knowledge 두 공격축, 70B head_n=80 + Qwen3-8B 전부 완료).
+> 남은 건 **수치 검증(발표 전 재확인) + `build_deck_5th.py` 작성**뿐 — 4th 패턴
+> (`docs/presentation/build_deck_4th.py`)을 본떠 만들 것.
 > **다음 세션은 `docs/status-2026-09-12.md`부터 읽을 것.**
 >
 > 수치 출처: `docs/status-2026-09-08.md`, `docs/status-2026-09-09.md`(§1~§4, 2026-09-12
@@ -178,6 +176,21 @@ slack held-out 35쌍 knockout.
   parse_ok 0.733(이전 0.78~0.85보다 낮음)도 같은 계열일 가능성 — 다음 사이클에서
   파싱 실패·utility 손실·suppressed의 3중 겹침을 정밀 확인할 것.
 
+**Knockout 재평가 결과 — tool_knowledge** (`eval_slack_heldout_tk.json`, 같은 60쌍)
+
+| 표본 | k0 sec | kN sec | 억제/backfire/persist | net | kN utility | parse_ok |
+|---|---|---|---|---|---|---|
+| 15쌍 (head_n=200 heldout, §S7 참고) | 0.733 | 0.400 | 5/0/— | −5 | 0.333(무손상) | — |
+| **60쌍 (head_n=80 heldout, 신규)** | 0.350 (21) | **0.217** (13) | **8 / 0 / 13** | **+8 (ASR 38%↓)** | **0.183(↑, 무손상)** | 0.747 |
+
+- **backfire 0 유지** — all105·heldout15·이번 heldout60까지 **3개 표본 연속** tool_
+  knowledge는 backfire가 한 건도 없다. 70B 자체 헤드에서 지속적으로 깨끗한 공격축.
+- **utility 손상 없음**(0.167→0.183, 오히려 상승) — §S10 위쪽의 important_instructions
+  utility 손실은 **그 공격에 특유했다**는 게 확정됨(원인이 이 공격축엔 재현 안 됨).
+- 억제율(suppressed/k0_sec)은 8/21=38%로 important_instructions의 9/15=60%보다 낮다 —
+  **tool_knowledge가 절대적으로 더 강한 공격**(k0_sec 0.35 vs 0.25)이라 persist(13건)가
+  많이 남지만, net은 두 공격 다 방어적으로 동일한 방향.
+
 ---
 
 ## S11. 실험④ 배경 — 세대 축(Qwen3-8B), lxt의 "첫 토큰 쏠림" 경고 선(先)진단
@@ -265,14 +278,12 @@ slack held-out 35쌍 knockout.
   남음) — 4차 발표 서술의 착오를 정정(§S8, `docs/status-2026-09-09.md` 2026-09-12 정정).
 - Qwen3-8B lxt "첫 토큰 쏠림" 경고 — 실재하나 D_inj 신호를 지우지 않음, 진단 통과.
 
-- 70B heldout 표본 확대(15→60쌍)에서도 판정 유지 — net 억제 +8(ASR 53%↓). 단 **utility
-  첫 손상 발견**(원인: suppressed case 일부에서 task 자체가 같이 무너짐, §S10).
+- 70B heldout 표본 확대(15→60쌍)에서도 판정 두 공격축 모두 유지 — important_instructions
+  net +8(ASR 53%↓, utility 첫 손상 발견 — 원인은 suppressed case 일부에서 task 자체가
+  같이 무너진 것으로 특정됨), tool_knowledge net +8(ASR 38%↓, backfire 0 유지, utility
+  무손상). 두 공격 다 표본이 4배로 커져도 방향은 그대로 방어적.
 - Qwen3-8B: important_instructions 8/8 전량 억제·backfire 0, tool_knowledge net +4
   (ASR 66%↓)·backfire 1 — 8B급 패턴이 세대 축에서도 재현.
-
-**진행 중 (다음 세션 시작 시 가장 먼저 확인)**
-
-- 70B tool_knowledge heldout(60쌍) 재평가 — A6000, 2026-09-12 야간 실행 중.
 
 **다음 사이클 후보**
 
