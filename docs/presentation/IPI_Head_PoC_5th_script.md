@@ -148,6 +148,11 @@ slack held-out 35쌍 knockout.
 | 200 (기존) | user_task 대부분 소진 | 15 |
 | **80 (신규)** | 7/20 | **48** |
 
+- **재현성**: head_n=200과 head_n=80 두 헤드 집합의 jaccard = **0.82**(20개 중 18개
+  일치) — 탐색 예시를 54개로 줄여도(vs 137쌍 중 149) 헤드가 거의 그대로 재현됨. 탐색
+  풀 축소 우려(§S9)는 기우였음.
+- 탐색 자체는 0 oom / 0 nan(54/54 성공, `results/2026-09-12_p12_llama70b_headn80/`).
+
 **[결과 대기]** — 확대된 heldout 48쌍으로 knockout 재평가(important_instructions +
 tool_knowledge) 진행 중. S6~S7의 판정(억제 우세, utility 무손상)이 더 큰 표본에서도
 유지되는지가 이 슬라이드의 결론.
