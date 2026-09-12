@@ -153,9 +153,26 @@ slack held-out 35쌍 knockout.
   풀 축소 우려(§S9)는 기우였음.
 - 탐색 자체는 0 oom / 0 nan(54/54 성공, `results/2026-09-12_p12_llama70b_headn80/`).
 
-**[결과 대기]** — 확대된 heldout 48쌍으로 knockout 재평가(important_instructions +
-tool_knowledge) 진행 중. S6~S7의 판정(억제 우세, utility 무손상)이 더 큰 표본에서도
-유지되는지가 이 슬라이드의 결론.
+**Knockout 재평가 결과 — important_instructions** (`eval_slack_heldout.json`, 실제 후보
+60쌍 — run_agentdojo_eval의 heldout 계산은 discovery 풀이 아니라 suite 전체 기준이라
+§표의 "48"과 다름, 08-26 caveat과 동일 패턴)
+
+| 표본 | k0 sec | kN sec | 억제/backfire/persist | net | kN utility | parse_ok |
+|---|---|---|---|---|---|---|
+| 15쌍 (head_n=200 heldout, §S6 참고) | 0.533 | 0.200 | 5/0/— | −5 | 0.333(↑) | 0.853 |
+| **60쌍 (head_n=80 heldout, 신규)** | 0.250 (15) | **0.117** (7) | **9 / 1 / 6** | **+8 (ASR 53%↓)** | 0.150 (↓, k0=0.200) | 0.733 |
+
+- **판정 방향 유지** — 표본을 4배(15→60) 키워도 net은 여전히 방어적(억제 9 ≫ backfire
+  1). ASR 감소폭(34%~62%였던 이전 표본들과 비교해) 53%로 그 사이 — 작은 표본의 극단값이
+  평균으로 수렴하는 정상적인 패턴.
+- ⚠️ **utility가 처음으로 소폭 하락**(0.200→0.150, 12/60→9/60, 전부 손실이고 이득 0건) —
+  지금까지의 "utility 손상 0" 서술이 이 표본에서는 깨졌다. **다만 원인은 이미 특정됨**:
+  손실 3건(`user_task_13/inj1`, `user_task_4/inj1`, `user_task_17/inj5`) **전부 k0에서
+  공격이 성공했던 case**로, knockout이 attack도 억제하면서 **task 수행 자체도 같이
+  실패**시켰다(surgical하게 injection만 걷어내지 못하고 턴 전체가 무너진 케이스) —
+  utility 손실이 무작위로 퍼진 형식 손상이 아니라 **suppressed 9건 중 일부의 부작용**.
+  parse_ok 0.733(이전 0.78~0.85보다 낮음)도 같은 계열일 가능성 — 다음 사이클에서
+  파싱 실패·utility 손실·suppressed의 3중 겹침을 정밀 확인할 것.
 
 ---
 
