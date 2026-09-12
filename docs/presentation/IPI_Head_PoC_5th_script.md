@@ -5,8 +5,12 @@
 > 4차와 같은 톤 — 배경→결과 순, 표 중심, 슬라이드당 결론 한 줄.
 >
 > ⚠️ **이 문서는 초안이다.** S10-S13(2026-09-12 세션에서 시작한 실험)은 세션 진행 중
-> 작성돼 **[결과 대기]** 표시가 있는 자리가 있다 — 실험이 끝나는 대로 이 세션에서 채운다.
-> `build_deck_5th.py`는 아직 없음 — 수치가 전부 확정된 뒤에 4th 패턴을 본떠 작성.
+> 작성됐다 — **남은 건 §S10의 70B tool_knowledge heldout 재평가 1건뿐**(A6000에서 실행
+> 중, 다음 세션 시작 시 `results/2026-09-12_p12_llama70b_headn80/eval_slack_heldout_tk.json`
+> 존재 여부로 완료 확인). 그 외 전부(4-3 important_instructions, 4-4 Qwen3-8B Track A/B
+> 양쪽 공격축)는 완료·수치 반영됨. `build_deck_5th.py`는 아직 없음 — 남은 수치까지
+> 확정된 뒤 4th 패턴을 본떠 작성.
+> **다음 세션은 `docs/status-2026-09-12.md`부터 읽을 것.**
 >
 > 수치 출처: `docs/status-2026-09-08.md`, `docs/status-2026-09-09.md`(§1~§4, 2026-09-12
 > 정정 포함), `results/2026-09-08_p12_llama70b/`(RUN_NOTES.md), `docs/feedback-2026-09-06.md`
@@ -261,13 +265,19 @@ slack held-out 35쌍 knockout.
   남음) — 4차 발표 서술의 착오를 정정(§S8, `docs/status-2026-09-09.md` 2026-09-12 정정).
 - Qwen3-8B lxt "첫 토큰 쏠림" 경고 — 실재하나 D_inj 신호를 지우지 않음, 진단 통과.
 
-**진행 중 (이 세션 안에 채울 것)**
+- 70B heldout 표본 확대(15→60쌍)에서도 판정 유지 — net 억제 +8(ASR 53%↓). 단 **utility
+  첫 손상 발견**(원인: suppressed case 일부에서 task 자체가 같이 무너짐, §S10).
+- Qwen3-8B: important_instructions 8/8 전량 억제·backfire 0, tool_knowledge net +4
+  (ASR 66%↓)·backfire 1 — 8B급 패턴이 세대 축에서도 재현.
 
-- head_n 80 재탐색 heldout 48쌍으로 knockout 재평가(§S10).
-- Qwen3-8B Track A/B(§S12).
+**진행 중 (다음 세션 시작 시 가장 먼저 확인)**
+
+- 70B tool_knowledge heldout(60쌍) 재평가 — A6000, 2026-09-12 야간 실행 중.
 
 **다음 사이클 후보**
 
 - Qwen2.5-32B 자체 헤드 nf4dq 재탐색(`docs/todo.md` §4-1) — fp4↔nf4dq 탐색 일관성,
   Qwen 쪽 "스케일업 반례"가 여전히 유효한지.
 - 70B k-sweep(topk 20→40→60) — 자체 헤드가 통함을 확인했으니 억제력 곡선.
+- **70B utility 손상 원인 정밀 확인**(§S10 caveat) — parse_ok 0.733 저하가 utility 손실
+  케이스와 겹치는지, suppressed 9건 중 3건에서만 나타나는 이유.

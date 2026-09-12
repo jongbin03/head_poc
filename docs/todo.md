@@ -18,8 +18,8 @@
 | P5 | (교수님 피드백) 키 그룹 2개 vs 데이터셋 모드 4개 문서 정비 | P4 결과로 서술이 또 바뀔 수 있어 그 뒤에 |
 | P3 | control head 내 internal-only vs external-only 채널 분기 검증 | **후순위 (2026-08-21 결정)**. 겹침 정도는 기존 결과에서 산출 완료(합성 한정 예비, plan-2026-08-26.md 2절). **정식 분석은 AgentDojo injection task 재라벨링(신설 P10)이 선행돼야 함** — 합성 데이터는 품질이 낮아 이 위에서 결론 내면 content-availability 교란이 곱해짐 |
 | P10 | **AgentDojo에 internal/external 채널 축 이식 — injection task 재라벨링** | **신설 (2026-08-21)**. P3의 선행 조건. P9의 1·2·4 항목이 끝난 뒤 다음 사이클. 설계는 plan-2026-08-26.md 2.6절 |
-| **P11** | lxt 미지원 아키텍처로 head 탐색 확장 (Mistral/DeepSeek 등) + **Qwen3-8B(세대 축)** | **신설 (2026-08-25)**. **4차 발표(2026-09-06) 후속으로 Qwen3-8B가 "다음주 태스크"로 승격 → [feedback-2026-09-06.md](feedback-2026-09-06.md) §1.** `--family qwen3` 배선됨(`29b81c9`), lxt first-token skew 경고 → `tools/diag_qwen3_relevance.py` 선행 |
-| **P12** | Llama family 내부 스케일 축 — 8B vs 70B(/405B) | **신설 (2026-08-26)**. **4차 발표(2026-09-06) 후속으로 "다음주 태스크" 승격 → [feedback-2026-09-06.md](feedback-2026-09-06.md) §1.** `--family llama` 코드 수정 0. P13 서버 재검증 선행. OOM 위험(아래 상세) |
+| ~~P11~~ | ~~lxt 미지원 아키텍처로 head 탐색 확장 (Mistral/DeepSeek 등) + **Qwen3-8B(세대 축)**~~ | **Qwen3-8B 부분 완료 (2026-09-12)**. `diag_qwen3_relevance.py` 진단 통과(position0 16.7% vs qwen2 0.5%, 단 data_inj span 비중 유지) → Track A/B(두 공격축) 완료, 8B급과 동일 패턴(전량 억제/net 방어적) 재현. 상세: [status-2026-09-12.md](status-2026-09-12.md) §3. Mistral/DeepSeek 확장은 미착수로 남음 |
+| **P12** | Llama family 내부 스케일 축 — 8B vs 70B(/405B) | **거의 완료 (2026-09-12)**. 70B Track A(수동 device_map) 성공 + 자체헤드 vs 8B전이헤드 대조로 "스케일업 반례"가 전이헤드 confound였음을 확정(status-2026-09-09.md §3) + head_n=80 재탐색으로 heldout 표본 15→60쌍 확대 재확인(status-2026-09-12.md §2, net 억제 유지·utility 첫 손상 발견). 남은 건 tool_knowledge 재평가 1건(진행 중, status-2026-09-12.md §0) |
 
 아래는 우선순위 순서대로 자세한 내용, 그 뒤에 보류 항목.
 자세한 대응 계획(특히 "키 그룹" 정의 재확인)은 `feedback-2026-07-29.md`,
