@@ -186,7 +186,25 @@ tool_knowledge) 진행 중. S6~S7의 판정(억제 우세, utility 무손상)이
   position 0은 애초에 그 합산에 안 들어간다.
 - **진단 통과(캐비엇과 함께)** — Track A/B 진행.
 
-**[결과 대기]** — Qwen3-8B Track A(헤드 탐색) + Track B(knockout 평가) 진행 중.
+**Track A 탐색 결과** (`results/2026-09-12_p11_qwen3_8b/`) — bf16, head_n=200, 4090 단독.
+
+| 항목 | 값 |
+|---|---|
+| n_examples_used | 103 / 143 (40 oom, 0 nan) |
+| head 위치 | layer **18–29** / 36 (≈ 50–80% 깊이) + layer 0 2개 |
+| 8B·70B 대조 | Llama-8B 38–47%, Llama-70B 35–44% — **Qwen3-8B가 뚜렷이 더 깊은 대역** |
+| slack eval heldout 풀(탐색 풀 내) | 24쌍 |
+
+- oom율 28%(40/143)는 8B/70B 탐색(0 oom)보다 높음 — Qwen3-8B가 같은 배치 크기(5)에서
+  attention 텐서가 더 무거운 것으로 추정(원인 미조사, 다음 사이클 후보).
+- **layer 0 헤드 2개(10%)** — S12의 position-0 쏠림과 무관하다고 단정할 수 없다(주의
+  caveat). 다만 layer 0 지배는 이 방법론 전반에서 반복 관측된 현상(`docs/todo.md` P4,
+  synthetic/InjecAgent/AgentDojo 3소스 교집합 5개가 전부 layer 0)이라 Qwen3만의 문제는
+  아님 — 그래도 쏠림 경고가 있던 모델이니 이 2개는 knockout 결과에서 특히 주시할 것.
+- 대다수 헤드(18개)는 layer 18–29에 몰려 있어 8B/70B와 같은 "중간층 집중" 패턴은
+  유지 — 절대 깊이 비율만 더 깊게 이동.
+
+**[결과 대기]** — Track B(knockout heldout eval) 진행 중.
 
 ---
 
