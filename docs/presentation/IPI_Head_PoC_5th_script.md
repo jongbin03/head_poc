@@ -204,7 +204,20 @@ tool_knowledge) 진행 중. S6~S7의 판정(억제 우세, utility 무손상)이
 - 대다수 헤드(18개)는 layer 18–29에 몰려 있어 8B/70B와 같은 "중간층 집중" 패턴은
   유지 — 절대 깊이 비율만 더 깊게 이동.
 
-**[결과 대기]** — Track B(knockout heldout eval) 진행 중.
+**Track B 결과 — important_instructions** (`results/2026-09-12_p11_qwen3_8b/eval_slack_heldout.json`)
+
+| 모델 | 표본 | k0 sec | kN sec | 억제/backfire/persist | kN utility | parse_ok |
+|---|---|---|---|---|---|---|
+| **Qwen3-8B (자체 헤드)** | slack heldout 35 | 0.229 (8) | **0.000** | **8 / 0 / 0** | 0.429(↑, 무손상) | 0.711 |
+
+- **첫 토큰 쏠림 경고에도 불구하고 8B급(Llama-8B/Qwen2.5-7B)과 동일한 "전량 억제,
+  backfire 0" 패턴** — layer 0 헤드 2개가 섞여 있었지만(§S12) knockout 효과를 해치지
+  않음. lxt 경고가 실재해도 우리 head 탐색(span group-sum)에는 실질적 영향이 없었다는
+  결론을 뒷받침.
+- utility 상승(0.314→0.429) → 모델 손상 아님, injection-following만 선택적 억제(Llama-70B
+  §S6~S7와 같은 패턴).
+
+**[결과 대기]** — tool_knowledge 공격축 교차확인 진행 중.
 
 ---
 
