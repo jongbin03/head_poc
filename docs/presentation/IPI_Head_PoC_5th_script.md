@@ -217,7 +217,19 @@ tool_knowledge) 진행 중. S6~S7의 판정(억제 우세, utility 무손상)이
 - utility 상승(0.314→0.429) → 모델 손상 아님, injection-following만 선택적 억제(Llama-70B
   §S6~S7와 같은 패턴).
 
-**[결과 대기]** — tool_knowledge 공격축 교차확인 진행 중.
+**Track B 결과 — tool_knowledge 교차확인** (`eval_slack_heldout_tk.json`)
+
+| 모델 | 표본 | k0 sec | kN sec | 억제/backfire/persist | kN utility |
+|---|---|---|---|---|---|
+| Qwen3-8B (자체 헤드) | slack heldout 35 | 0.171 (6) | **0.057** (2) | 5 / 1 / 1 | 0.400 (무손상) |
+
+- important_instructions만큼 깨끗하진 않다(backfire 1, persist 1) — 그래도 net 억제
+  +4(ASR 66%↓)로 방향은 일관. Llama-70B(§S6~S7)·Qwen-32B bf16(4차 발표 S11)에서도
+  tool_knowledge/일부 공격에서 산발적 backfire 1건이 반복 관측된 패턴과 같은 종류 —
+  "가끔 불완전 + 드문 backfire"는 모델·스케일과 무관한 knockout 자체의 일반적 잔여
+  거동으로 보임.
+- 두 공격 축 모두 net은 방어적(억제 > backfire) — Qwen3-8B에서도 세대 축 확장이 헤드
+  분리 가설을 깨지 않음.
 
 ---
 
