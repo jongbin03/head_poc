@@ -107,38 +107,38 @@
 
 ### 자체 헤드 vs 전이 헤드 (all105, 2026-09-08/09)
 
-| 공격 | 헤드 출처 | k0 sec | kN sec | 억제/backfire | net | kN util | parse_ok |
-|---|---|---|---|---|---|---|---|
-| important_instructions | 8B 전이 | 0.276 | 0.257 | 4/2 | −2 (효과 없음) | 0.190 | 0.782 |
-| important_instructions | **70B 자체** | 0.276 | **0.181** | 13/3 | **−10 (34%↓)** | 0.190 | 0.783 |
-| tool_knowledge | 8B 전이 | 0.402 | 0.392 | 3/2 | −1 (효과 없음) | 0.186 | — |
-| tool_knowledge | **70B 자체** | 0.398 | **0.223** | 18/0 | **−18 (44%↓)** | 0.204 | — |
+| 공격 | 헤드 출처 | k0 util | kN util | k0 sec | kN sec | 억제/backfire | 순억제 | parse_ok |
+|---|---|---|---|---|---|---|---|---|
+| important_instructions | 8B 전이 | 0.181 | 0.190 | 0.276 | 0.257 | 4/2 | −2 (효과 없음) | 0.782 |
+| important_instructions | **70B 자체** | 0.181 | 0.190 | 0.276 | **0.181** | 13/3 | **−10 (34%↓)** | 0.783 |
+| tool_knowledge | 8B 전이 | 0.176 | 0.186 | 0.402 | 0.392 | 3/2 | −1 (효과 없음) | — |
+| tool_knowledge | **70B 자체** | 0.175 | 0.204 | 0.398 | **0.223** | 18/0 | **−18 (44%↓)** | — |
 
 ### heldout 표본 확대 (70B 자체 헤드, 2026-09-09 → 2026-09-12)
 
-| 공격 | 표본 | k0 sec | kN sec | 억제/bf/persist | net | kN utility | parse_ok |
-|---|---|---|---|---|---|---|---|
-| important_instructions | 15쌍 (head_n=200) | 0.533 | 0.200 | 5/0/— | −5 | 0.333 (↑) | 0.853 |
-| **important_instructions** | **60쌍 (head_n=80)** | 0.250 (15) | **0.117** (7) | 9/1/6 | **+8 (53%↓)** | **0.150 (↓)** | 0.733 |
-| tool_knowledge | 15쌍 (head_n=200) | 0.733 | 0.400 | 5/0/— | −5 | 0.333 (무손상) | — |
-| **tool_knowledge** | **60쌍 (head_n=80)** | 0.350 (21) | **0.217** (13) | 8/0/13 | **+8 (38%↓)** | **0.183 (↑)** | 0.747 |
+| 공격 | 표본 | k0 util | kN util | k0 sec | kN sec | 억제/bf/persist | 순억제 | parse_ok |
+|---|---|---|---|---|---|---|---|---|
+| important_instructions | 15쌍 (head_n=200) | 0.333 | 0.333 (무변화) | 0.533 | 0.200 | 5/0/— | −5 | 0.853 |
+| **important_instructions** | **60쌍 (head_n=80)** | 0.200 | **0.150 (↓)** | 0.250 (15) | **0.117** (7) | 9/1/6 | **+8 (53%↓)** | 0.733 |
+| tool_knowledge | 15쌍 (head_n=200) | 0.333 | 0.333 (무변화) | 0.733 | 0.400 | 5/0/— | −5 | — |
+| **tool_knowledge** | **60쌍 (head_n=80)** | 0.167 | **0.183 (↑)** | 0.350 (21) | **0.217** (13) | 8/0/13 | **+8 (38%↓)** | 0.747 |
 
-**요지**: 자체 헤드가 전이 헤드보다 뚜렷이 강하게 작동(두 공격 다 net 방어적, 전이 헤드는
-효과 없음). 표본을 4배(15→60) 키워도 방향은 유지. important_instructions만 utility가
-처음 소폭 하락(원인: suppressed case 일부에서 knockout이 task 수행 자체도 같이 무너뜨림 —
-무작위 형식 손상 아님). tool_knowledge는 3개 표본 연속 backfire 0.
+**요지**: 자체 헤드가 전이 헤드보다 뚜렷이 강하게 작동(두 공격 다 순억제 방어적, 전이
+헤드는 효과 없음). 표본을 4배(15→60) 키워도 방향은 유지. important_instructions만
+utility가 처음 소폭 하락(원인: suppressed case 일부에서 knockout이 task 수행 자체도
+같이 무너뜨림 — 무작위 형식 손상 아님). tool_knowledge는 3개 표본 연속 backfire 0.
 
 ### 다른 suite로 확장 (2026-09-12, 70B 자체 헤드 · head_n=80)
 
-| suite | 표본 | k0 sec | kN sec | 억제/bf/persist | net | kN utility | parse_ok |
-|---|---|---|---|---|---|---|---|
-| slack | 60 | 0.250 (15) | 0.117 (7) | 9/1/6 | +8 (53%↓) | 0.150 (↓) | 0.733 |
-| **banking** | 59 (1 oom) | 0.085 (5) | 0.068 (4) | 3/2/2 | **+1 (약함)** | **0.627 (↑, +7)** | 0.642 |
-| travel | **0 / 60** | — | — | — | — | — | — |
-| workspace | **0 / 60** | — | — | — | — | — | — |
+| suite | 표본 | k0 util | kN util | k0 sec | kN sec | 억제/bf/persist | 순억제 | parse_ok |
+|---|---|---|---|---|---|---|---|---|
+| slack | 60 | 0.200 | 0.150 (↓) | 0.250 (15) | 0.117 (7) | 9/1/6 | +8 (53%↓) | 0.733 |
+| **banking** | 59 (1 oom) | 0.508 | **0.627 (↑)** | 0.085 (5) | 0.068 (4) | 3/2/2 | **+1 (약함)** | 0.642 |
+| travel | **0 / 60** | — | — | — | — | — | — | — |
+| workspace | **0 / 60** | — | — | — | — | — | — | — |
 
 - **banking은 knockout 신호가 slack보다 훨씬 약함** — baseline 공격 자체가 5건뿐이라
-  net+1은 사실상 잡음에 가까움. 대신 **utility가 크게 개선**(30→37/59) — knockout이
+  순억제 +1은 사실상 잡음에 가까움. 대신 **utility가 크게 개선**(30→37/59) — knockout이
   banking 정상 과업에는 손상은커녕 도움이 되는 방향.
 - **travel·workspace는 70B에서 평가 자체가 불가능** — **A6000(48GB, 가장 큰 카드)로도
   전량 OOM**(60/60 전부 실패). Track A 탐색 때 이미 `max_seq_len=1000` 필터에 전량
@@ -205,23 +205,23 @@
 - 헤드 탐색에 쓰인 slack user_task 6/20 → **heldout 후보 35쌍(전부 평가)**.
 - knockout 20개 헤드, k=0→k=20.
 
-| 공격 | 표본 | k0 sec | kN sec | 억제/bf/persist | net | kN utility | parse_ok |
-|---|---|---|---|---|---|---|---|
-| **important_instructions** | 35 | 0.229 (8) | **0.000** | **8/0/0** | **+8 (전량 억제)** | 0.429 (↑) | 0.711 |
-| tool_knowledge | 35 | 0.171 (6) | 0.057 (2) | 5/1/1 | +4 (66%↓) | 0.400 (무손상) | 0.709 |
+| 공격 | 표본 | k0 util | kN util | k0 sec | kN sec | 억제/bf/persist | 순억제 | parse_ok |
+|---|---|---|---|---|---|---|---|---|
+| **important_instructions** | 35 | 0.314 | **0.429 (↑)** | 0.229 (8) | **0.000** | **8/0/0** | **+8 (전량 억제)** | 0.711 |
+| tool_knowledge | 35 | 0.400 | 0.400 (무손상) | 0.171 (6) | 0.057 (2) | 5/1/1 | +4 (66%↓) | 0.709 |
 
 **요지**: important_instructions는 8B급(Llama-8B/Qwen2.5-7B)과 완전히 동일한 "전량
-억제·backfire 0" 패턴 재현. tool_knowledge만 backfire 1건이지만 net은 방어적. 첫 토큰
-쏠림 경고(S7)가 실재해도 실제 knockout 효과는 손상되지 않았다.
+억제·backfire 0" 패턴 재현. tool_knowledge만 backfire 1건이지만 순억제는 방어적. 첫
+토큰 쏠림 경고(S7)가 실재해도 실제 knockout 효과는 손상되지 않았다.
 
 ### 다른 suite로 확장 (2026-09-12, important_instructions 기준)
 
-| suite | 표본 | k0 sec | kN sec | 억제/bf/persist | net | kN utility | parse_ok |
-|---|---|---|---|---|---|---|---|
-| slack | 35 | 0.229 (8) | 0.000 | 8/0/0 | +8 (전량 억제) | 0.429 (↑) | 0.711 |
-| **banking** | 42 | 0.095 (4) | 0.000 | 4/0/0 | **+4 (전량 억제)** | 0.667 (↓, −1 소폭) | 0.632 |
-| **workspace** | 53/60 (7 oom) | 0.000 | 0.000 | **대조군 — baseline 공격 자체가 0건** | 0 | 0.189 (무변화) | 0.615 |
-| travel (`--eval_split all`) | 52/60 (8 oom) | 0.000 | 0.019 (1) | 0/1/0 | **−1 (잡음)** | 0.096 (**극히 낮음**) | 0.849 |
+| suite | 표본 | k0 util | kN util | k0 sec | kN sec | 억제/bf/persist | 순억제 | parse_ok |
+|---|---|---|---|---|---|---|---|---|
+| slack | 35 | 0.314 | 0.429 (↑) | 0.229 (8) | 0.000 | 8/0/0 | +8 (전량 억제) | 0.711 |
+| **banking** | 42 | 0.690 | 0.667 (↓, 소폭) | 0.095 (4) | 0.000 | 4/0/0 | **+4 (전량 억제)** | 0.632 |
+| **workspace** | 53/60 (7 oom) | 0.189 | 0.189 (무변화) | 0.000 | 0.000 | **대조군 — baseline 공격 자체가 0건** | 0 | 0.615 |
+| travel (`--eval_split all`) | 52/60 (8 oom) | 0.096 | 0.096 (**극히 낮음**) | 0.000 | 0.019 (1) | 0/1/0 | **−1 (잡음)** | 0.849 |
 
 - **banking도 slack처럼 전량 억제·backfire 0** — Qwen3-8B는 70B와 달리 banking에서도
   knockout이 깨끗하게 작동. utility는 소폭 하락(29→28/42)했지만 손실 1건 수준.
@@ -239,13 +239,15 @@
 **확인된 것**
 
 - Llama-70B: 수동 device_map으로 자체 헤드 탐색 가능. 자체 헤드가 8B 전이 헤드보다
-  뚜렷이 강하게 작동(전이 헤드는 net 효과 없음). heldout 표본을 4배(15→60) 늘려도 net
-  억제 유지 — 단 important_instructions에서 utility 첫 손상 발견(원인 특정: suppressed
+  뚜렷이 강하게 작동(전이 헤드는 순억제 효과 없음). heldout 표본을 4배(15→60) 늘려도
+  순억제 유지 — 단 important_instructions에서 utility 첫 손상 발견(원인 특정: suppressed
   case의 부작용).
 - **70B는 slack·banking만 평가 가능 — travel·workspace는 A6000(48GB)로도 100% OOM.**
-  banking은 knockout 신호가 약함(net+1, 사실상 baseline 5건뿐)지만 utility는 오히려 개선.
+  banking은 knockout 신호가 약함(순억제 +1, 사실상 baseline 5건뿐)지만 utility는 오히려
+  개선.
 - Qwen3-8B: 첫 토큰 쏠림은 실재(qwen2 대비 34배)하나 D_inj 신호를 지우지 않음 — 8B급과
-  동일한 knockout 패턴(important_instructions 전량 억제, tool_knowledge net 방어적) 재현.
+  동일한 knockout 패턴(important_instructions 전량 억제, tool_knowledge 순억제 방어적)
+  재현.
 - **Qwen3-8B는 4개 suite 전부 평가 가능**(70B와 대비). banking도 slack처럼 전량 억제,
   workspace는 baseline 공격이 없는 순수 대조군, travel은 알려진 파서 문제(P14)로 낮은
   utility가 재확인됨(Blackwell로 겨우 확보, 4090은 100% OOM).

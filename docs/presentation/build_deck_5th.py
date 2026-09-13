@@ -310,34 +310,37 @@ s = new_slide("03 · Llama-3.1-70B 평가", "결과 — 자체 vs 전이 헤드 
 para(textbox(s, M_L, Y_BODY - 0.12, M_W, 0.3),
      "자체 vs 전이 헤드 (slack all105, 09-08/09)", size=10.5, bold=True, color=BLUE, first=True)
 table(s, M_L, 2.10, M_W,
-      [["공격", "헤드 출처", "k0 sec", "kN sec", "억제/bf", "net"],
-       ["important_instructions", "8B 전이", "0.276", "0.257", "4/2", [B("−2", RED)]],
-       ["important_instructions", [B("70B 자체", BLUE)], "0.276", [B("0.181")], "13/3",
-        [B("−10 (34%↓)", BLUE)]],
-       ["tool_knowledge", "8B 전이", "0.402", "0.392", "3/2", [B("−1", RED)]],
-       ["tool_knowledge", [B("70B 자체", BLUE)], "0.398", [B("0.223")], "18/0",
-        [B("−18 (44%↓)", BLUE)]]],
-      col_w=[2.7, 1.8, 1.3, 1.3, 1.3, 2.0], row_h=0.34, head_h=0.32,
-      sizes=[9, 9, 9, 9, 9, 9], aligns=["l", "c", "r", "r", "c", "c"])
+      [["공격", "헤드 출처", "k0 util", "kN util", "k0 sec", "kN sec", "억제/bf", "순억제"],
+       ["important_instructions", "8B 전이", "0.181", "0.190", "0.276", "0.257", "4/2",
+        [B("−2", RED)]],
+       ["important_instructions", [B("70B 자체", BLUE)], "0.181", "0.190", "0.276",
+        [B("0.181")], "13/3", [B("−10 (34%↓)", BLUE)]],
+       ["tool_knowledge", "8B 전이", "0.176", "0.186", "0.402", "0.392", "3/2",
+        [B("−1", RED)]],
+       ["tool_knowledge", [B("70B 자체", BLUE)], "0.175", "0.204", "0.398",
+        [B("0.223")], "18/0", [B("−18 (44%↓)", BLUE)]]],
+      col_w=[2.15, 1.35, 0.95, 0.95, 0.95, 0.95, 1.05, 1.55], row_h=0.34, head_h=0.32,
+      sizes=[8.5, 8.5, 8.5, 8.5, 8.5, 8.5, 8.5, 8.5],
+      aligns=["l", "c", "r", "r", "r", "r", "c", "c"])
 
 para(textbox(s, M_L, 4.05, M_W, 0.3),
      "heldout 확대 + suite 확장 (70B 자체 헤드, head_n=80, 2026-09-12)",
      size=10.5, bold=True, color=BLUE, first=True)
 table(s, M_L, 4.40, M_W,
-      [["suite", "공격", "표본", "k0 sec", "kN sec", "억제/bf/pr", "net", "kN util"],
-       ["slack", "important_instr.", "60", "0.250", [B("0.117")], "9/1/6",
-        [B("+8 (53%↓)", BLUE)], [B("0.150 (↓)", RED)]],
-       ["slack", "tool_knowledge", "60", "0.350", [B("0.217")], "8/0/13",
-        [B("+8 (38%↓)", BLUE)], [B("0.183 (↑)", BLUE)]],
-       ["banking", "important_instr.", "59", "0.085", "0.068", "3/2/2",
-        [B("+1 (약함)")], [B("0.627 (↑)", BLUE)]],
-       [[B("travel", RED)], "—", [B("0/60", RED)], "—", "—",
-        [B("A6000 48G에서도 100% OOM", RED)], "—", "—"],
-       [[B("workspace", RED)], "—", [B("0/60", RED)], "—", "—",
-        [B("A6000 48G에서도 100% OOM", RED)], "—", "—"]],
-      col_w=[1.5, 1.9, 1.0, 1.15, 1.15, 1.85, 1.75, 1.63], row_h=0.36, head_h=0.34,
-      sizes=[8.5, 8.5, 8.5, 8.5, 8.5, 8.5, 8.5, 8.5],
-      aligns=["l", "l", "c", "r", "r", "c", "c", "r"])
+      [["suite", "공격", "표본", "k0 util", "kN util", "k0 sec", "kN sec", "억제/bf/pr", "순억제"],
+       ["slack", "important_instr.", "60", "0.200", [B("0.150 (↓)", RED)], "0.250",
+        [B("0.117")], "9/1/6", [B("+8 (53%↓)", BLUE)]],
+       ["slack", "tool_knowledge", "60", "0.167", [B("0.183 (↑)", BLUE)], "0.350",
+        [B("0.217")], "8/0/13", [B("+8 (38%↓)", BLUE)]],
+       ["banking", "important_instr.", "59", "0.508", [B("0.627 (↑)", BLUE)], "0.085",
+        "0.068", "3/2/2", [B("+1 (약함)")]],
+       [[B("travel", RED)], "—", [B("0/60", RED)], "—", "—", "—", "—",
+        [B("A6000 48G에서도 100% OOM", RED)], "—"],
+       [[B("workspace", RED)], "—", [B("0/60", RED)], "—", "—", "—", "—",
+        [B("A6000 48G에서도 100% OOM", RED)], "—"]],
+      col_w=[1.3, 1.7, 0.85, 0.95, 0.95, 0.95, 0.95, 1.7, 1.45], row_h=0.36, head_h=0.34,
+      sizes=[8, 8, 8, 8, 8, 8, 8, 8, 8],
+      aligns=["l", "l", "c", "r", "r", "r", "r", "c", "c"])
 
 # ================================================================ S7 Qwen3 진단
 s = new_slide("04 · Qwen3-8B 헤드 탐색", "레이어 0(첫 토큰) 쏠림 진단")
@@ -415,20 +418,20 @@ para(textbox(s, M_L, Y_BODY - 0.12, M_W, 0.3),
      "k=0→k=20", size=10, color=MUTED, first=True)
 
 table(s, M_L, 2.20, M_W,
-      [["suite", "공격", "표본", "k0 sec", "kN sec", "억제/bf/pr", "net", "kN util"],
-       ["slack", "important_instr.", "35", "0.229", [B("0.000", BLUE)], "8/0/0",
-        [B("+8 전량억제", BLUE)], [B("0.429 (↑)", BLUE)]],
-       ["slack", "tool_knowledge", "35", "0.171", [B("0.057")], "5/1/1",
-        [B("+4 (66%↓)", BLUE)], [B("0.400 무손상")]],
-       ["banking", "important_instr.", "42", "0.095", [B("0.000", BLUE)], "4/0/0",
-        [B("+4 전량억제", BLUE)], "0.667 (↓)"],
-       ["workspace", "important_instr.", "53/60", "0.000", "0.000",
-        [B("대조군(baseline 0)")], "0", "0.189 무변화"],
-       ["travel (all)", "important_instr.", "52/60", "0.000", [B("0.019", RED)], "0/1/0",
-        [B("−1 (잡음)", RED)], [B("0.096 (P14)", RED)]]],
-      col_w=[1.55, 1.85, 1.05, 1.1, 1.1, 1.75, 1.75, 1.78], row_h=0.44, head_h=0.36,
-      sizes=[8.5, 8.5, 8.5, 8.5, 8.5, 8.5, 8.5, 8.5],
-      aligns=["l", "l", "c", "r", "r", "c", "c", "r"])
+      [["suite", "공격", "표본", "k0 util", "kN util", "k0 sec", "kN sec", "억제/bf/pr", "순억제"],
+       ["slack", "important_instr.", "35", "0.314", [B("0.429 (↑)", BLUE)], "0.229",
+        [B("0.000", BLUE)], "8/0/0", [B("+8 전량억제", BLUE)]],
+       ["slack", "tool_knowledge", "35", "0.400", "0.400 무손상", "0.171",
+        [B("0.057")], "5/1/1", [B("+4 (66%↓)", BLUE)]],
+       ["banking", "important_instr.", "42", "0.690", "0.667 (↓)", "0.095",
+        [B("0.000", BLUE)], "4/0/0", [B("+4 전량억제", BLUE)]],
+       ["workspace", "important_instr.", "53/60", "0.189", "0.189 무변화", "0.000",
+        "0.000", [B("대조군(baseline 0)")], "0"],
+       ["travel (all)", "important_instr.", "52/60", "0.096", [B("0.096 (P14)", RED)],
+        "0.000", [B("0.019", RED)], "0/1/0", [B("−1 (잡음)", RED)]]],
+      col_w=[1.35, 1.6, 0.9, 0.95, 1.15, 0.95, 0.95, 1.65, 1.55], row_h=0.44, head_h=0.36,
+      sizes=[8, 8, 8, 8, 8, 8, 8, 8, 8],
+      aligns=["l", "l", "c", "r", "r", "r", "r", "c", "c"])
 
 card(s, M_L, 5.20, M_W, 1.55, CARD_HL)
 tf = textbox(s, 1.00, 5.38, 11.33, 1.25)
@@ -446,12 +449,12 @@ tf = textbox(s, 1.00, Y_BODY + 0.18, 11.33, 3.10)
 para(tf, "확인된 것", size=13.5, bold=True, color=BLUE, first=True)
 for sp in [
     [B("Llama-70B", INK), (": 수동 device_map으로 자체 헤드 탐색 가능. 자체 헤드가 8B "
-        "전이 헤드보다 뚜렷이 강하게 작동(전이 헤드는 net 효과 없음). heldout 표본 4배 "
-        "확대(15→60)에도 net 억제 유지 — important_instructions에서 utility 첫 손상 "
+        "전이 헤드보다 뚜렷이 강하게 작동(전이 헤드는 순억제 효과 없음). heldout 표본 4배 "
+        "확대(15→60)에도 순억제 유지 — important_instructions에서 utility 첫 손상 "
         "발견(원인 특정).", {})],
     [B("70B는 slack·banking만 평가 가능", RED),
      (" — travel·workspace는 A6000(48GB)로도 100% OOM. banking은 knockout 신호가 "
-      "약함(net+1)지만 utility는 오히려 개선.", {})],
+      "약함(순억제 +1)지만 utility는 오히려 개선.", {})],
     [B("Qwen3-8B", INK), (": 첫 토큰 쏠림 실재(qwen2 대비 34배)하나 D_inj 신호를 지우지 "
         "않음 — 8B급과 동일한 knockout 패턴 재현.", {})],
     [B("Qwen3-8B는 4개 suite 전부 평가 가능", BLUE),
