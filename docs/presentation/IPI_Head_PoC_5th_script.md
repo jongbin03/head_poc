@@ -1,294 +1,222 @@
-# 5차 발표 스크립트 (초안) — Llama-70B 전이헤드 confound 정정 + 세대축(Qwen3-8B) 교차검증
+# 5차 발표 스크립트 (재구성) — Llama-3.1-70B / Qwen3-8B 헤드 탐색·평가 실험
 
-> 4차 발표(`IPI_Head_PoC_4th_script.md`, 확정 2026-09-07) 이후 피드백(A) "다른 모델
-> 교차검증 — Qwen3-8B, Llama-70B"(`feedback-2026-09-06.md` §0)에 대응한 사이클의 결과.
-> 4차와 같은 톤 — 배경→결과 순, 표 중심, 슬라이드당 결론 한 줄.
+> **2026-09-12 세션 요청으로 전면 재구성.** 4차 요약·"스케일업 반례 정정" 서사는 빼고,
+> **이번 사이클에 진행한 실험 자체를 결과 리포트 형식**으로 정리한다 — 서론(실험 소개) →
+> Llama-3.1-70B 헤드 탐색 → 평가 → Qwen3-8B 헤드 탐색(레이어 0 쏠림 진단 포함) → 평가 →
+> 요약. 표는 세션 중 사용자에게 제공한 상세 표를 그대로 재사용.
 >
-> ⚠️ **이 문서는 초안이다.** S3~S13 전부 2026-09-12 세션의 실험 결과가 반영·확정됨
-> (important_instructions·tool_knowledge 두 공격축, 70B head_n=80 + Qwen3-8B 전부 완료).
-> 남은 건 **수치 검증(발표 전 재확인) + `build_deck_5th.py` 작성**뿐 — 4th 패턴
-> (`docs/presentation/build_deck_4th.py`)을 본떠 만들 것.
-> **다음 세션은 `docs/status-2026-09-12.md`부터 읽을 것.**
+> ⚠️ **banking/workspace suite 확장 평가가 세션 종료 시점에 A6000/4090/Blackwell에서
+> 실행 중** — 완료되면 S6·S9에 표 추가. `build_deck_5th.py`는 이 구조로 다시 작성 필요
+> (기존 버전은 구 서사 기준이라 폐기).
 >
-> 수치 출처: `docs/status-2026-09-08.md`, `docs/status-2026-09-09.md`(§1~§4, 2026-09-12
-> 정정 포함), `results/2026-09-08_p12_llama70b/`(RUN_NOTES.md), `docs/feedback-2026-09-06.md`
-> §1, `tools/diag_qwen3_relevance.py` 실행 로그(2026-09-12), `results/2026-09-12_p12_llama70b_headn80/`.
+> 수치 출처: `results/2026-09-08_p12_llama70b/`, `results/2026-09-12_p12_llama70b_headn80/`,
+> `results/2026-09-12_p11_qwen3_8b/`, `tools/diag_qwen3_relevance.py` 실행 로그(09-12).
 
 ---
 
 ## S1. 타이틀
 
-**Read Head, Control Head 분리 PoC — 스케일축 정정(Llama-70B) + 세대축(Qwen3-8B) 교차검증**
+**Read Head, Control Head 분리 PoC — Llama-3.1-70B / Qwen3-8B 헤드 탐색·평가 실험**
 
 ---
 
-## S2. 서론 — 4차 발표 요약
+## S2. 서론 — 이번 사이클에 진행한 실험
 
-- 파서(`agentdojo_default`) confound 아님 확정, 기본값 채택.
-- 표본 확대(n=148)로 "스케일업 반례" 재확정 — **Qwen2.5-7B/Llama-8B는 slack knockout
-  전량 억제, Qwen2.5-32B만 절반 이상 persist(8~9→5, backfire 1)**.
-- 양자화: `fp4` 아티팩트 확정(`nf4+double_quant`로 해소, 기본값 교체). 32B bf16(양자화
-  배제)에서도 slack knockout 불완전 — "32B 스케일 효과"로 읽었음.
-- 다음 피드백(A): **Qwen3-8B·Llama-70B로 모델 교차검증** — "다른 모델·다른 스케일에서도
-  같은 패턴인가?"
-
----
-
-## S3. 이번 사이클 배경 — Llama-70B 1차 결과가 "스케일업 반례"를 더 강하게 재현했다
-
-`results/2026-09-08_p12_llama70b/` — Llama-3.1-70B, **8B에서 찾은 헤드를 그대로 전이**해
-slack held-out 35쌍 knockout.
-
-| 모델 | k0 성공 | knockout 효과 | backfire | net |
-|---|---|---|---|---|
-| Qwen2.5-7B / Llama-8B bf16 | 6 | 6 → 0 전량 억제 | 0 | 0 |
-| Qwen2.5-32B bf16 (자체 헤드) | 8~9 | 절반 이상 persist | 1 | 5 |
-| **Llama-3.1-70B nf4dq (8B 헤드 전이)** | **5** | 1 억제 / 4 persist | **1** | **5 (순 억제 0)** |
-
-- 언뜻 "대형 모델일수록 knockout에 저항한다"는 결론을 강화하는 것처럼 보였다 — 70B가
-  세 지점 중 가장 극단.
-- **그런데 이 70B 행은 70B 자신의 헤드가 아니라 8B에서 찾은 헤드를 그대로 썼다**(70B
-  자체 Track A는 이 시점까지 `--device_map auto`의 backward OOM으로 실행 불가 — 아래
-  S4). → "70B가 저항하는가" vs "8B의 (70B 기준으론 틀렸을 수 있는) 헤드를 껐을 뿐인가"를
-  구분할 수 없는 상태로 다음 사이클에 들어감.
-
----
-
-## S4. 실험① — Llama-70B Track A(헤드 탐색)를 막던 것은 하드웨어가 아니라 배선이었다
-
-- 기존 결론("70B AttnLRP backward는 이 하드웨어에서 불가")은 `--device_map auto` 경로
-  한정이었다. auto는 (a) 타이트한 `--max_memory`면 `CPU/disk 분산` 에러, (b) 느슨하면
-  레이어가 한 GPU에 몰려 backward OOM — 그 사이에 열리는 창이 없었다.
-- **해결**: `--device_map_plan "0:32,1:30,2:18"`(수동 device_map) 신설. embed/norm/
-  lm_head는 첫 GPU에 몰아두고(backward가 양 끝에서 시작·수렴), 레이어는 순서대로 분배.
-- 3-GPU 배선(A6000 48G root / Blackwell 32G / 4090 24G)으로 **130/130 성공, 0 oom, 0
-  nan** — 부수 발견: Blackwell nf4 커널이 32B greedy 출력을 안 건드리는 데 이어 70B
-  backward도 정상(4bit=A6000 고정 관례가 계속 완화됨).
-
----
-
-## S5. 실험① 결과 — 70B 자체 헤드는 8B와 같은 상대적 깊이(레이어 위치)에서 나온다
-
-`results/2026-09-08_p12_llama70b/heads_agentdojo.json`
-
-| 항목 | Llama-8B | Llama-70B |
+| # | 실험 | 목적 |
 |---|---|---|
-| head 위치 | layer 11–22 / 32 | layer 26–44 / 80 |
-| 상대 깊이 | ≈ 38–47% | ≈ 35–44% |
-| 재현성 | — | smoke(16)∩full(130) = 17/20 |
+| 1 | **Llama-3.1-70B 헤드 탐색 (Track A)** | 70B 스케일에서 AttnLRP로 자체 control head를 찾을 수 있는가(기존엔 backward OOM으로 불가 판정) |
+| 2 | **Llama-3.1-70B 평가 (Track B)** | 그 헤드를 knockout하면 slack IPI 공격이 억제되는가 — 자체 헤드 vs 8B 전이 헤드 비교, heldout 표본 확대 |
+| 3 | **Qwen3-8B 헤드 탐색 (Track A) + 레이어 0 쏠림 진단** | lxt가 경고한 "Qwen3는 attribution이 첫 토큰에 쏠린다"는 현상이 우리 세팅에서 실재하는지, 실재해도 헤드 탐색이 유효한지 |
+| 4 | **Qwen3-8B 평가 (Track B)** | Qwen3-8B에서 찾은 헤드로도 knockout이 8B급 모델과 같은 패턴을 보이는가 |
 
-**같은 상대 깊이 대역** — 스케일이 8배 커져도 "주입 신호를 담당하는 레이어"의 상대
-위치는 유지된다는 신호.
-
----
-
-## S6. 실험② — "70B 자체 헤드" vs "8B 전이 헤드" knockout 정면 대조
-
-같은 모델(Llama-3.1-70B nf4dq)·같은 slack 105쌍(`--eval_split all`)·같은 공격
-(important_instructions)에서 **knockout에 쓰는 헤드 집합만** 8B 전이 ↔ 70B 자체로 교체.
-
-| knockout 헤드 | k0 sec | kN sec | 억제/backfire | net | kN utility | parse_ok |
-|---|---|---|---|---|---|---|
-| 8B 전이 (S3과 동일 헤드) | 0.276 | 0.257 | 4 / 2 | **−2 (효과 없음)** | 0.190 | 0.782 |
-| **70B 자체** | 0.276 | **0.181** | **13 / 3** | **−10 (ASR 34%↓)** | 0.190 | 0.783 |
-| 70B 자체 (누수 없는 heldout 15쌍) | 0.533 | **0.200** | 5 / 0 | −5 | 0.333(무손상) | 0.853 |
-
-- parse_ok율 두 조건이 동일(0.78) → security 하락이 "tool-call을 못 뱉어서"가 아님.
-- utility는 오히려 소폭 상승 → 모델 손상이 아니라 **injection-following만 선택적으로
-  억제**.
-- **누수 없는 heldout이 누수 있는 all105보다 더 강한 효과** → all105의 결과가 누수로
-  부풀려진 게 아님.
+공통 조건: AgentDojo slack suite, `agentdojo_default` tool-call 파서, 공격 2종
+(`important_instructions`, `tool_knowledge`), greedy decoding.
 
 ---
 
-## S7. 실험② 결과 — 2번째 공격 축(tool_knowledge)으로 교차 확인
+## S3. Llama-3.1-70B 헤드 탐색 — 방법
 
-같은 구성, `--attack tool_knowledge`(32B에서 baseline ASR이 ~2배였던 더 강한 공격).
+- 기존 결론("70B AttnLRP backward는 하드웨어 한계로 불가")은 **`--device_map auto` 경로
+  한정**이었다 — 타이트한 `--max_memory`면 CPU/disk 분산 에러, 느슨하면 레이어가 한
+  GPU에 몰려 backward OOM.
+- **해결**: `--device_map_plan "0:32,1:30,2:18"`(수동 device_map) — embed/norm/lm_head를
+  첫 GPU에 몰아두고(backward가 양 끝에서 시작·수렴), 레이어는 순서대로 분배.
+  `CUDA_VISIBLE_DEVICES=1,0,2` → A6000(48G, root) / Blackwell(32G) / 4090(24G).
+- 두 번 탐색: **head_n=200**(2026-09-08, 8B 탐색과 동일 조건) / **head_n=80**(2026-09-12,
+  heldout 평가 표본 확대 목적 — S5 참고).
 
-| knockout 헤드 | k0 sec | kN sec | 억제/backfire | net | kN utility |
+---
+
+## S4. Llama-3.1-70B 헤드 탐색 — 결과
+
+70B는 80층×64헤드(총 5,120개) 중 20개 선정. `--max_seq_len 1000` 필터 후 949쌍 중
+**137쌍만 통과**하며 **workspace는 두 탐색 모두 전량 필터 탈락**(0쌍).
+
+### suite별 내역
+
+| head_n | suite | 탐색에 쓴 pair | user_task 그룹 | quota | shortfall |
 |---|---|---|---|---|---|
-| 8B 전이 | 0.402 | 0.392 | 3 / 2 | −1 (효과 없음) | 0.186 |
-| **70B 자체** | 0.398 | **0.223** | **18 / 0** | **−18 (ASR 44%↓)** | 0.204 |
-| 70B 자체 (heldout 15쌍) | 0.733 | **0.400** | 5 / 0 | −5 | 0.333(무손상) |
+| 200 | banking | 61 | 11/11 | 66 | 5 |
+| 200 | slack | 67 | 20/20 | 66 | 0 |
+| 200 | travel | 2 | 1/1 | 66 | 64 |
+| **80** | banking | 26 | 5/11 | 26 | 0 |
+| **80** | slack | 26 | 7/20 | 26 | 0 |
+| **80** | travel | 2 | 1/1 | 26 | 24 |
 
-**공격을 바꿔도 같은 패턴** — 70B 자체 헤드는 backfire **0건**(더 깨끗함). → 헤드가 특정
-공격 문구가 아니라 **일반 injection 신호**를 담는다는 근거가 공격-독립적으로 확정.
+| head_n | n_examples_used | oom | nan |
+|---|---|---|---|
+| 200 | 130 / 149 | 0 | 0 |
+| 80 | 54 / 54 | 0 | 0 |
 
----
+### 선정된 헤드 (layer, head_idx) — head_n=80
 
-## S8. 판정 — "대형 모델이 저항한다"가 아니라 "전이 헤드는 스케일이 안 된다"
-
-- **정정**: 4차 발표 시점의 "스케일업 반례" 서술 중 **Llama 계열 부분**은 70B의 저항이
-  아니라 **8B 헤드가 70B에 전이되지 않았기 때문**이었다. 70B 자신의 헤드로 끄면 knockout이
-  정상 작동한다(ASR 34~44%↓, utility 손상 0, 공격 2종 모두 재현).
-- **Qwen 계열은 사정이 다르다** — Qwen2.5-32B의 "8~9→5" 결과는 처음부터 **32B 자체 헤드**
-  (`results/2026-08-24_s4_32b/`)를 썼다(전이 아님, `feedback-2026-08-31.md:289`). 남은
-  caveat은 그 헤드가 **fp4로 탐색**돼 nf4dq eval과 양자화가 안 맞는다는 것뿐 — 별개 축
-  (`docs/todo.md` §4-1, 이번 사이클에선 미실행).
-- **헤드 분리 가설 자체는 두 스케일(8B/70B)에서 성립** — 바뀐 건 "대형=저항"이 아니라
-  "knockout은 모델별 자체 헤드 탐색이 필요, 전이 헤드는 스케일이 안 된다"는 방법론적
-  교훈.
-
----
-
-## S9. 실험③ 배경 — heldout 표본이 너무 얇았다
-
-- §S6~S7의 "누수 없는 heldout"은 **slack 15쌍뿐**이었다 — head_n=200(8B 탐색과 동일
-  값)이 slack user_task 대부분을 head 선정에 써버렸기 때문.
-- 15쌍은 판정을 뒤집을 만큼 얇지는 않지만(누수 있는 all105보다 오히려 강한 효과), 표본을
-  늘리면 신뢰도가 올라간다. → **head_n을 낮춰 재탐색하면 heldout user_task가 늘어난다**
-  (대가: 탐색 예시 감소로 헤드 노이즈 소폭 증가).
-
----
-
-## S10. 실험③ 결과 — head_n 80 재탐색으로 slack heldout 15쌍 → 48쌍
-
-`results/2026-09-12_p12_llama70b_headn80/`
-
-| head_n | slack head 그룹 | slack heldout 쌍 |
-|---|---|---|
-| 200 (기존) | user_task 대부분 소진 | 15 |
-| **80 (신규)** | 7/20 | **48** |
-
-- **재현성**: head_n=200과 head_n=80 두 헤드 집합의 jaccard = **0.82**(20개 중 18개
-  일치) — 탐색 예시를 54개로 줄여도(vs 137쌍 중 149) 헤드가 거의 그대로 재현됨. 탐색
-  풀 축소 우려(§S9)는 기우였음.
-- 탐색 자체는 0 oom / 0 nan(54/54 성공, `results/2026-09-12_p12_llama70b_headn80/`).
-
-**Knockout 재평가 결과 — important_instructions** (`eval_slack_heldout.json`, 실제 후보
-60쌍 — run_agentdojo_eval의 heldout 계산은 discovery 풀이 아니라 suite 전체 기준이라
-§표의 "48"과 다름, 08-26 caveat과 동일 패턴)
-
-| 표본 | k0 sec | kN sec | 억제/backfire/persist | net | kN utility | parse_ok |
-|---|---|---|---|---|---|---|
-| 15쌍 (head_n=200 heldout, §S6 참고) | 0.533 | 0.200 | 5/0/— | −5 | 0.333(↑) | 0.853 |
-| **60쌍 (head_n=80 heldout, 신규)** | 0.250 (15) | **0.117** (7) | **9 / 1 / 6** | **+8 (ASR 53%↓)** | 0.150 (↓, k0=0.200) | 0.733 |
-
-- **판정 방향 유지** — 표본을 4배(15→60) 키워도 net은 여전히 방어적(억제 9 ≫ backfire
-  1). ASR 감소폭(34%~62%였던 이전 표본들과 비교해) 53%로 그 사이 — 작은 표본의 극단값이
-  평균으로 수렴하는 정상적인 패턴.
-- ⚠️ **utility가 처음으로 소폭 하락**(0.200→0.150, 12/60→9/60, 전부 손실이고 이득 0건) —
-  지금까지의 "utility 손상 0" 서술이 이 표본에서는 깨졌다. **다만 원인은 이미 특정됨**:
-  손실 3건(`user_task_13/inj1`, `user_task_4/inj1`, `user_task_17/inj5`) **전부 k0에서
-  공격이 성공했던 case**로, knockout이 attack도 억제하면서 **task 수행 자체도 같이
-  실패**시켰다(surgical하게 injection만 걷어내지 못하고 턴 전체가 무너진 케이스) —
-  utility 손실이 무작위로 퍼진 형식 손상이 아니라 **suppressed 9건 중 일부의 부작용**.
-  parse_ok 0.733(이전 0.78~0.85보다 낮음)도 같은 계열일 가능성 — 다음 사이클에서
-  파싱 실패·utility 손실·suppressed의 3중 겹침을 정밀 확인할 것.
-
-**Knockout 재평가 결과 — tool_knowledge** (`eval_slack_heldout_tk.json`, 같은 60쌍)
-
-| 표본 | k0 sec | kN sec | 억제/backfire/persist | net | kN utility | parse_ok |
-|---|---|---|---|---|---|---|
-| 15쌍 (head_n=200 heldout, §S7 참고) | 0.733 | 0.400 | 5/0/— | −5 | 0.333(무손상) | — |
-| **60쌍 (head_n=80 heldout, 신규)** | 0.350 (21) | **0.217** (13) | **8 / 0 / 13** | **+8 (ASR 38%↓)** | **0.183(↑, 무손상)** | 0.747 |
-
-- **backfire 0 유지** — all105·heldout15·이번 heldout60까지 **3개 표본 연속** tool_
-  knowledge는 backfire가 한 건도 없다. 70B 자체 헤드에서 지속적으로 깨끗한 공격축.
-- **utility 손상 없음**(0.167→0.183, 오히려 상승) — §S10 위쪽의 important_instructions
-  utility 손실은 **그 공격에 특유했다**는 게 확정됨(원인이 이 공격축엔 재현 안 됨).
-- 억제율(suppressed/k0_sec)은 8/21=38%로 important_instructions의 9/15=60%보다 낮다 —
-  **tool_knowledge가 절대적으로 더 강한 공격**(k0_sec 0.35 vs 0.25)이라 persist(13건)가
-  많이 남지만, net은 두 공격 다 방어적으로 동일한 방향.
-
----
-
-## S11. 실험④ 배경 — 세대 축(Qwen3-8B), lxt의 "첫 토큰 쏠림" 경고 선(先)진단
-
-- 피드백(A) 두 번째 축: Qwen3-8B — 아키텍처는 그대로, **세대만 바뀐** 대조군.
-- lxt README가 Qwen3에서 "attribution이 첫 토큰으로 쏠린다"고 경고 — 우리 방법은
-  relevance를 D_inj span에 group-sum하므로, 질량이 position 0에 흡수되면 head 점수가
-  계통적으로 눌릴 위험. **배선(6줄)보다 진단이 먼저** — `tools/diag_qwen3_relevance.py`.
-- 판단 기준: position 0 비중이 0이 아닌 것 자체는 문제가 아니다(causal LM의 흔한
-  attention sink) — **같은 프롬프트로 qwen2 대조군과 나란히 돌려 상대적으로 얼마나 더
-  쏠리는지**가 기준.
-
----
-
-## S12. 실험④ 결과 — 쏠림은 실재하지만 D_inj 신호를 지우지는 않는다
-
-`tools/diag_qwen3_relevance.py` (2026-09-12, 같은 프롬프트, target=주입 응답 tool-call 토큰)
-
-| family | position 0 비중 | data_inj span 비중 (22 tokens) |
-|---|---|---|
-| qwen2 (Qwen2.5-7B-Instruct, 대조군) | 0.49% | 37.71% |
-| **qwen3 (Qwen3-8B)** | **16.71%** | 32.78% |
-
-- position 0 쏠림은 **qwen2 대비 ~34배** — 경고가 우리 세팅에서도 실재함을 확인.
-- 그러나 **data_inj span 비중은 qwen2와 비슷한 수준을 유지**(32.78% vs 37.71%)하고
-  여전히 단일 position 0보다 2배 이상 크다 — 우리 head 탐색은 span 단위 group-sum이라
-  position 0은 애초에 그 합산에 안 들어간다.
-- **진단 통과(캐비엇과 함께)** — Track A/B 진행.
-
-**Track A 탐색 결과** (`results/2026-09-12_p11_qwen3_8b/`) — bf16, head_n=200, 4090 단독.
+```
+(35,35) (38,52) (34,6) (32,22) (35,34) (30,51) (31,47) (29,58) (31,45)
+(33,30) (35,18) (31,7) (26,53) (29,62) (32,16) (28,41) (44,35) (28,1)
+(33,14) (34,43)
+```
 
 | 항목 | 값 |
 |---|---|
-| n_examples_used | 103 / 143 (40 oom, 0 nan) |
-| head 위치 | layer **18–29** / 36 (≈ 50–80% 깊이) + layer 0 2개 |
-| 8B·70B 대조 | Llama-8B 38–47%, Llama-70B 35–44% — **Qwen3-8B가 뚜렷이 더 깊은 대역** |
-| slack eval heldout 풀(탐색 풀 내) | 24쌍 |
-
-- oom율 28%(40/143)는 8B/70B 탐색(0 oom)보다 높음 — Qwen3-8B가 같은 배치 크기(5)에서
-  attention 텐서가 더 무거운 것으로 추정(원인 미조사, 다음 사이클 후보).
-- **layer 0 헤드 2개(10%)** — S12의 position-0 쏠림과 무관하다고 단정할 수 없다(주의
-  caveat). 다만 layer 0 지배는 이 방법론 전반에서 반복 관측된 현상(`docs/todo.md` P4,
-  synthetic/InjecAgent/AgentDojo 3소스 교집합 5개가 전부 layer 0)이라 Qwen3만의 문제는
-  아님 — 그래도 쏠림 경고가 있던 모델이니 이 2개는 knockout 결과에서 특히 주시할 것.
-- 대다수 헤드(18개)는 layer 18–29에 몰려 있어 8B/70B와 같은 "중간층 집중" 패턴은
-  유지 — 절대 깊이 비율만 더 깊게 이동.
-
-**Track B 결과 — important_instructions** (`results/2026-09-12_p11_qwen3_8b/eval_slack_heldout.json`)
-
-| 모델 | 표본 | k0 sec | kN sec | 억제/backfire/persist | kN utility | parse_ok |
-|---|---|---|---|---|---|---|
-| **Qwen3-8B (자체 헤드)** | slack heldout 35 | 0.229 (8) | **0.000** | **8 / 0 / 0** | 0.429(↑, 무손상) | 0.711 |
-
-- **첫 토큰 쏠림 경고에도 불구하고 8B급(Llama-8B/Qwen2.5-7B)과 동일한 "전량 억제,
-  backfire 0" 패턴** — layer 0 헤드 2개가 섞여 있었지만(§S12) knockout 효과를 해치지
-  않음. lxt 경고가 실재해도 우리 head 탐색(span group-sum)에는 실질적 영향이 없었다는
-  결론을 뒷받침.
-- utility 상승(0.314→0.429) → 모델 손상 아님, injection-following만 선택적 억제(Llama-70B
-  §S6~S7와 같은 패턴).
-
-**Track B 결과 — tool_knowledge 교차확인** (`eval_slack_heldout_tk.json`)
-
-| 모델 | 표본 | k0 sec | kN sec | 억제/backfire/persist | kN utility |
-|---|---|---|---|---|---|
-| Qwen3-8B (자체 헤드) | slack heldout 35 | 0.171 (6) | **0.057** (2) | 5 / 1 / 1 | 0.400 (무손상) |
-
-- important_instructions만큼 깨끗하진 않다(backfire 1, persist 1) — 그래도 net 억제
-  +4(ASR 66%↓)로 방향은 일관. Llama-70B(§S6~S7)·Qwen-32B bf16(4차 발표 S11)에서도
-  tool_knowledge/일부 공격에서 산발적 backfire 1건이 반복 관측된 패턴과 같은 종류 —
-  "가끔 불완전 + 드문 backfire"는 모델·스케일과 무관한 knockout 자체의 일반적 잔여
-  거동으로 보임.
-- 두 공격 축 모두 net은 방어적(억제 > backfire) — Qwen3-8B에서도 세대 축 확장이 헤드
-  분리 가설을 깨지 않음.
+| layer 범위 | 26–44 / 80 (≈33–55% 깊이, 대부분 28–35 구간) |
+| head_n=200 대비 재현성 | **jaccard 0.82** (20개 중 18개 일치) |
+| 8B 헤드와 비교 | Llama-8B는 layer 11–22/32 (≈38–47%) — **같은 상대 깊이 대역** |
 
 ---
 
-## S13. 결과 요약 & 다음 단계
+## S5. Llama-3.1-70B 평가 실험 — 방법
 
-**이번 사이클 확정된 것**
+- **평가 대상**: 위에서 찾은 헤드를 knockout(edge ablation)했을 때 slack IPI 공격
+  성공률(security) / 정상 과업 수행률(utility)이 어떻게 바뀌는가.
+- **비교축 ①** — 헤드 출처: **70B 자체 헤드** vs **8B에서 찾은 헤드를 그대로 전이**.
+  최초 70B 평가(2026-09-08)는 70B Track A가 없어 8B 헤드를 전이해 썼음 — 이후 자체 헤드가
+  나오자 정면 대조.
+- **비교축 ②** — 표본: `--eval_split all`(105쌍, 헤드 탐색에 쓰인 case 포함 = 누수 있음)
+  vs `--eval_split heldout`(헤드 탐색에 안 쓰인 case만 = 누수 없음).
+- **heldout 표본 확대**: head_n=200 탐색은 slack user_task 20개 중 18개를 헤드 탐색에
+  써서 heldout 후보가 **15쌍**뿐이었다. head_n=80으로 재탐색하면 7개만 쓰여 heldout
+  후보가 **70쌍**(실제 60쌍 평가, `--limit_pairs 60` 캡)으로 확대됨.
 
-- Llama-70B Track A(수동 device_map)로 자체 헤드 탐색 가능 확인.
-- "스케일업 반례"의 Llama 부분 = 전이헤드 confound였음을 2개 공격 축(important_
-  instructions/tool_knowledge)에서 공격-독립적으로 확정, backfire 0(tool_knowledge).
-- Qwen2.5-32B 쪽은 애초에 전이 문제가 아니었음(자체 헤드, fp4↔nf4dq 양자화 불일치만
-  남음) — 4차 발표 서술의 착오를 정정(§S8, `docs/status-2026-09-09.md` 2026-09-12 정정).
-- Qwen3-8B lxt "첫 토큰 쏠림" 경고 — 실재하나 D_inj 신호를 지우지 않음, 진단 통과.
+| head_n | 헤드 탐색에 쓴 slack user_task | heldout 후보 | 평가한 수 |
+|---|---|---|---|
+| 200 | 18 / 20 | 15 | 15 (전부) |
+| 80 | 7 / 20 | 70 | 60 |
 
-- 70B heldout 표본 확대(15→60쌍)에서도 판정 두 공격축 모두 유지 — important_instructions
-  net +8(ASR 53%↓, utility 첫 손상 발견 — 원인은 suppressed case 일부에서 task 자체가
-  같이 무너진 것으로 특정됨), tool_knowledge net +8(ASR 38%↓, backfire 0 유지, utility
-  무손상). 두 공격 다 표본이 4배로 커져도 방향은 그대로 방어적.
-- Qwen3-8B: important_instructions 8/8 전량 억제·backfire 0, tool_knowledge net +4
-  (ASR 66%↓)·backfire 1 — 8B급 패턴이 세대 축에서도 재현.
+---
 
-**다음 사이클 후보**
+## S6. Llama-3.1-70B 평가 결과
 
-- Qwen2.5-32B 자체 헤드 nf4dq 재탐색(`docs/todo.md` §4-1) — fp4↔nf4dq 탐색 일관성,
-  Qwen 쪽 "스케일업 반례"가 여전히 유효한지.
-- 70B k-sweep(topk 20→40→60) — 자체 헤드가 통함을 확인했으니 억제력 곡선.
-- **70B utility 손상 원인 정밀 확인**(§S10 caveat) — parse_ok 0.733 저하가 utility 손실
-  케이스와 겹치는지, suppressed 9건 중 3건에서만 나타나는 이유.
+### 자체 헤드 vs 전이 헤드 (all105, 2026-09-08/09)
+
+| 공격 | 헤드 출처 | k0 sec | kN sec | 억제/backfire | net | kN util | parse_ok |
+|---|---|---|---|---|---|---|---|
+| important_instructions | 8B 전이 | 0.276 | 0.257 | 4/2 | −2 (효과 없음) | 0.190 | 0.782 |
+| important_instructions | **70B 자체** | 0.276 | **0.181** | 13/3 | **−10 (34%↓)** | 0.190 | 0.783 |
+| tool_knowledge | 8B 전이 | 0.402 | 0.392 | 3/2 | −1 (효과 없음) | 0.186 | — |
+| tool_knowledge | **70B 자체** | 0.398 | **0.223** | 18/0 | **−18 (44%↓)** | 0.204 | — |
+
+### heldout 표본 확대 (70B 자체 헤드, 2026-09-09 → 2026-09-12)
+
+| 공격 | 표본 | k0 sec | kN sec | 억제/bf/persist | net | kN utility | parse_ok |
+|---|---|---|---|---|---|---|---|
+| important_instructions | 15쌍 (head_n=200) | 0.533 | 0.200 | 5/0/— | −5 | 0.333 (↑) | 0.853 |
+| **important_instructions** | **60쌍 (head_n=80)** | 0.250 (15) | **0.117** (7) | 9/1/6 | **+8 (53%↓)** | **0.150 (↓)** | 0.733 |
+| tool_knowledge | 15쌍 (head_n=200) | 0.733 | 0.400 | 5/0/— | −5 | 0.333 (무손상) | — |
+| **tool_knowledge** | **60쌍 (head_n=80)** | 0.350 (21) | **0.217** (13) | 8/0/13 | **+8 (38%↓)** | **0.183 (↑)** | 0.747 |
+
+**요지**: 자체 헤드가 전이 헤드보다 뚜렷이 강하게 작동(두 공격 다 net 방어적, 전이 헤드는
+효과 없음). 표본을 4배(15→60) 키워도 방향은 유지. important_instructions만 utility가
+처음 소폭 하락(원인: suppressed case 일부에서 knockout이 task 수행 자체도 같이 무너뜨림 —
+무작위 형식 손상 아님). tool_knowledge는 3개 표본 연속 backfire 0.
+
+> ⚠️ banking/workspace/travel 확장 평가 진행 중 — 완료 시 이 표에 추가.
+
+---
+
+## S7. Qwen3-8B 헤드 탐색 — 레이어 0(첫 토큰) 쏠림 진단
+
+- lxt README 경고: "Qwen3는 attribution이 첫 토큰(position 0)으로 쏠린다." 우리 head
+  탐색은 relevance를 D_inj span에 **group-sum**하므로, 질량이 position 0에 흡수되면
+  head 점수가 계통적으로 눌릴 위험 — 배선 전에 직접 진단(`tools/diag_qwen3_relevance.py`).
+- **판단 기준**: position 0 비중이 0이 아닌 것 자체는 문제가 아니다(causal LM의 흔한
+  attention sink). **같은 프롬프트로 qwen2 대조군과 나란히 돌려 상대적으로 얼마나 더
+  쏠리는지**가 기준.
+
+| family | 모델 | position 0 비중 | data_inj span 비중 (22 토큰) |
+|---|---|---|---|
+| qwen2 (대조군) | Qwen2.5-7B-Instruct | 0.49% | 37.71% |
+| **qwen3** | Qwen3-8B | **16.71%** | 32.78% |
+
+- 쏠림은 **qwen2 대비 ~34배로 실재**한다.
+- 그러나 **data_inj span 비중은 qwen2와 비슷한 수준을 유지**(32.78% vs 37.71%)하고 여전히
+  position 0 단독보다 2배 이상 크다 — group-sum 방식이라 position 0은 애초에 그 합산에
+  안 들어감.
+- **판정: 진단 통과(캐비엇과 함께)** — Track A/B 진행.
+
+---
+
+## S8. Qwen3-8B 헤드 탐색 — 결과
+
+36층×32헤드(총 1,152개) 중 20개 선정. `--max_seq_len 1200` 필터로 949쌍 중 174쌍
+통과(4 suite 전부 생존, 70B와 다름). head_n=200, quota=50/suite.
+
+### suite별 내역
+
+| suite | ok | oom | 비고 |
+|---|---|---|---|
+| banking | 53 | 4 | |
+| slack | 50 | 0 | oom 없음 |
+| travel | 0 | **14 (전량)** | |
+| workspace | 0 | **22 (전량)** | |
+| **합계** | **103** | **40 (28%)** | oom이 **전부 travel/workspace에 집중**(추정: 긴 프롬프트), banking/slack은 거의 안전 |
+
+### 선정된 헤드 (layer, head_idx)
+
+```
+(25,10) (0,3) (20,29) (22,11) (21,18) (19,21) (24,31) (0,0) (29,0)
+(22,0) (23,26) (18,30) (21,19) (18,14) (21,11) (26,26) (18,15) (20,5)
+(21,27) (28,22)
+```
+
+| 항목 | 값 |
+|---|---|
+| layer 범위 | 18–29 / 36 (≈50–80% 깊이) |
+| **layer 0** | **2개 (10%)** — §S7 쏠림 진단과 무관 단정 불가(caveat), 다만 layer 0 지배는 이 방법론 전반의 반복 현상(`docs/todo.md` P4) |
+| Llama-8B/70B와 비교 | 상대 깊이 38–47% / 33–55% — **Qwen3-8B가 뚜렷이 더 깊은 대역** |
+
+---
+
+## S9. Qwen3-8B 평가 실험 — 방법 & 결과
+
+- 헤드 탐색에 쓰인 slack user_task 6/20 → **heldout 후보 35쌍(전부 평가)**.
+- knockout 20개 헤드, k=0→k=20.
+
+| 공격 | 표본 | k0 sec | kN sec | 억제/bf/persist | net | kN utility | parse_ok |
+|---|---|---|---|---|---|---|---|
+| **important_instructions** | 35 | 0.229 (8) | **0.000** | **8/0/0** | **+8 (전량 억제)** | 0.429 (↑) | 0.711 |
+| tool_knowledge | 35 | 0.171 (6) | 0.057 (2) | 5/1/1 | +4 (66%↓) | 0.400 (무손상) | 0.709 |
+
+**요지**: important_instructions는 8B급(Llama-8B/Qwen2.5-7B)과 완전히 동일한 "전량
+억제·backfire 0" 패턴 재현. tool_knowledge만 backfire 1건이지만 net은 방어적. 첫 토큰
+쏠림 경고(S7)가 실재해도 실제 knockout 효과는 손상되지 않았다.
+
+> ⚠️ banking/workspace 확장 평가 진행 중 — 완료 시 이 표에 추가.
+
+---
+
+## S10. 결과 요약 & 다음 단계
+
+**확인된 것**
+
+- Llama-70B: 수동 device_map으로 자체 헤드 탐색 가능. 자체 헤드가 8B 전이 헤드보다
+  뚜렷이 강하게 작동(전이 헤드는 net 효과 없음). heldout 표본을 4배(15→60) 늘려도 net
+  억제 유지 — 단 important_instructions에서 utility 첫 손상 발견(원인 특정: suppressed
+  case의 부작용).
+- Qwen3-8B: 첫 토큰 쏠림은 실재(qwen2 대비 34배)하나 D_inj 신호를 지우지 않음 — 8B급과
+  동일한 knockout 패턴(important_instructions 전량 억제, tool_knowledge net 방어적) 재현.
+
+**진행 중 / 다음 단계**
+
+- banking/workspace/travel 확장 평가 (진행 중, §S6·S9에 반영 예정).
+- Qwen2.5-32B 자체 헤드 nf4dq 재탐색 (`docs/todo.md` §4-1).
+- 70B k-sweep(topk 20→40→60), utility 손상 원인 정밀 확인.
