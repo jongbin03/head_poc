@@ -5,9 +5,8 @@
 > Llama-3.1-70B 헤드 탐색 → 평가 → Qwen3-8B 헤드 탐색(레이어 0 쏠림 진단 포함) → 평가 →
 > 요약. 표는 세션 중 사용자에게 제공한 상세 표를 그대로 재사용.
 >
-> ⚠️ **banking/workspace suite 확장 평가가 세션 종료 시점에 A6000/4090/Blackwell에서
-> 실행 중** — 완료되면 S6·S9에 표 추가. `build_deck_5th.py`는 이 구조로 다시 작성 필요
-> (기존 버전은 구 서사 기준이라 폐기).
+> ✅ **모든 suite 확장 평가 완료** — 4개 suite(banking/slack/travel/workspace) 전부
+> 시도, S6·S9에 반영 완료. `build_deck_5th.py` 이 구조로 재작성 완료.
 >
 > 수치 출처: `results/2026-09-08_p12_llama70b/`, `results/2026-09-12_p12_llama70b_headn80/`,
 > `results/2026-09-12_p11_qwen3_8b/`, `tools/diag_qwen3_relevance.py` 실행 로그(09-12).
@@ -129,7 +128,22 @@
 처음 소폭 하락(원인: suppressed case 일부에서 knockout이 task 수행 자체도 같이 무너뜨림 —
 무작위 형식 손상 아님). tool_knowledge는 3개 표본 연속 backfire 0.
 
-> ⚠️ banking/workspace/travel 확장 평가 진행 중 — 완료 시 이 표에 추가.
+### 다른 suite로 확장 (2026-09-12, 70B 자체 헤드 · head_n=80)
+
+| suite | 표본 | k0 sec | kN sec | 억제/bf/persist | net | kN utility | parse_ok |
+|---|---|---|---|---|---|---|---|
+| slack | 60 | 0.250 (15) | 0.117 (7) | 9/1/6 | +8 (53%↓) | 0.150 (↓) | 0.733 |
+| **banking** | 59 (1 oom) | 0.085 (5) | 0.068 (4) | 3/2/2 | **+1 (약함)** | **0.627 (↑, +7)** | 0.642 |
+| travel | **0 / 60** | — | — | — | — | — | — |
+| workspace | **0 / 60** | — | — | — | — | — | — |
+
+- **banking은 knockout 신호가 slack보다 훨씬 약함** — baseline 공격 자체가 5건뿐이라
+  net+1은 사실상 잡음에 가까움. 대신 **utility가 크게 개선**(30→37/59) — knockout이
+  banking 정상 과업에는 손상은커녕 도움이 되는 방향.
+- **travel·workspace는 70B에서 평가 자체가 불가능** — **A6000(48GB, 가장 큰 카드)로도
+  전량 OOM**(60/60 전부 실패). Track A 탐색 때 이미 `max_seq_len=1000` 필터에 전량
+  걸러졌던 것(§S4)과 같은 맥락 — 70B forward+8턴 생성이 이 suite들의 프롬프트 길이를
+  이 하드웨어에서 감당 못 함.
 
 ---
 
@@ -200,7 +214,23 @@
 억제·backfire 0" 패턴 재현. tool_knowledge만 backfire 1건이지만 net은 방어적. 첫 토큰
 쏠림 경고(S7)가 실재해도 실제 knockout 효과는 손상되지 않았다.
 
-> ⚠️ banking/workspace 확장 평가 진행 중 — 완료 시 이 표에 추가.
+### 다른 suite로 확장 (2026-09-12, important_instructions 기준)
+
+| suite | 표본 | k0 sec | kN sec | 억제/bf/persist | net | kN utility | parse_ok |
+|---|---|---|---|---|---|---|---|
+| slack | 35 | 0.229 (8) | 0.000 | 8/0/0 | +8 (전량 억제) | 0.429 (↑) | 0.711 |
+| **banking** | 42 | 0.095 (4) | 0.000 | 4/0/0 | **+4 (전량 억제)** | 0.667 (↓, −1 소폭) | 0.632 |
+| **workspace** | 53/60 (7 oom) | 0.000 | 0.000 | **대조군 — baseline 공격 자체가 0건** | 0 | 0.189 (무변화) | 0.615 |
+| travel (`--eval_split all`) | 52/60 (8 oom) | 0.000 | 0.019 (1) | 0/1/0 | **−1 (잡음)** | 0.096 (**극히 낮음**) | 0.849 |
+
+- **banking도 slack처럼 전량 억제·backfire 0** — Qwen3-8B는 70B와 달리 banking에서도
+  knockout이 깨끗하게 작동. utility는 소폭 하락(29→28/42)했지만 손실 1건 수준.
+- **workspace는 baseline 공격 성공이 아예 없어 순수 대조군** — knockout이 정상 과업에
+  영향 없음을 재확인(utility 무변화).
+- **travel은 4090에서 100% OOM → Blackwell(32GB)로 재시도해 52/60 확보.** k0_util이
+  0.096으로 극히 낮은 건 `docs/todo.md` P14(멀티콜 체이닝 파서 미지원)가 예측한 그대로 —
+  이 suite 자체가 구조적으로 낮은 신뢰도. 유일한 backfire 1건도 baseline이 0이라는 점에서
+  통계적 잡음에 가까움.
 
 ---
 
@@ -212,11 +242,16 @@
   뚜렷이 강하게 작동(전이 헤드는 net 효과 없음). heldout 표본을 4배(15→60) 늘려도 net
   억제 유지 — 단 important_instructions에서 utility 첫 손상 발견(원인 특정: suppressed
   case의 부작용).
+- **70B는 slack·banking만 평가 가능 — travel·workspace는 A6000(48GB)로도 100% OOM.**
+  banking은 knockout 신호가 약함(net+1, 사실상 baseline 5건뿐)지만 utility는 오히려 개선.
 - Qwen3-8B: 첫 토큰 쏠림은 실재(qwen2 대비 34배)하나 D_inj 신호를 지우지 않음 — 8B급과
   동일한 knockout 패턴(important_instructions 전량 억제, tool_knowledge net 방어적) 재현.
+- **Qwen3-8B는 4개 suite 전부 평가 가능**(70B와 대비). banking도 slack처럼 전량 억제,
+  workspace는 baseline 공격이 없는 순수 대조군, travel은 알려진 파서 문제(P14)로 낮은
+  utility가 재확인됨(Blackwell로 겨우 확보, 4090은 100% OOM).
 
-**진행 중 / 다음 단계**
+**다음 단계**
 
-- banking/workspace/travel 확장 평가 (진행 중, §S6·S9에 반영 예정).
 - Qwen2.5-32B 자체 헤드 nf4dq 재탐색 (`docs/todo.md` §4-1).
 - 70B k-sweep(topk 20→40→60), utility 손상 원인 정밀 확인.
+- 70B travel/workspace OOM 근본 해결(2-GPU 분산 등) — 지금은 evaluation 자체가 안 됨.
